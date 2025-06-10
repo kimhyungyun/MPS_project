@@ -13,8 +13,8 @@ export const menuData: MenuItem[] = [
   {
     title: "MPS 회원 광장",
     submenu: [
-      { title: "정회원 캠프 안내", href: "/mpspain/mpschamp" },
       { title: "정회원 가입 신청", href: "/mpspain/mpschamp/application" },
+      { title: "정회원 캠프 안내", href: "/mpspain/mpschamp" },
       { title: "문의하기", href: "/mpspain/mpschamp/questionroom" },
       
     ],

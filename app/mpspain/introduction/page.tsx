@@ -62,7 +62,7 @@ export default function ProfileIntro() {
       </div>
 
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-800 mb-12 text-center">MPS 연구회 소개</h1>
+        <h1 className="text-3xl font-bold text-gray-800 mb-12 text-center">MPS 연구회 강사진 소개</h1>
         
         <div className="space-y-6">
           {/* 문대원 원장 프로필 */}

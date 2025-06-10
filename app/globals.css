@@ -31,3 +31,8 @@ body {
   color: var(--foreground);
   font-family: var(--font-geist-sans), Pretendard, sans-serif;
 }
+
+/* global.css 또는 Tailwind @layer utilities 내부 */
+/* .btn {
+  @apply px-3 py-1 text-sm border rounded text-gray-700 hover:bg-gray-100 transition-all;
+} */
