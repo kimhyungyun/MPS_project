@@ -2,35 +2,52 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
-
-interface Notice {
-  id: number;
-  label: string;
-  title: string;
-  desc: string;
-  content: string;
-  date: string;
-  isImportant: boolean;
-  attachments?: { name: string; url: string }[];
-}
+import { noticeService, Notice } from '@/app/services/noticeService';
 
 // 🔧 날짜 포맷 변환 함수
-const formatDate = (raw: string) => {
-  const year = raw.slice(0, 4);
-  const month = raw.slice(4, 6);
-  const day = raw.slice(7, 9);
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
   return `${year}.${month}.${day}`;
 };
 
 const MpsChamp = () => {
   const router = useRouter();
   const [notices, setNotices] = useState<Notice[]>([]);
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const savedNotices = JSON.parse(localStorage.getItem('notices') || '[]');
-    setNotices(savedNotices);
-  }, []);
+    const fetchData = async () => {
+      try {
+        // Check user authentication
+        const userData = JSON.parse(localStorage.getItem('user') || '{}');
+        setUser(userData);
+
+        if (!userData) {
+          router.push('/form/login');
+          return;
+        }
+
+        // Fetch notices from API
+        const fetchedNotices = await noticeService.getNotices();
+        setNotices(fetchedNotices);
+      } catch (error) {
+        console.error('Error fetching notices:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [router]);
+
+  // If user is not authenticated, don't render the page
+  if (!user) {
+    return null;
+  }
 
   // 중요 → 날짜순 정렬
   const sortedNotices = [...notices].sort((a, b) => {
@@ -45,8 +62,16 @@ const MpsChamp = () => {
   };
 
   const handleCreateNotice = () => {
+    if (user.mb_level < 8) {
+      alert('관리자만 공지사항을 작성할 수 있습니다.');
+      return;
+    }
     router.push('/mpspain/mpschamp/create');
   };
+
+  if (loading) {
+    return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
+  }
 
   return (
     <section className="w-full px-4 lg:px-24 py-12 bg-gray-100 mt-10">
@@ -68,12 +93,14 @@ const MpsChamp = () => {
           </svg>
           <span className="text-2xl font-bold text-gray-800">공지사항</span>
         </div>
-        <button
-          onClick={handleCreateNotice}
-          className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
-        >
-          글쓰기
-        </button>
+        {user.mb_level >= 8 && (
+          <button
+            onClick={handleCreateNotice}
+            className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+          >
+            글쓰기
+          </button>
+        )}
       </div>
     
       <div className="bg-white rounded-xl shadow-md p-6">
@@ -82,7 +109,7 @@ const MpsChamp = () => {
           <div className="col-span-1 text-center text-sm font-semibold text-gray-600">번호</div>
           <div className="col-span-7 text-center text-sm font-semibold text-gray-600">제목</div>
           <div className="col-span-2 text-center text-sm font-semibold text-gray-600">작성일</div>
-          <div className="col-span-2 text-center text-sm font-semibold text-gray-600">조회</div>
+          <div className="col-span-2 text-center text-sm font-semibold text-gray-600">작성자</div>
         </div>
 
         {sortedNotices.length === 0 ? (
@@ -101,8 +128,8 @@ const MpsChamp = () => {
                 <div className="col-span-7 text-left">
                   <div className="flex items-center gap-2">
                     {item.isImportant && (
-                      <span className="text-xs text-white px-2 py-0.5 rounded-full bg-red-500">
-                        공지
+                      <span className="px-2 py-1 text-xs font-medium text-red-600 bg-red-100 rounded">
+                        중요
                       </span>
                     )}
                     <span className="text-gray-800">{item.title}</span>
@@ -117,7 +144,7 @@ const MpsChamp = () => {
                   {formatDate(item.date)}
                 </div>
                 <div className="col-span-2 text-center text-sm text-gray-500">
-                  0
+                  {item.user?.mb_name || '관리자'}
                 </div>
               </div>
             ))}

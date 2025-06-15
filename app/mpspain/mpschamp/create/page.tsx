@@ -1,11 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import TextAlign from '@tiptap/extension-text-align';
+import { noticeService } from '@/app/services/noticeService';
+import axios from 'axios';
 
 interface NoticeForm {
   title: string;
@@ -26,6 +28,37 @@ const CreateNotice = () => {
     image: null,
     attachments: [],
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    try {
+      const userData = JSON.parse(localStorage.getItem('user') || '{}');
+      console.log('User data from localStorage:', userData);
+      
+      if (!userData || !userData.mb_id || !userData.mb_level) {
+        console.error('Invalid user data:', userData);
+        alert('사용자 정보를 찾을 수 없습니다. 다시 로그인해주세요.');
+        router.push('/form/login');
+        return;
+      }
+
+      // Convert mb_level to number
+      userData.mb_level = Number(userData.mb_level);
+      
+      if (userData.mb_level < 8) {
+        alert('관리자만 공지사항을 작성할 수 있습니다.');
+        router.push('/mpspain/mpschamp');
+        return;
+      }
+
+      setUser(userData);
+    } catch (error) {
+      console.error('Error parsing user data:', error);
+      alert('사용자 정보를 불러오는 중 오류가 발생했습니다. 다시 로그인해주세요.');
+      router.push('/form/login');
+    }
+  }, [router]);
 
   // Tiptap editor
   const editor = useEditor({
@@ -37,41 +70,69 @@ const CreateNotice = () => {
     onUpdate: ({ editor }) => {
       setForm(prev => ({ ...prev, content: editor.getHTML() }));
     },
+    editorProps: {
+      attributes: {
+        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none',
+      },
+    },
+    immediatelyRender: false,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Create new notice object
-    const newNotice = {
-      id: Date.now(), // Use timestamp as temporary ID
-      label: "공지",
+    if (!form.title.trim()) {
+      alert('제목을 입력해주세요.');
+      return;
+    }
+
+    if (!form.content.trim()) {
+      alert('내용을 입력해주세요.');
+      return;
+    }
+
+    if (!user || !user.mb_id || !user.mb_level || user.mb_level < 8) {
+      alert('관리자만 공지사항을 작성할 수 있습니다.');
+      router.push('/mpspain/mpschamp');
+      return;
+    }
+
+    console.log('Submitting form with user:', user);
+    console.log('Form data:', {
       title: form.title,
       content: form.content,
-      date: new Date().toLocaleDateString('ko-KR', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-      }).replace(/\. /g, '.').replace('.', ''),
       isImportant: form.isImportant,
-      image: form.image ? URL.createObjectURL(form.image) : null,
-      attachments: form.attachments.map(file => ({
-        name: file.name,
-        url: URL.createObjectURL(file)
-      }))
-    };
+      writerId: Number(user.mb_id)
+    });
 
-    // Get existing notices from localStorage
-    const existingNotices = JSON.parse(localStorage.getItem('notices') || '[]');
-    
-    // Add new notice to the beginning of the array
-    const updatedNotices = [newNotice, ...existingNotices];
-    
-    // Save to localStorage
-    localStorage.setItem('notices', JSON.stringify(updatedNotices));
+    setIsSubmitting(true);
 
-    // Navigate back to the list
-    router.push('/mpspain/mpschamp');
+    try {
+      await noticeService.createNotice({
+        title: form.title,
+        content: form.content,
+        is_important: form.isImportant
+      });
+
+      router.push('/mpspain/mpschamp');
+    } catch (error) {
+      console.error('Error creating notice:', error);
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 401) {
+          alert('로그인이 필요합니다.');
+          router.push('/form/login');
+        } else if (error.response?.status === 400) {
+          console.error('Validation error:', error.response.data);
+          alert(error.response.data.message || '입력 데이터가 올바르지 않습니다. 다시 확인해주세요.');
+        } else {
+          alert(error.message || '공지사항 작성 중 오류가 발생했습니다.');
+        }
+      } else {
+        alert(error instanceof Error ? error.message : '공지사항 작성 중 오류가 발생했습니다.');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -117,7 +178,6 @@ const CreateNotice = () => {
               본문
             </label>
             <div className="space-y-4">
-            {/* <Toolbar editor={editor} /> */}
               <div className="bg-white rounded-xl border border-gray-200 p-2 min-h-[200px]">
                 <EditorContent editor={editor} />
               </div>
@@ -346,9 +406,10 @@ const CreateNotice = () => {
               </button>
               <button
                 type="submit"
+                disabled={isSubmitting}
                 className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 font-medium shadow-sm hover:shadow-md"
               >
-                작성하기
+                {isSubmitting ? '저장 중...' : '저장'}
               </button>
             </div>
           </div>

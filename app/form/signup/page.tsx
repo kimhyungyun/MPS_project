@@ -2,177 +2,324 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import axios from 'axios';
 
 export default function SignupForm() {
   const [formData, setFormData] = useState({
-    id: '',
-    password: '',
-    name: '',
-    email: '',
-    phoneNumber: '',
-    nickname: ''
+    mb_id: '',
+    mb_password: '',
+    mb_name: '',
+    mb_nick: '',
+    mb_email: '',
+    mb_hp: '',
+    mb_sex: '',
+    mb_birth: '',
+    mb_addr1: '',
+    mb_addr2: '',
   });
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
+    // 에러 메시지 초기화
+    setError('');
+  };
+
+  const validateForm = () => {
+    if (!formData.mb_id) {
+      setError('아이디를 입력해주세요.');
+      return false;
+    }
+    if (formData.mb_id.length < 4 || formData.mb_id.length > 20) {
+      setError('아이디는 4~20자 사이여야 합니다.');
+      return false;
+    }
+    if (!formData.mb_password) {
+      setError('비밀번호를 입력해주세요.');
+      return false;
+    }
+    if (formData.mb_password.length < 6 || formData.mb_password.length > 20) {
+      setError('비밀번호는 6~20자 사이여야 합니다.');
+      return false;
+    }
+    if (!formData.mb_name) {
+      setError('이름을 입력해주세요.');
+      return false;
+    }
+    if (!formData.mb_nick) {
+      setError('닉네임을 입력해주세요.');
+      return false;
+    }
+    if (!formData.mb_email) {
+      setError('이메일을 입력해주세요.');
+      return false;
+    }
+    if (!formData.mb_email.includes('@')) {
+      setError('올바른 이메일 형식이 아닙니다.');
+      return false;
+    }
+    return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setIsLoading(true);
+
+    if (!validateForm()) {
+      setIsLoading(false);
+      return;
+    }
 
     try {
-      const response = await fetch('/api/auth/signup', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-
-      if (!response.ok) {
-        throw new Error('회원가입에 실패했습니다.');
+      const response = await axios.post('http://localhost:3001/api/auth/signup', formData);
+      
+      if (response.data.success) {
+        alert(response.data.message);
+        router.push('/form/login');
       }
-
-      router.push('/form/login');
-    } catch (err) {
-      setError('회원가입에 실패했습니다. 다시 시도해주세요.');
+    } catch (err: any) {
+      console.error('Signup error:', err);
+      if (err.response?.data?.message) {
+        setError(err.response.data.message);
+      } else if (err.response?.status === 404) {
+        setError('서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요.');
+      } else if (err.response?.status === 409) {
+        setError('이미 사용 중인 아이디입니다.');
+      } else if (err.response?.status === 500) {
+        setError('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+      } else {
+        setError('회원가입에 실패했습니다. 입력한 정보를 확인해주세요.');
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
-      <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md">
-        <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-slate-800 mb-2">회원가입</h2>
-          <p className="text-slate-600">필수 정보를 입력해주세요</p>
-        </div>
+    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          회원가입
+        </h2>
+      </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="id" className="block text-sm font-medium text-slate-700 mb-1">
-                아이디
-              </label>
-              <input
-                id="id"
-                name="id"
-                type="text"
-                required
-                className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition duration-200"
-                placeholder="아이디를 입력하세요"
-                value={formData.id}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-1">
-                비밀번호
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition duration-200"
-                placeholder="••••••••"
-                value={formData.password}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium text-slate-700 mb-1">
-                이름
-              </label>
-              <input
-                id="name"
-                name="name"
-                type="text"
-                required
-                className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition duration-200"
-                placeholder="이름을 입력하세요"
-                value={formData.name}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-1">
-                이메일
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                required
-                className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition duration-200"
-                placeholder="이메일을 입력하세요"
-                value={formData.email}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="phoneNumber" className="block text-sm font-medium text-slate-700 mb-1">
-                연락처
-              </label>
-              <input
-                id="phoneNumber"
-                name="phoneNumber"
-                type="tel"
-                required
-                className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition duration-200"
-                placeholder="연락처를 입력하세요"
-                value={formData.phoneNumber}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="nickname" className="block text-sm font-medium text-slate-700 mb-1">
-                닉네임
-              </label>
-              <input
-                id="nickname"
-                name="nickname"
-                type="text"
-                required
-                className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition duration-200"
-                placeholder="닉네임을 입력하세요"
-                value={formData.nickname}
-                onChange={handleChange}
-              />
-            </div>
-          </div>
-
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
           {error && (
-            <div className="text-red-500 text-sm text-center bg-red-50 p-3 rounded-lg">
+            <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">
               {error}
             </div>
           )}
+          
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            {/* 필수 입력 필드 */}
+            <div>
+              <label htmlFor="mb_id" className="block text-sm font-medium text-gray-700">
+                아이디 *
+              </label>
+              <div className="mt-1">
+                <input
+                  id="mb_id"
+                  name="mb_id"
+                  type="text"
+                  required
+                  minLength={4}
+                  maxLength={20}
+                  value={formData.mb_id}
+                  onChange={handleChange}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  placeholder="4~20자 사이의 아이디를 입력하세요"
+                />
+              </div>
+            </div>
 
-          <button
-            type="submit"
-            className="w-full bg-emerald-600 text-white py-3 px-4 rounded-lg hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition duration-200 font-medium"
-          >
-            회원가입
-          </button>
+            <div>
+              <label htmlFor="mb_password" className="block text-sm font-medium text-gray-700">
+                비밀번호 *
+              </label>
+              <div className="mt-1">
+                <input
+                  id="mb_password"
+                  name="mb_password"
+                  type="password"
+                  required
+                  minLength={6}
+                  maxLength={20}
+                  value={formData.mb_password}
+                  onChange={handleChange}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  placeholder="6~20자 사이의 비밀번호를 입력하세요"
+                />
+              </div>
+            </div>
 
-          <div className="text-center text-sm text-slate-600">
-            이미 계정이 있으신가요?{' '}
-            <a href="/form/login" className="text-emerald-600 hover:text-emerald-500 font-medium">
-              로그인
-            </a>
-          </div>
-        </form>
+            <div>
+              <label htmlFor="mb_name" className="block text-sm font-medium text-gray-700">
+                이름 *
+              </label>
+              <div className="mt-1">
+                <input
+                  id="mb_name"
+                  name="mb_name"
+                  type="text"
+                  required
+                  value={formData.mb_name}
+                  onChange={handleChange}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  placeholder="이름을 입력하세요"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="mb_nick" className="block text-sm font-medium text-gray-700">
+                닉네임 *
+              </label>
+              <div className="mt-1">
+                <input
+                  id="mb_nick"
+                  name="mb_nick"
+                  type="text"
+                  required
+                  value={formData.mb_nick}
+                  onChange={handleChange}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  placeholder="닉네임을 입력하세요"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="mb_email" className="block text-sm font-medium text-gray-700">
+                이메일 *
+              </label>
+              <div className="mt-1">
+                <input
+                  id="mb_email"
+                  name="mb_email"
+                  type="email"
+                  required
+                  value={formData.mb_email}
+                  onChange={handleChange}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  placeholder="이메일을 입력하세요"
+                />
+              </div>
+            </div>
+
+            {/* 선택 입력 필드 */}
+            <div>
+              <label htmlFor="mb_hp" className="block text-sm font-medium text-gray-700">
+                휴대폰 번호
+              </label>
+              <div className="mt-1">
+                <input
+                  id="mb_hp"
+                  name="mb_hp"
+                  type="tel"
+                  value={formData.mb_hp}
+                  onChange={handleChange}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  placeholder="하이픈(-) 없이 입력하세요"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="mb_sex" className="block text-sm font-medium text-gray-700">
+                성별
+              </label>
+              <div className="mt-1">
+                <select
+                  id="mb_sex"
+                  name="mb_sex"
+                  value={formData.mb_sex}
+                  onChange={handleChange}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                >
+                  <option value="">선택하세요</option>
+                  <option value="M">남성</option>
+                  <option value="F">여성</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="mb_birth" className="block text-sm font-medium text-gray-700">
+                생년월일
+              </label>
+              <div className="mt-1">
+                <input
+                  id="mb_birth"
+                  name="mb_birth"
+                  type="text"
+                  placeholder="YYYYMMDD"
+                  value={formData.mb_birth}
+                  onChange={handleChange}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="mb_addr1" className="block text-sm font-medium text-gray-700">
+                기본주소
+              </label>
+              <div className="mt-1">
+                <input
+                  id="mb_addr1"
+                  name="mb_addr1"
+                  type="text"
+                  value={formData.mb_addr1}
+                  onChange={handleChange}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  placeholder="기본주소를 입력하세요"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="mb_addr2" className="block text-sm font-medium text-gray-700">
+                상세주소
+              </label>
+              <div className="mt-1">
+                <input
+                  id="mb_addr2"
+                  name="mb_addr2"
+                  type="text"
+                  value={formData.mb_addr2}
+                  onChange={handleChange}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  placeholder="상세주소를 입력하세요"
+                />
+              </div>
+            </div>
+
+            <div>
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading ? '처리중...' : '가입하기'}
+              </button>
+            </div>
+
+            <div className="text-center text-sm text-gray-600">
+              이미 계정이 있으신가요?{' '}
+              <a href="/form/login" className="text-indigo-600 hover:text-indigo-500 font-medium">
+                로그인
+              </a>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );
