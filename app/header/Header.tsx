@@ -97,17 +97,17 @@ const Header = () => {
             <li><Link href="/mpspain/mpschamp">MPS 회원 광장</Link></li>
             <li><Link href="/mpspain/mpslecture">MPS 강좌</Link></li>
           </ul>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 w-48 justify-end">
             {!isLoading && (
               user ? (
-                <div className="flex items-center gap-4 text-xs">
+                <div className="flex items-center gap-2 text-xs">
                   <Link 
                     href={user.mb_level >= 8 ? '/admin' : '/mypage'} 
                     className="text-gray-700 font-pretendard text-xs hover:text-blue-600"
                   >
                     {user.mb_name}
                   </Link>
-                  님 반갑습니다!
+                  <span className="text-gray-700">님 반갑습니다!</span>
                   <button
                     onClick={handleLogout}
                     className="text-gray-700 font-pretendard hover:text-blue-600"
@@ -127,7 +127,7 @@ const Header = () => {
 
       {/* 드롭다운 전체 메뉴 */}
       <div className="absolute left-0 top-full w-full bg-white/90 backdrop-blur shadow-md opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-40">
-        <div className="flex justify-center text-center mr-13 gap-46 pt-5 pb-10">
+        <div className="flex justify-center text-center gap-46 pt-5 pb-10">
           {menuData.map((menu) => (
             <div key={menu.title}>
               <ul className="space-y-8 font-pretendard font-medium">

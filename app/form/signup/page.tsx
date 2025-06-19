@@ -21,12 +21,34 @@ export default function SignupForm() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
+  const formatPhoneNumber = (value: string) => {
+    // 숫자만 추출
+    const numbers = value.replace(/[^\d]/g, '');
+    
+    // 11자리로 제한
+    if (numbers.length > 11) return value;
+    
+    // 형식에 맞게 하이픈 추가
+    if (numbers.length <= 3) return numbers;
+    if (numbers.length <= 7) return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
+    return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7)}`;
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    
+    if (name === 'mb_hp') {
+      const formattedValue = formatPhoneNumber(value);
+      setFormData(prev => ({
+        ...prev,
+        [name]: formattedValue
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
     // 에러 메시지 초기화
     setError('');
   };
@@ -62,6 +84,16 @@ export default function SignupForm() {
     }
     if (!formData.mb_email.includes('@')) {
       setError('올바른 이메일 형식이 아닙니다.');
+      return false;
+    }
+    if (!formData.mb_hp) {
+      setError('휴대폰 번호를 입력해주세요.');
+      return false;
+    }
+    // 하이픈을 제외한 숫자만 체크
+    const phoneNumber = formData.mb_hp.replace(/[^\d]/g, '');
+    if (phoneNumber.length !== 11) {
+      setError('올바른 휴대폰 번호 형식이 아닙니다.');
       return false;
     }
     return true;
@@ -217,17 +249,19 @@ export default function SignupForm() {
             {/* 선택 입력 필드 */}
             <div>
               <label htmlFor="mb_hp" className="block text-sm font-medium text-gray-700">
-                휴대폰 번호
+                휴대폰 번호 *
               </label>
               <div className="mt-1">
                 <input
                   id="mb_hp"
                   name="mb_hp"
                   type="tel"
+                  required
+                  maxLength={13}
                   value={formData.mb_hp}
                   onChange={handleChange}
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                  placeholder="하이픈(-) 없이 입력하세요"
+                  placeholder="010-0000-0000"
                 />
               </div>
             </div>
