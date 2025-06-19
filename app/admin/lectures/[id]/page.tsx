@@ -15,7 +15,13 @@ interface Lecture {
   categoryId: number;
 }
 
-export default function EditLecturePage({ params }: { params: { id: string } }) {
+interface PageProps {
+  params: {
+    id: string;
+  };
+}
+
+export default function EditLecturePage({ params }: PageProps) {
   const router = useRouter();
   const [lecture, setLecture] = useState<Lecture | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -155,4 +161,4 @@ export default function EditLecturePage({ params }: { params: { id: string } }) 
       </div>
     </div>
   );
-} 
+}
