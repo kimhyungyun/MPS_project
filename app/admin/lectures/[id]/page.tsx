@@ -16,9 +16,9 @@ interface Lecture {
 }
 
 interface PageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default function EditLecturePage({ params }: PageProps) {
@@ -26,14 +26,25 @@ export default function EditLecturePage({ params }: PageProps) {
   const [lecture, setLecture] = useState<Lecture | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [lectureId, setLectureId] = useState<string>('');
 
   useEffect(() => {
-    fetchLecture();
-  }, [params.id]);
+    const getParams = async () => {
+      const resolvedParams = await params;
+      setLectureId(resolvedParams.id);
+    };
+    getParams();
+  }, [params]);
+
+  useEffect(() => {
+    if (lectureId) {
+      fetchLecture();
+    }
+  }, [lectureId]);
 
   const fetchLecture = async () => {
     try {
-      const response = await fetch(`http://localhost:3001/api/lectures/${params.id}`, {
+      const response = await fetch(`http://localhost:3001/api/lectures/${lectureId}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -56,7 +67,7 @@ export default function EditLecturePage({ params }: PageProps) {
     setIsSaving(true);
     try {
       const response = await axios.patch(
-        `http://localhost:3001/api/lectures/${params.id}`,
+        `http://localhost:3001/api/lectures/${lectureId}`,
         lecture,
         {
           headers: {
