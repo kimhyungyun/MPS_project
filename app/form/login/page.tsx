@@ -17,7 +17,7 @@ export default function LoginForm() {
     setError('');
 
     try {
-      const response = await axios.post('http://localhost:3001/api/auth/login', formData);
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, formData);
 
       if (response.data.success) {
         const userData = response.data.data;

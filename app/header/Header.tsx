@@ -6,6 +6,7 @@ import { menuData } from "@/types/menudata";
 import Image from "next/image";
 import axios from "axios";
 import { AxiosError } from 'axios';
+ 
 
 interface User {
   mb_id: string;
@@ -32,7 +33,7 @@ const Header = () => {
           return;
         }
 
-        const response = await axios.get('http://localhost:3001/api/auth/profile', {
+        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/profile`, {
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
