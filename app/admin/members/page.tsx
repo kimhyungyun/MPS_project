@@ -11,7 +11,6 @@ interface Member {
   mb_hp: string;
   mb_point: number;
   mb_level: number;
-  mb_datetime: string;
 }
 
 export default function AdminMembersPage() {
@@ -118,7 +117,7 @@ export default function AdminMembersPage() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                {['아이디', '이름', '닉네임', '이메일', '휴대폰', '포인트', '레벨', '가입일'].map((head) => (
+                {['아이디', '이름', '닉네임', '이메일', '휴대폰', '포인트', '레벨'].map((head) => (
                   <th
                     key={head}
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
@@ -131,11 +130,11 @@ export default function AdminMembersPage() {
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-4 text-center">로딩 중...</td>
+                  <td colSpan={7} className="px-6 py-4 text-center">로딩 중...</td>
                 </tr>
               ) : members.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-4 text-center">
+                  <td colSpan={7} className="px-6 py-4 text-center">
                     {search ? '검색 결과가 없습니다.' : '회원이 없습니다.'}
                   </td>
                 </tr>
@@ -158,9 +157,6 @@ export default function AdminMembersPage() {
                           <option key={level} value={level}>{level}</option>
                         ))}
                       </select>
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                      {new Date(member.mb_datetime).toLocaleDateString()}
                     </td>
                   </tr>
                 ))
