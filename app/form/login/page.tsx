@@ -17,12 +17,18 @@ export default function LoginForm() {
     setError('');
 
     try {
-      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, formData);
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`,
+        formData,
+        {
+          withCredentials: true, // 🔥 CORS 해결을 위한 옵션
+        }
+      );
 
       if (response.data.success) {
         const userData = response.data.data;
         console.log('Login response:', userData);
-        
+
         // Set both localStorage and cookies
         localStorage.setItem('token', userData.access_token);
         localStorage.setItem('user', JSON.stringify(userData));

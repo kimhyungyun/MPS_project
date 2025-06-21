@@ -25,14 +25,14 @@ export default function AdminMembersPage() {
   const [totalMembers, setTotalMembers] = useState(0);
   const [isSearching, setIsSearching] = useState(false);
 
+  const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
   useEffect(() => {
-    // Check if user is admin
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     if (!user || user.mb_level < 8) {
       router.push('/');
       return;
     }
-
     fetchMembers();
   }, [currentPage]);
 
@@ -40,14 +40,17 @@ export default function AdminMembersPage() {
     try {
       setLoading(true);
       const response = await fetch(
-        `http://localhost:3001/api/admin/members?page=${currentPage}${search ? `&search=${search}` : ''}`,
+        `${API_URL}/api/admin/members?page=${currentPage}${search ? `&search=${search}` : ''}`,
         {
+          method: 'GET',
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
         }
       );
-      
+
       if (response.ok) {
         const data = await response.json();
         setMembers(data.data.members);
@@ -55,7 +58,7 @@ export default function AdminMembersPage() {
       } else {
         setError('회원 목록을 불러오는데 실패했습니다.');
       }
-    } catch (error) {
+    } catch {
       setError('서버 오류가 발생했습니다.');
     } finally {
       setLoading(false);
@@ -64,22 +67,23 @@ export default function AdminMembersPage() {
 
   const handleLevelChange = async (mb_id: string, newLevel: number) => {
     try {
-      const response = await fetch(`http://localhost:3001/api/admin/members/${mb_id}/level`, {
+      const response = await fetch(`${API_URL}/api/admin/members/${mb_id}/level`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
-        body: JSON.stringify({ mb_level: newLevel })
+        credentials: 'include',
+        body: JSON.stringify({ mb_level: newLevel }),
       });
 
       if (response.ok) {
         setSuccess('회원 레벨이 성공적으로 변경되었습니다.');
-        fetchMembers(); // Refresh the list
+        fetchMembers();
       } else {
         setError('회원 레벨 변경에 실패했습니다.');
       }
-    } catch (error) {
+    } catch {
       setError('서버 오류가 발생했습니다.');
     }
   };
@@ -103,55 +107,31 @@ export default function AdminMembersPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">회원 관리</h1>
 
-        {/* Messages */}
         {error && (
-          <div className="mb-4 p-4 bg-red-50 text-red-700 rounded-md">
-            {error}
-          </div>
+          <div className="mb-4 p-4 bg-red-50 text-red-700 rounded-md">{error}</div>
         )}
         {success && (
-          <div className="mb-4 p-4 bg-green-50 text-green-700 rounded-md">
-            {success}
-          </div>
+          <div className="mb-4 p-4 bg-green-50 text-green-700 rounded-md">{success}</div>
         )}
 
-        {/* Members Table */}
         <div className="bg-white shadow rounded-lg overflow-hidden mb-6">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  아이디
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  이름
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  닉네임
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  이메일
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  휴대폰
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  포인트
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  레벨
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  가입일
-                </th>
+                {['아이디', '이름', '닉네임', '이메일', '휴대폰', '포인트', '레벨', '가입일'].map((head) => (
+                  <th
+                    key={head}
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    {head}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-4 text-center">
-                    로딩 중...
-                  </td>
+                  <td colSpan={8} className="px-6 py-4 text-center">로딩 중...</td>
                 </tr>
               ) : members.length === 0 ? (
                 <tr>
@@ -162,38 +142,24 @@ export default function AdminMembersPage() {
               ) : (
                 members.map((member) => (
                   <tr key={member.mb_id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {member.mb_id}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {member.mb_name}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {member.mb_nick}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {member.mb_email}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {member.mb_hp}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {member.mb_point}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 text-sm">{member.mb_id}</td>
+                    <td className="px-6 py-4 text-sm">{member.mb_name}</td>
+                    <td className="px-6 py-4 text-sm">{member.mb_nick}</td>
+                    <td className="px-6 py-4 text-sm">{member.mb_email}</td>
+                    <td className="px-6 py-4 text-sm">{member.mb_hp}</td>
+                    <td className="px-6 py-4 text-sm">{member.mb_point}</td>
+                    <td className="px-6 py-4 text-sm">
                       <select
                         value={member.mb_level}
                         onChange={(e) => handleLevelChange(member.mb_id, Number(e.target.value))}
                         className="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                       >
                         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((level) => (
-                          <option key={level} value={level}>
-                            {level}
-                          </option>
+                          <option key={level} value={level}>{level}</option>
                         ))}
                       </select>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 text-sm">
                       {new Date(member.mb_datetime).toLocaleDateString()}
                     </td>
                   </tr>
@@ -203,7 +169,6 @@ export default function AdminMembersPage() {
           </table>
         </div>
 
-        {/* Search Form */}
         <div className="flex justify-center mb-6">
           <form onSubmit={handleSearch} className="w-[600px]">
             <div className="flex gap-2">
@@ -227,7 +192,6 @@ export default function AdminMembersPage() {
           </form>
         </div>
 
-        {/* Pagination */}
         {totalPages > 1 && (
           <div className="mt-4 flex justify-center">
             <nav className="flex items-center gap-2">
@@ -265,4 +229,4 @@ export default function AdminMembersPage() {
       </div>
     </div>
   );
-} 
+}
