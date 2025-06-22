@@ -18,6 +18,7 @@ export default function AdminPage() {
     totalPayments: 0,
     recentInquiries: 0
   });
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     // Check if user is admin
@@ -32,23 +33,42 @@ export default function AdminPage() {
 
     // Fetch admin stats
     const fetchStats = async () => {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL; // API URL을 환경변수에서 가져오기
+      if (!apiUrl) {
+        console.error('API URL is not defined');
+        return;
+      }
+
       try {
-        const response = await fetch('http://localhost:3001/api/admin/stats', {
+        const response = await fetch(`${apiUrl}/api/admin/stats`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
         });
+
         if (response.ok) {
           const data = await response.json();
           setStats(data);
+        } else {
+          console.error('Failed to fetch admin stats:', response.status);
         }
       } catch (error) {
         console.error('Failed to fetch admin stats:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     fetchStats();
   }, [router]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-lg text-gray-600">로딩 중...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -162,4 +182,4 @@ export default function AdminPage() {
       </div>
     </div>
   );
-} 
+}

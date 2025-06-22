@@ -36,8 +36,9 @@ export default function MyPage() {
 
         const response = await axios.get(`${apiUrl}/api/auth/profile`, {
           headers: {
-            Authorization: `Bearer ${token}`
-          }
+            Authorization: `Bearer ${token}`,
+          },
+          withCredentials: true, // CORS 해결을 위한 옵션 추가
         });
 
         if (response.data.success) {

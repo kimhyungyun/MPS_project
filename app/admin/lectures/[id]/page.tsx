@@ -44,7 +44,12 @@ export default function EditLecturePage({ params }: PageProps) {
 
   const fetchLecture = async () => {
     try {
-      const response = await fetch(`http://localhost:3001/api/lectures/${lectureId}`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL; // API URL을 환경변수에서 가져오기
+      if (!apiUrl) {
+        throw new Error("API URL is not defined");
+      }
+
+      const response = await fetch(`${apiUrl}/api/lectures/${lectureId}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -66,8 +71,13 @@ export default function EditLecturePage({ params }: PageProps) {
 
     setIsSaving(true);
     try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL; // API URL을 환경변수에서 가져오기
+      if (!apiUrl) {
+        throw new Error("API URL is not defined");
+      }
+
       const response = await axios.patch(
-        `http://localhost:3001/api/lectures/${lectureId}`,
+        `${apiUrl}/api/lectures/${lectureId}`,
         lecture,
         {
           headers: {

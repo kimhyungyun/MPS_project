@@ -27,7 +27,12 @@ export default function LectureManagementPage() {
 
   const fetchLectures = async () => {
     try {
-      const response = await fetch('http://localhost:3001/api/lectures', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL; // API URL을 환경변수에서 가져오기
+      if (!apiUrl) {
+        throw new Error("API URL is not defined");
+      }
+
+      const response = await fetch(`${apiUrl}/api/lectures`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -52,8 +57,13 @@ export default function LectureManagementPage() {
     formData.append('file', file);
 
     try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL; // API URL을 환경변수에서 가져오기
+      if (!apiUrl) {
+        throw new Error("API URL is not defined");
+      }
+
       // First upload the file
-      const uploadResponse = await axios.post('http://localhost:3001/api/files/upload', formData, {
+      const uploadResponse = await axios.post(`${apiUrl}/api/files/upload`, formData, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'multipart/form-data'
@@ -78,7 +88,7 @@ export default function LectureManagementPage() {
           categoryId: 1 // Default category
         };
 
-        const lectureResponse = await axios.post('http://localhost:3001/api/lectures', lectureData, {
+        const lectureResponse = await axios.post(`${apiUrl}/api/lectures`, lectureData, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
@@ -164,4 +174,4 @@ export default function LectureManagementPage() {
       </div>
     </div>
   );
-} 
+}

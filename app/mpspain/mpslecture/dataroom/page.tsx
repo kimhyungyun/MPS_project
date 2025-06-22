@@ -93,9 +93,15 @@ const Dataroom = () => {
       return;
     }
 
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL; // API URL을 환경변수에서 가져오기
+    if (!apiUrl) {
+      console.error('API URL is not defined');
+      return;
+    }
+
     try {
       setIsLoading(true);
-      const response = await axios.get(`http://localhost:3001/api/files`, {
+      const response = await axios.get(`${apiUrl}/api/files`, {
         params: {
           page: currentPage,
           search: searchTerm || undefined
@@ -119,10 +125,7 @@ const Dataroom = () => {
           alert('인증이 만료되었습니다. 다시 로그인해주세요.');
           router.push('/form/login');
         } else if (error.response?.status === 404) {
-          console.error('API URL:', `http://localhost:3001/api/files`);
-          console.error('Request headers:', {
-            'Authorization': `Bearer ${token?.substring(0, 10)}...`
-          });
+          console.error('API URL:', `${apiUrl}/api/files`);
           alert('서버에 연결할 수 없습니다. 백엔드 서버가 실행 중인지 확인해주세요.');
         } else {
           alert('파일 목록을 불러오는데 실패했습니다.');
@@ -155,9 +158,15 @@ const Dataroom = () => {
     const encodedFileName = encodeURIComponent(file.name);
     formData.append('file', file, encodedFileName);
 
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL; // API URL을 환경변수에서 가져오기
+    if (!apiUrl) {
+      console.error('API URL is not defined');
+      return;
+    }
+
     try {
       setIsLoading(true);
-      const response = await axios.post('http://localhost:3001/api/files/upload', formData, {
+      const response = await axios.post(`${apiUrl}/api/files/upload`, formData, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'multipart/form-data'
@@ -202,9 +211,15 @@ const Dataroom = () => {
 
     if (!confirm('정말로 이 파일을 삭제하시겠습니까?')) return;
 
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL; // API URL을 환경변수에서 가져오기
+    if (!apiUrl) {
+      console.error('API URL is not defined');
+      return;
+    }
+
     try {
       setIsLoading(true);
-      const response = await axios.delete(`http://localhost:3001/api/files/${fileId}`, {
+      const response = await axios.delete(`${apiUrl}/api/files/${fileId}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -349,7 +364,7 @@ const Dataroom = () => {
           </div>
         )}
 
-        {/* 파일 목록 */}
+        {/* 파일 목록 */} 
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
           <div className="grid grid-cols-12 gap-4 p-4 bg-slate-100 text-sm font-medium text-slate-600">
             <div className="col-span-5">파일명</div>
@@ -378,7 +393,7 @@ const Dataroom = () => {
                   </div>
                   <div className="col-span-1 flex items-center gap-2">
                     <a
-                      href={`http://localhost:3001${file.download_url}`}
+                      href={`${process.env.NEXT_PUBLIC_API_URL}${file.download_url}`} // 경로 수정
                       download
                       className="text-emerald-600 hover:text-emerald-700 text-sm"
                     >

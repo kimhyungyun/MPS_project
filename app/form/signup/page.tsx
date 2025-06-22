@@ -110,7 +110,14 @@ export default function SignupForm() {
     }
 
     try {
-      const response = await axios.post('http://localhost:3001/api/auth/signup', formData);
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL; // API URL을 환경변수에서 가져오기
+      if (!apiUrl) {
+        console.error('API URL is not defined');
+        setIsLoading(false);
+        return;
+      }
+
+      const response = await axios.post(`${apiUrl}/api/auth/signup`, formData);
       
       if (response.data.success) {
         alert(response.data.message);
@@ -357,4 +364,4 @@ export default function SignupForm() {
       </div>
     </div>
   );
-} 
+}

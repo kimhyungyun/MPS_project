@@ -6,6 +6,7 @@ import { menuData } from "@/types/menudata";
 import Image from "next/image";
 import axios from "axios";
 import { AxiosError } from 'axios';
+ 
 
 interface User {
   mb_id: string;
@@ -27,12 +28,18 @@ const Header = () => {
     const fetchUserProfile = async () => {
       try {
         const token = localStorage.getItem('token');
-        if (!token) return;
+        if (!token) {
+          setIsLoading(false);
+          return;
+        }
 
-        const response = await axios.get('http://localhost:3001/api/auth/profile', {
+        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/profile`, {
           headers: {
-            Authorization: `Bearer ${token}`
-          }
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          withCredentials: true,
+          timeout: 5000, // 5초 타임아웃 설정
         });
 
         if (response.data.success) {
@@ -42,7 +49,7 @@ const Header = () => {
         if (error instanceof AxiosError) {
           console.error('Failed to fetch user profile:', error.message);
           // 토큰이 유효하지 않은 경우 로그아웃
-          if (error.response?.status === 401) {
+          if (error.response?.status === 401 || error.code === 'ECONNABORTED') {
             localStorage.removeItem('token');
             localStorage.removeItem('user');
             setUser(null);
@@ -50,8 +57,9 @@ const Header = () => {
         } else {
           console.error('An unexpected error occurred:', error);
         }
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
 
     fetchUserProfile();
@@ -76,9 +84,12 @@ const Header = () => {
             <Link href="/">
               <Image
                 src="/빈배경로고.png"
-                alt=""
+                alt="로고"
                 width={150}
                 height={150}
+                priority
+                style={{ width: 'auto', height: 'auto' }}
+                className="object-contain"
               />
             </Link>
           </div>
@@ -87,17 +98,17 @@ const Header = () => {
             <li><Link href="/mpspain/mpschamp">MPS 회원 광장</Link></li>
             <li><Link href="/mpspain/mpslecture">MPS 강좌</Link></li>
           </ul>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 w-48 justify-end">
             {!isLoading && (
               user ? (
-                <div className="flex items-center gap-4 text-xs">
+                <div className="flex items-center gap-2 text-xs">
                   <Link 
                     href={user.mb_level >= 8 ? '/admin' : '/mypage'} 
                     className="text-gray-700 font-pretendard text-xs hover:text-blue-600"
                   >
                     {user.mb_name}
                   </Link>
-                  님 반갑습니다!
+                  <span className="text-gray-700">님 반갑습니다!</span>
                   <button
                     onClick={handleLogout}
                     className="text-gray-700 font-pretendard hover:text-blue-600"
@@ -117,7 +128,7 @@ const Header = () => {
 
       {/* 드롭다운 전체 메뉴 */}
       <div className="absolute left-0 top-full w-full bg-white/90 backdrop-blur shadow-md opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-40">
-        <div className="flex justify-center text-center mr-13 gap-46 pt-5 pb-10">
+        <div className="flex justify-center text-center gap-46 pt-5 pb-10">
           {menuData.map((menu) => (
             <div key={menu.title}>
               <ul className="space-y-8 font-pretendard font-medium">
