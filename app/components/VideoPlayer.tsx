@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import videojs from 'video.js';
-import 'video.js/dist/video-js.css'; // Video.js CSS 파일 로드
+import Hls from 'hls.js';
 
 interface VideoPlayerProps {
   videoUrl: string;
@@ -9,40 +8,62 @@ interface VideoPlayerProps {
 const VideoPlayer = ({ videoUrl }: VideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const hlsRef = useRef<Hls | null>(null);  // Hls.js 인스턴스를 저장할 ref
 
   useEffect(() => {
-    if (!videoUrl || !videoRef.current) {
-      setError('비디오 URL이 없습니다.');
-      return;
+    if (!videoUrl || !videoRef.current) return;
+
+    // 기존 Hls 인스턴스가 있으면 이를 파괴하고 새로 생성
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
     }
 
-    // Video.js 초기화 및 비디오 설정
-    const player = videojs(videoRef.current, {
-      sources: [
-        {
-          src: videoUrl, // CloudFront URL (m3u8 파일)
-          type: 'application/x-mpegURL',
+    // Hls.js로 HLS 스트리밍 지원 처리
+    if (Hls.isSupported()) {
+      const hls = new Hls({
+        xhrSetup: (xhr) => {
+          xhr.withCredentials = false;
         },
-      ],
-      controls: true,
-      autoplay: true,
-      preload: 'auto',
-    });
+        debug: false,
+        enableWorker: true,
+        lowLatencyMode: true,
+      });
 
-    player.ready(() => {
-      console.log('Video.js player is ready!');
-    });
+      hlsRef.current = hls;
 
-    // 오류 처리
-    player.on('error', (e: any) => {  // 여기에서 e의 타입을 `any`로 설정
-      console.error('Video.js error:', e);
-      setError('비디오 로딩 중 오류가 발생했습니다.');
-    });
+      // 오류 처리
+      hls.on(Hls.Events.ERROR, (event, data) => {
+        if (data.fatal) {
+          console.error('HLS error:', data);
+          setError('비디오 로딩 중 오류가 발생했습니다.');
+          hls.destroy();
+        }
+      });
 
-    // 컴포넌트가 언마운트되었을 때 Video.js 플레이어 제거
-    return () => {
-      player.dispose();
-    };
+      hls.loadSource(videoUrl); // CloudFront URL 사용
+      hls.attachMedia(videoRef.current);
+
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        videoRef.current?.play().catch((err) => {
+          console.error('Error playing video:', err);
+          setError('비디오 재생에 실패했습니다.');
+        });
+      });
+
+      return () => {
+        hls.destroy();
+        hlsRef.current = null;
+      };
+    } else if (videoRef.current.canPlayType('application/vnd.apple.mpegurl')) {
+      // Safari의 경우 직접 m3u8 URL을 src로 설정
+      videoRef.current.src = videoUrl; // CloudFront URL 사용
+      videoRef.current.addEventListener('error', (e) => {
+        console.error('Video error:', e);
+        setError('비디오 로딩 중 오류가 발생했습니다.');
+      });
+    } else {
+      setError('이 브라우저는 HLS 비디오를 지원하지 않습니다.');
+    }
   }, [videoUrl]);
 
   if (error) {
@@ -53,7 +74,14 @@ const VideoPlayer = ({ videoUrl }: VideoPlayerProps) => {
     );
   }
 
-  return <video ref={videoRef} className="video-js vjs-default-skin w-full h-full rounded-lg"></video>;
+  return (
+    <video
+      ref={videoRef}
+      controls
+      className="w-full h-full rounded-lg"
+      playsInline
+    />
+  );
 };
 
 export default VideoPlayer;
