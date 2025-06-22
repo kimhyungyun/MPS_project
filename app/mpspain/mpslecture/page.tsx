@@ -10,7 +10,7 @@ interface Course {
 }
 
 // ✅ 환경변수에서 API 주소를 불러옴
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 const MpsLecture = () => {
     const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
