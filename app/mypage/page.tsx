@@ -29,7 +29,12 @@ export default function MyPage() {
           return;
         }
 
-        const response = await axios.get('http://localhost:3001/api/auth/profile', {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL; // API URL을 환경변수에서 가져오기
+        if (!apiUrl) {
+          throw new Error("API URL is not defined");
+        }
+
+        const response = await axios.get(`${apiUrl}/api/auth/profile`, {
           headers: {
             Authorization: `Bearer ${token}`
           }
@@ -115,4 +120,4 @@ export default function MyPage() {
       </div>
     </div>
   );
-} 
+}

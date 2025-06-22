@@ -17,7 +17,6 @@ interface User {
 
 interface FormData {
   mb_password?: string;
-  mb_password2?: string;
   mb_name: string;
   mb_nick: string;
   mb_email: string;
@@ -33,12 +32,13 @@ export default function EditProfile() {
 
   const [formData, setFormData] = useState<FormData>({
     mb_password: '',
-    mb_password2: '',
     mb_name: '',
     mb_nick: '',
     mb_email: '',
     mb_hp: '',
   });
+
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL; // 환경변수로 API URL을 가져옵니다.
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -49,7 +49,7 @@ export default function EditProfile() {
           return;
         }
 
-        const response = await axios.get('http://localhost:3001/api/auth/profile', {
+        const response = await axios.get(`${apiUrl}/auth/profile`, {
           headers: {
             Authorization: `Bearer ${token}`
           }
@@ -60,7 +60,6 @@ export default function EditProfile() {
           setUser(userData);
           setFormData({
             mb_password: '',
-            mb_password2: '',
             mb_name: userData.mb_name,
             mb_nick: userData.mb_nick,
             mb_email: userData.mb_email,
@@ -81,7 +80,7 @@ export default function EditProfile() {
     };
 
     fetchUserProfile();
-  }, [router]);
+  }, [router, apiUrl]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -96,10 +95,6 @@ export default function EditProfile() {
   const validateForm = () => {
     if (formData.mb_password && formData.mb_password.length < 6) {
       setError('비밀번호는 6자 이상이어야 합니다.');
-      return false;
-    }
-    if (formData.mb_password !== formData.mb_password2) {
-      setError('비밀번호가 일치하지 않습니다.');
       return false;
     }
     if (!formData.mb_name) {
@@ -139,11 +134,10 @@ export default function EditProfile() {
       const updateData = { ...formData };
       if (!updateData.mb_password) {
         delete updateData.mb_password;
-        delete updateData.mb_password2;
       }
 
       const response = await axios.put(
-        'http://localhost:3001/api/users/profile',
+        `${apiUrl}/users/profile`,
         updateData,
         {
           headers: {
@@ -209,21 +203,6 @@ export default function EditProfile() {
                   id="mb_password"
                   name="mb_password"
                   value={formData.mb_password}
-                  onChange={handleChange}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="변경하지 않으려면 비워두세요"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="mb_password2" className="block text-sm font-medium text-gray-700">
-                  새 비밀번호 확인
-                </label>
-                <input
-                  type="password"
-                  id="mb_password2"
-                  name="mb_password2"
-                  value={formData.mb_password2}
                   onChange={handleChange}
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                   placeholder="변경하지 않으려면 비워두세요"
@@ -311,4 +290,4 @@ export default function EditProfile() {
       </div>
     </div>
   );
-} 
+}
