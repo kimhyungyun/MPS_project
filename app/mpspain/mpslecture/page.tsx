@@ -48,10 +48,12 @@ const MpsLecture = () => {
     fetchCourses();
   }, []);
 
-  const handleCourseSelect = (course: Course) => {
+   const handleCourseSelect = async(course: Course) => {
     setSelectedCourse(course);
-    setVideoUrl(course.video_url);  // 비디오 URL을 설정
-  };
+    const response = await fetch(`${API_BASE_URL}/api/lectures/${course.title}/signed-url`);
+    const data = await response.json();
+    setVideoUrl(data.signedUrl);  //
+    };
 
   if (isLoading) {
     return (
