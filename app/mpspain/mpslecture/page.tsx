@@ -32,6 +32,7 @@ const MpsLecture = () => {
         const data = await response.json();
         setCourses(
           data.map((lecture: any) => ({
+            id : lecture.id,
             title: lecture.title,
             description: lecture.description,
             price: lecture.price,
