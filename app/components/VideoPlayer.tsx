@@ -8,14 +8,20 @@ interface VideoPlayerProps {
 const VideoPlayer = ({ videoUrl }: VideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const hlsRef = useRef<Hls | null>(null);  // Hls.js 인스턴스를 저장할 ref
 
   useEffect(() => {
-    if (!videoUrl || !videoRef.current) return;  // videoUrl이나 videoRef가 없다면 실행하지 않음
+    if (!videoUrl || !videoRef.current) return;
+
+    // 기존 Hls 인스턴스가 있으면 이를 파괴하고 새로 생성
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+    }
 
     // Hls.js로 HLS 스트리밍 지원 처리
     if (Hls.isSupported()) {
       const hls = new Hls({
-        xhrSetup: function (xhr) {
+        xhrSetup: (xhr) => {
           xhr.withCredentials = false;
         },
         debug: false,
@@ -23,6 +29,9 @@ const VideoPlayer = ({ videoUrl }: VideoPlayerProps) => {
         lowLatencyMode: true,
       });
 
+      hlsRef.current = hls;
+
+      // 오류 처리
       hls.on(Hls.Events.ERROR, (event, data) => {
         if (data.fatal) {
           console.error('HLS error:', data);
@@ -31,18 +40,23 @@ const VideoPlayer = ({ videoUrl }: VideoPlayerProps) => {
         }
       });
 
-      hls.loadSource(videoUrl);
+      hls.loadSource(videoUrl); // CloudFront URL 사용
       hls.attachMedia(videoRef.current);
+
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        videoRef.current?.play().catch(console.error);
+        videoRef.current?.play().catch((err) => {
+          console.error('Error playing video:', err);
+          setError('비디오 재생에 실패했습니다.');
+        });
       });
 
       return () => {
         hls.destroy();
+        hlsRef.current = null;
       };
     } else if (videoRef.current.canPlayType('application/vnd.apple.mpegurl')) {
       // Safari의 경우 직접 m3u8 URL을 src로 설정
-      videoRef.current.src = videoUrl;
+      videoRef.current.src = videoUrl; // CloudFront URL 사용
       videoRef.current.addEventListener('error', (e) => {
         console.error('Video error:', e);
         setError('비디오 로딩 중 오류가 발생했습니다.');
