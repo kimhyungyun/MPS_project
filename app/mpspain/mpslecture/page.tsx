@@ -25,7 +25,7 @@ const MpsLecture = () => {
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/lectures`, {
+        const response = await fetch(`${API_BASE_URL}/lectures`, {
           headers: { 'Content-Type': 'application/json' }
         });
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -36,7 +36,7 @@ const MpsLecture = () => {
             title: lecture.title,
             description: lecture.description,
             price: lecture.price,
-            thumbnail_url: lecture.thumbnail_url, // 썸네일 URL
+            thumbnail_url: lecture.thumbnail_url, 
             video_url: lecture.video_url,
             type: lecture.type,
           }))

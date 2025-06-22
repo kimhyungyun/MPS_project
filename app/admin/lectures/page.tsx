@@ -32,7 +32,7 @@ export default function LectureManagementPage() {
         throw new Error("API URL is not defined");
       }
 
-      const response = await fetch(`${apiUrl}/api/lectures`, {
+      const response = await fetch(`${apiUrl}/lectures`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -63,7 +63,7 @@ export default function LectureManagementPage() {
       }
 
       // First upload the file
-      const uploadResponse = await axios.post(`${apiUrl}/api/files/upload`, formData, {
+      const uploadResponse = await axios.post(`${apiUrl}/files/upload`, formData, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'multipart/form-data'
@@ -88,7 +88,7 @@ export default function LectureManagementPage() {
           categoryId: 1 // Default category
         };
 
-        const lectureResponse = await axios.post(`${apiUrl}/api/lectures`, lectureData, {
+        const lectureResponse = await axios.post(`${apiUrl}/lectures`, lectureData, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
