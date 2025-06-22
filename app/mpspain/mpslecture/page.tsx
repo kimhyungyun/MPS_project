@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import VideoPlayer from '@/app/components/VideoPlayer';
 
 interface Course {
+  id: number;
   title: string;
   description: string;
   price: number;
@@ -50,7 +51,7 @@ const MpsLecture = () => {
 
    const handleCourseSelect = async(course: Course) => {
     setSelectedCourse(course);
-    const response = await fetch(`${API_BASE_URL}/api/lectures/${course.title}/signed-url`);
+    const response = await fetch(`${API_BASE_URL}/api/lectures/${course.id}/signed-url`);
     const data = await response.json();
     setVideoUrl(data.signedUrl);  //
     };
