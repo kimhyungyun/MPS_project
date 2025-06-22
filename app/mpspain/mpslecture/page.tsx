@@ -139,9 +139,7 @@ const MpsLecture = () => {
                 </p>
                 <div className="flex items-center justify-between">
                   <button className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-sm font-medium rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 transform hover:scale-105">
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="currentColor" d="M14.828 14.828a4 4 0 01-5.656 0" />
                     강의 보기
                   </button>
                   <div className="text-xs text-gray-400">클릭하여 시청</div>
