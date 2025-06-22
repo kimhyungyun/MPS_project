@@ -1,3 +1,6 @@
+
+'use client';
+
 import VideoPlayer from '@/app/components/VideoPlayer';
 import { useState, useEffect } from 'react';
 
