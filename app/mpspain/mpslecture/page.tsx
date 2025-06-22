@@ -50,12 +50,24 @@ const MpsLecture = () => {
     fetchCourses();
   }, []);
 
-   const handleCourseSelect = async(course: Course) => {
+const handleCourseSelect = async (course: Course) => {
+  try {
+    // 1. CloudFront Signed Cookie 발급 요청 (쿠키 자동 저장됨)
+    await fetch(`${API_BASE_URL}/api/lectures/signed-cookie`, {
+      method: 'GET',
+      credentials: 'include', // 🔑 쿠키 저장을 위한 설정
+    });
+
+    // 2. 강의 선택 후 재생 URL 요청
     setSelectedCourse(course);
     const response = await fetch(`${API_BASE_URL}/api/lectures/${course.id}/signed-url`);
     const data = await response.json();
-    setVideoUrl(data.signedUrl);  //
-    };
+    setVideoUrl(data.signedUrl); // m3u8 경로 자체는 서명 없어도 됨 (쿠키로 인증됨)
+  } catch (error) {
+    console.error('강의 선택 또는 쿠키 발급 오류:', error);
+  }
+};
+
 
   if (isLoading) {
     return (
