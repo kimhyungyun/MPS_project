@@ -52,7 +52,7 @@ const MpsLecture = () => {
 
    const handleCourseSelect = async(course: Course) => {
     setSelectedCourse(course);
-    const response = await fetch(`${API_BASE_URL}/lectures/${course.id}/signed-url`);
+    const response = await fetch(`${API_BASE_URL}/api/lectures/${course.id}/signed-url`);
     const data = await response.json();
     setVideoUrl(data.signedUrl);  //
     };
