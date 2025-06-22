@@ -6,7 +6,7 @@ interface Course {
     id: number;
     title: string;
     description: string;
-    s3Url: string;
+    video_url: string;  // video_url로 변경
 }
 
 // ✅ 환경변수에서 API 주소를 불러옴
@@ -31,7 +31,7 @@ const MpsLecture = () => {
                         id: lecture.id,
                         title: lecture.title,
                         description: lecture.description,
-                        s3Url: lecture.s3Url,
+                        video_url: lecture.video_url,  // video_url로 변경
                     }))
                 );
             } catch (error) {
@@ -48,12 +48,13 @@ const MpsLecture = () => {
             if (!selectedCourse) return;
             
             try {
+                // selectedCourse.video_url을 사용하여 video_url을 가져옵니다.
                 const response = await fetch(
-                    `${API_BASE_URL}/api/videos/signed-url?filename=${selectedCourse.id}.m3u8`
+                    `${API_BASE_URL}/api/videos/signed-url?filename=${selectedCourse.video_url}`
                 );
                 if (!response.ok) throw new Error('Failed to get signed URL');
                 const { url } = await response.json();
-                setVideoUrl(url);
+                setVideoUrl(url); // 여기서 CloudFront URL을 setVideoUrl에 설정
             } catch (error) {
                 console.error('Error fetching signed URL:', error);
             }
