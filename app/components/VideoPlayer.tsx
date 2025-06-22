@@ -15,9 +15,10 @@ const VideoPlayer = ({ videoUrl }: VideoPlayerProps) => {
   useEffect(() => {
     if (!videoUrl || !videoRef.current) return;
 
-    // 기존 Hls 인스턴스가 있으면 이를 파괴하고 새로 생성
+    // 이전 Hls 인스턴스를 파괴하고 새로 생성
     if (hlsRef.current) {
       hlsRef.current.destroy();
+      hlsRef.current = null;
     }
 
     // Hls.js로 HLS 스트리밍 지원 처리
@@ -37,7 +38,7 @@ const VideoPlayer = ({ videoUrl }: VideoPlayerProps) => {
       hls.on(Hls.Events.ERROR, (event, data) => {
         if (data.fatal) {
           console.error('HLS error:', data);
-          setError('비디오 로딩 중 오류가 발생했습니다.');
+          setError(`비디오 로딩 중 오류가 발생했습니다. (${data.type})`);
           hls.destroy();
         }
       });
@@ -53,8 +54,9 @@ const VideoPlayer = ({ videoUrl }: VideoPlayerProps) => {
       });
 
       return () => {
-        hls.destroy();
-        hlsRef.current = null;
+        if (hlsRef.current) {
+          hlsRef.current.destroy();
+        }
       };
     } else if (videoRef.current.canPlayType('application/vnd.apple.mpegurl')) {
       // Safari의 경우 직접 m3u8 URL을 src로 설정
