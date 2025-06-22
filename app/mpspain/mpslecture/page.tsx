@@ -1,7 +1,5 @@
-'use client';
-
-import { useState, useEffect } from 'react';
 import VideoPlayer from '@/app/components/VideoPlayer';
+import { useState, useEffect } from 'react';
 
 interface Course {
   title: string;
@@ -12,7 +10,6 @@ interface Course {
   type: string;
 }
 
-// ✅ 환경변수에서 API 주소를 불러옴
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 const MpsLecture = () => {
@@ -34,7 +31,7 @@ const MpsLecture = () => {
             title: lecture.title,
             description: lecture.description,
             price: lecture.price,
-            thumbnail_url: lecture.thumbnail_url,
+            thumbnail_url: lecture.thumbnail_url, // 썸네일 URL
             video_url: lecture.video_url,
             type: lecture.type,
           }))
@@ -47,25 +44,6 @@ const MpsLecture = () => {
     };
     fetchCourses();
   }, []);
-
-  useEffect(() => {
-    const fetchSignedUrl = async () => {
-      if (!selectedCourse) return;
-
-      try {
-        const response = await fetch(
-          `${API_BASE_URL}/api/videos/signed-url?filename=${selectedCourse.video_url}`
-        );
-        if (!response.ok) throw new Error('Failed to get signed URL');
-        const { url } = await response.json();
-        setVideoUrl(url); // 여기서 CloudFront URL을 setVideoUrl에 설정
-      } catch (error) {
-        console.error('Error fetching signed URL:', error);
-      }
-    };
-
-    fetchSignedUrl();
-  }, [selectedCourse]);
 
   if (isLoading) {
     return (
@@ -120,9 +98,7 @@ const MpsLecture = () => {
                 <div className="absolute inset-0 bg-black/20"></div>
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
+                    <img src={course.thumbnail_url} alt={course.title} className="w-full h-full object-cover" />
                   </div>
                 </div>
                 <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1 text-sm text-white font-medium">
@@ -139,7 +115,6 @@ const MpsLecture = () => {
                 </p>
                 <div className="flex items-center justify-between">
                   <button className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-sm font-medium rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 transform hover:scale-105">
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="currentColor" d="M14.828 14.828a4 4 0 01-5.656 0" />
                     강의 보기
                   </button>
                   <div className="text-xs text-gray-400">클릭하여 시청</div>
