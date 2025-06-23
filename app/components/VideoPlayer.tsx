@@ -43,7 +43,7 @@ const VideoPlayer = ({ videoUrl }: VideoPlayerProps) => {
         }
       });
 
-      hls.loadSource(videoUrl); // CloudFront URL 사용
+      hls.loadSource(encodeURI(videoUrl)); 
       hls.attachMedia(videoRef.current);
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
