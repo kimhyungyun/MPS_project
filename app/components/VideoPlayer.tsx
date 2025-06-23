@@ -1,3 +1,4 @@
+// components/VideoPlayer.tsx
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
@@ -10,18 +11,18 @@ interface VideoPlayerProps {
 const VideoPlayer = ({ videoUrl }: VideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const hlsRef = useRef<Hls | null>(null);  // Hls.js 인스턴스를 저장할 ref
+  const hlsRef = useRef<Hls | null>(null);
 
   useEffect(() => {
     if (!videoUrl || !videoRef.current) return;
 
-    // 이전 Hls 인스턴스를 파괴하고 새로 생성
+    // 기존 인스턴스 정리
     if (hlsRef.current) {
       hlsRef.current.destroy();
       hlsRef.current = null;
     }
 
-    // Hls.js로 HLS 스트리밍 지원 처리
+    // HLS.js 지원 브라우저
     if (Hls.isSupported()) {
       const hls = new Hls({
         xhrSetup: (xhr) => {
@@ -34,16 +35,16 @@ const VideoPlayer = ({ videoUrl }: VideoPlayerProps) => {
 
       hlsRef.current = hls;
 
-      // 오류 처리
       hls.on(Hls.Events.ERROR, (event, data) => {
         if (data.fatal) {
-          console.error('HLS error:', data);
+          console.error('HLS fatal error:', data);
           setError(`비디오 로딩 중 오류가 발생했습니다. (${data.type})`);
           hls.destroy();
         }
       });
 
-      hls.loadSource(encodeURI(videoUrl)); 
+      // ✅ encodeURI 절대 하지 마라
+      hls.loadSource(videoUrl);
       hls.attachMedia(videoRef.current);
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
@@ -54,15 +55,16 @@ const VideoPlayer = ({ videoUrl }: VideoPlayerProps) => {
       });
 
       return () => {
-        if (hlsRef.current) {
-          hlsRef.current.destroy();
-        }
+        hls.destroy();
       };
-    } else if (videoRef.current.canPlayType('application/vnd.apple.mpegurl')) {
-      // Safari의 경우 직접 m3u8 URL을 src로 설정
-      videoRef.current.src = videoUrl; // CloudFront URL 사용
+    }
+
+    // Safari (네이티브 HLS 지원)
+    else if (videoRef.current.canPlayType('application/vnd.apple.mpegurl')) {
+      videoRef.current.src = videoUrl;
+
       videoRef.current.addEventListener('error', (e) => {
-        console.error('Video error:', e);
+        console.error('Native video error:', e);
         setError('비디오 로딩 중 오류가 발생했습니다.');
       });
     } else {
