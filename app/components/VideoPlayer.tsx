@@ -26,7 +26,7 @@ const VideoPlayer = ({ videoUrl }: VideoPlayerProps) => {
     if (Hls.isSupported()) {
       const hls = new Hls({
         xhrSetup: (xhr) => {
-          xhr.withCredentials = false;
+          xhr.withCredentials = true;
         },
         debug: false,
         enableWorker: true,
@@ -41,6 +41,8 @@ const VideoPlayer = ({ videoUrl }: VideoPlayerProps) => {
           setError(`비디오 로딩 중 오류가 발생했습니다. (${data.type})`);
           hls.destroy();
         }
+        console.error('HLS fatal error:', JSON.stringify(data, null, 2));
+
       });
 
       // ✅ encodeURI 절대 하지 마라
