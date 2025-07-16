@@ -48,10 +48,10 @@ const MpsLecture = () => {
         try {
           const token = localStorage.getItem('token');
           if (!token) {
-            throw new Error('No token found');
+            throw new Error('토큰 없음');
           }
 
-          const res = await axios.get('/api/vdocipher/play-token', {
+          const res = await axios.get(`${API_BASE_URL}/api/vdocipher/play-token`, {
             params: { videoId, userId },
             headers: {
               Authorization: `Bearer ${token}`,
