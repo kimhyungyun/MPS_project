@@ -46,9 +46,18 @@ const MpsLecture = () => {
     useEffect(() => {
       const fetchToken = async () => {
         try {
+          const token = localStorage.getItem('token');
+          if (!token) {
+            throw new Error('No token found');
+          }
+
           const res = await axios.get('/api/vdocipher/play-token', {
             params: { videoId, userId },
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
           });
+
           setOtp(res.data.otp);
           setPlaybackInfo(res.data.playbackInfo);
         } catch (err) {
