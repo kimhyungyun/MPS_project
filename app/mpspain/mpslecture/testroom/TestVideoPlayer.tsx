@@ -5,7 +5,7 @@ export default function TestVideoPlayer() {
       <video
         controls
         width={720}
-        src="/테스트영상.mp4" // public 폴더 기준 경로
+        src="/테스팅영상.mp4" // public 폴더 기준 경로
         style={{ border: "1px solid #ccc" }}
       >
         브라우저가 video 태그를 지원하지 않습니다.
