@@ -4,6 +4,7 @@ export default function TestVideoPlayer() {
       <h2>테스트 영상</h2>
       <video
         controls
+        controlsList="nodownload"
         width={720}
         src="/테스팅영상.mp4" // public 폴더 기준 경로
         style={{ border: "1px solid #ccc" }}
