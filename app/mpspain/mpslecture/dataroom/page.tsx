@@ -5,8 +5,6 @@ import {
   FaFilePdf, 
   FaUpload, 
   FaSearch, 
-  FaChevronLeft, 
-  FaChevronRight,
   FaFileWord,
   FaFileExcel,
   FaFileImage,
