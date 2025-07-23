@@ -40,7 +40,7 @@ export default function AdminPage() {
       }
 
       try {
-        const response = await fetch(`${apiUrl}/admin/stats`, {
+        const response = await fetch(`${apiUrl}/api/admin/stats`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
