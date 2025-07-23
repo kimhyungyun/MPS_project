@@ -57,7 +57,7 @@ export default function LectureManagementPage() {
       if (!apiUrl) throw new Error("API URL is not defined");
 
       // 1️⃣ VdoCipher 업로드 권한 및 videoId 요청
-      const uploadRes = await fetch(`${apiUrl}/vdocipher/upload-url`, {
+      const uploadRes = await fetch(`${apiUrl}/api/vdocipher/upload-url`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -82,7 +82,7 @@ export default function LectureManagementPage() {
         categoryId: 1
       };
 
-      const lectureRes = await axios.post(`${apiUrl}/lectures`, lectureData, {
+      const lectureRes = await axios.post(`${apiUrl}/api/lectures`, lectureData, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
