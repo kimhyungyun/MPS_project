@@ -151,6 +151,12 @@ export default function LectureManagementPage() {
                         수정
                       </button>
                       <button
+                        onClick={() => router.push(`/mpslecture/testroom?lectureId=${lecture.id}`)}
+                        className="bg-green-100 text-green-600 hover:text-green-900 px-3 py-1 rounded-md text-sm font-medium"
+                      >
+                        보기
+                      </button>
+                      <button
                         onClick={() => {/* Handle delete */}}
                         className="bg-red-100 text-red-600 hover:text-red-900 px-3 py-1 rounded-md text-sm font-medium"
                       >
