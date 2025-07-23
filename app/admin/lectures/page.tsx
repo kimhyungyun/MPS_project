@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 
@@ -20,6 +20,7 @@ export default function LectureManagementPage() {
   const [lectures, setLectures] = useState<Lecture[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchLectures();
@@ -27,10 +28,8 @@ export default function LectureManagementPage() {
 
   const fetchLectures = async () => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL; // API URL을 환경변수에서 가져오기
-      if (!apiUrl) {
-        throw new Error("API URL is not defined");
-      }
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      if (!apiUrl) throw new Error("API URL is not defined");
 
       const response = await fetch(`${apiUrl}/lectures`, {
         headers: {
@@ -53,51 +52,43 @@ export default function LectureManagementPage() {
     setIsUploading(true);
     setUploadProgress(0);
 
-    const formData = new FormData();
-    formData.append('file', file);
-
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL; // API URL을 환경변수에서 가져오기
-      if (!apiUrl) {
-        throw new Error("API URL is not defined");
-      }
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      if (!apiUrl) throw new Error("API URL is not defined");
 
-      // First upload the file
-      const uploadResponse = await axios.post(`${apiUrl}/files/upload`, formData, {
+      // 1️⃣ VdoCipher 업로드 권한 및 videoId 요청
+      const uploadRes = await fetch(`${apiUrl}/vdocipher/upload-url`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'multipart/form-data'
-        },
-        onUploadProgress: (progressEvent) => {
-          const progress = progressEvent.total
-            ? Math.round((progressEvent.loaded * 100) / progressEvent.total)
-            : 0;
-          setUploadProgress(progress);
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      const { videoId, uploadLink } = await uploadRes.json();
+
+      // 2️⃣ VdoCipher에 영상 업로드
+      await fetch(uploadLink, {
+        method: "PUT",
+        body: file,
+        headers: { "Content-Type": "application/octet-stream" }
+      });
+
+      // 3️⃣ DB에 강의 등록 요청
+      const lectureData = {
+        title: file.name.replace(/\.[^/.]+$/, ""),
+        description: "Uploaded via VdoCipher",
+        video_url: videoId,
+        thumbnail_url: "/default-thumbnail.jpg",
+        price: 0,
+        type: "single",
+        categoryId: 1
+      };
+
+      const lectureRes = await axios.post(`${apiUrl}/lectures`, lectureData, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
 
-      if (uploadResponse.data.success) {
-        // After successful upload, create the lecture
-        const lectureData = {
-          title: file.name.replace(/\.[^/.]+$/, ""), // Remove file extension
-          description: "Uploaded lecture",
-          video_url: uploadResponse.data.data.download_url,
-          thumbnail_url: "/default-thumbnail.jpg", // You might want to handle thumbnail separately
-          price: 0,
-          type: "VIDEO",
-          categoryId: 1 // Default category
-        };
-
-        const lectureResponse = await axios.post(`${apiUrl}/lectures`, lectureData, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        });
-
-        if (lectureResponse.data) {
-          await fetchLectures(); // Refresh the lecture list
-        }
-      }
+      if (lectureRes.data) await fetchLectures();
     } catch (error) {
       console.error('Upload failed:', error);
     } finally {
@@ -116,6 +107,7 @@ export default function LectureManagementPage() {
               <span>강의 업로드</span>
               <input
                 type="file"
+                ref={fileInputRef}
                 className="hidden"
                 accept="video/mp4,video/x-m4v,video/*"
                 onChange={handleFileUpload}
