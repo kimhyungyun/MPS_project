@@ -31,7 +31,7 @@ export default function LectureManagementPage() {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL;
       if (!apiUrl) throw new Error("API URL is not defined");
 
-      const response = await fetch(`${apiUrl}/lectures`, {
+      const response = await fetch(`${apiUrl}/api/lectures`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
