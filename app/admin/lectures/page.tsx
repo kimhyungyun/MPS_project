@@ -19,7 +19,6 @@ export default function LectureManagementPage() {
   const router = useRouter();
   const [lectures, setLectures] = useState<Lecture[]>([]);
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -36,6 +35,7 @@ export default function LectureManagementPage() {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
+
       if (response.ok) {
         const data = await response.json();
         setLectures(data);
@@ -50,7 +50,6 @@ export default function LectureManagementPage() {
     if (!file) return;
 
     setIsUploading(true);
-    setUploadProgress(0);
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -64,21 +63,21 @@ export default function LectureManagementPage() {
       });
       const { videoId, uploadLink } = await uploadRes.json();
 
-      // 2️⃣ VdoCipher에 영상 업로드
+      // 2️⃣ VdoCipher에 직접 영상 업로드
       await fetch(uploadLink, {
         method: "PUT",
         body: file,
         headers: { "Content-Type": "application/octet-stream" }
       });
 
-      // 3️⃣ DB에 강의 등록 요청
+      // 3️⃣ 백엔드에 강의 등록 (videoId 전달)
       const lectureData = {
         title: file.name.replace(/\.[^/.]+$/, ""),
         description: "Uploaded via VdoCipher",
-        video_url: videoId,
+        video_url: `https://player.vdocipher.com/v2/?video=${videoId}`,
         thumbnail_url: "/default-thumbnail.jpg",
         price: 0,
-        type: "single",
+        type: "PAID",
         categoryId: 1
       };
 
@@ -93,7 +92,7 @@ export default function LectureManagementPage() {
       console.error('Upload failed:', error);
     } finally {
       setIsUploading(false);
-      setUploadProgress(0);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -104,7 +103,7 @@ export default function LectureManagementPage() {
           <h1 className="text-3xl font-bold text-gray-900">강의 관리</h1>
           <div className="flex items-center space-x-4">
             <label className="bg-blue-600 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-blue-700 transition-colors">
-              <span>강의 업로드</span>
+              <span>{isUploading ? "업로드 중..." : "강의 업로드"}</span>
               <input
                 type="file"
                 ref={fileInputRef}
@@ -116,18 +115,6 @@ export default function LectureManagementPage() {
             </label>
           </div>
         </div>
-
-        {isUploading && (
-          <div className="mb-8">
-            <div className="w-full bg-gray-200 rounded-full h-2.5">
-              <div
-                className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
-                style={{ width: `${uploadProgress}%` }}
-              ></div>
-            </div>
-            <p className="text-sm text-gray-600 mt-2">업로드 중... {uploadProgress}%</p>
-          </div>
-        )}
 
         <div className="bg-white shadow overflow-hidden sm:rounded-md">
           <ul className="divide-y divide-gray-200">
