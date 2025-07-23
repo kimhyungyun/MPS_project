@@ -1,14 +1,14 @@
 'use client';
 
-import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
-export default function TestVideoPlayer() {
-  const [iframeSrc, setIframeSrc] = useState("");
+export default function TestVideoClient() {
   const searchParams = useSearchParams();
+  const [iframeSrc, setIframeSrc] = useState("");
+  const [userId, setUserId] = useState<string | null>(null);
 
   const lectureId = Number(searchParams.get("lectureId"));
-  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -16,7 +16,7 @@ export default function TestVideoPlayer() {
 
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
-      setUserId(payload.mb_id); // JWT에서 mb_id 추출
+      setUserId(payload.mb_id);
     } catch (e) {
       console.error("JWT 파싱 실패", e);
     }
