@@ -22,6 +22,7 @@ export default function LoginForm() {
         formData,
         {
           withCredentials: true, // 🔥 CORS 해결을 위한 옵션
+          validateStatus: () => true,   // ✅ 추가!!
         }
       );
 
