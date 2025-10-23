@@ -126,11 +126,13 @@ export default function MpsLecture() {
       }
 
       const data = await playAuth.json();
-      console.log("🔥 DATA FROM SERVER:", data)
+      console.log("🔥 DATA FROM SERVER:", data);
       const urlFromServer = data?.streamUrl as string | undefined;
       const fallback = `https://${CF_STREAM_DOMAIN}/${encodeURI(
         course.video_url
       )}/index.m3u8`;
+      console.log(process.env.NEXT_PUBLIC_STREAM_DOMAIN)
+
 
       setStreamUrl(urlFromServer || fallback);
       console.log('✅ streamUrl set:', urlFromServer || fallback);
