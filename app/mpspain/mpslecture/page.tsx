@@ -131,9 +131,8 @@ export default function MpsLecture() {
       const data = await playAuth.json();
       console.log("🔥 DATA FROM SERVER:", data);
       const urlFromServer = data?.streamUrl as string | undefined;
-      const fallback = `https://${CF_STREAM_DOMAIN}/${encodeURI(
-       course.video_url
-      )}.m3u8`;  // ✅ 폴더 없이 그냥 video_url이 전체 키면, 뒤에 index.m3u8 붙이지 말고 확장자 그대로 .m3u8
+      const fallback = `https://${CF_STREAM_DOMAIN}/${encodeURI(course.video_url)}`;
+
 
 
 
