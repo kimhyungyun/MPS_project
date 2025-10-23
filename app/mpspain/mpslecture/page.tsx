@@ -24,17 +24,19 @@ function HlsPlayer({ src }: { src: string }) {
     const video = ref.current;
     if (!video || !src) return;
 
+    // ✅ 모든 HLS 요청에 쿠키를 강제 포함 (m3u8 + ts + key 파일 전부)
     if (Hls.isSupported()) {
-     const hls = new Hls({
-       xhrSetup: (xhr) => {
-      xhr.withCredentials = true;  // ✅ 쿠키 강제 포함
-    }
-  });
+      Hls.DefaultConfig.xhrSetup = function (xhr) {
+        xhr.withCredentials = true;  // ✅ 핵심 한 방
+      };
+
+      const hls = new Hls();
       hls.loadSource(src);
       hls.attachMedia(video);
+
       return () => hls.destroy();
     } else {
-      // Safari (HLS 네이티브)
+      // Safari fallback
       video.src = src;
     }
   }, [src]);
@@ -48,6 +50,7 @@ function HlsPlayer({ src }: { src: string }) {
     />
   );
 }
+
 
 export default function MpsLecture() {
   const [courses, setCourses] = useState<Course[]>([]);
