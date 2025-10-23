@@ -83,87 +83,68 @@ export default function MpsLecture() {
     })();
   }, []);
 
-  const preparePlay = async (course: Course) => {
-  setSelected(course);
-  setLoadingPlay(true);
-  setErrorMsg('');
-
-  try {
-    // ✅ 테스트용 강제 URL
-    const TEST_URL =
-      "https://media.mps-admin.com/facemusclefinal/1 안면근 최종.m3u8";
-    console.log("🎯 FORCE TEST URL:", TEST_URL);
-    setStreamUrl(TEST_URL);
-    setLoadingPlay(false);
-    return; // 아래 JWT + fetch 로직 잠시 무시
-  } catch (err) {
-    console.error(err);
-    setErrorMsg('강제 테스트 오류');
-    setLoadingPlay(false);
-  }
-};
   // 재생 준비 (쿠키 발급 → streamUrl 세팅)
-  // const preparePlay = async (course: Course) => {
-  //   setSelected(course);
-  //   setLoadingPlay(true);
-  //   setErrorMsg('');
-  //   setStreamUrl('');
+  const preparePlay = async (course: Course) => {
+    setSelected(course);
+    setLoadingPlay(true);
+    setErrorMsg('');
+    setStreamUrl('');
 
-  //   try {
-  //     // ✅ 토큰 안전 확보
-  //     const token =
-  //       typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    try {
+      // ✅ 토큰 안전 확보
+      const token =
+        typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
-  //     // 디버깅 로그
-  //     console.log('🔥 PLAY REQUEST START');
-  //     console.log('🔥 USING TOKEN:', token ? '[present]' : '[missing]');
-  //     console.log(
-  //       '🔥 CALL:',
-  //       `${API_BASE_URL}/api/signed-urls/lecture/${course.id}`
-  //     );
+      // 디버깅 로그
+      console.log('🔥 PLAY REQUEST START');
+      console.log('🔥 USING TOKEN:', token ? '[present]' : '[missing]');
+      console.log(
+        '🔥 CALL:',
+        `${API_BASE_URL}/api/signed-urls/lecture/${course.id}`
+      );
 
-  //     if (!token) {
-  //       alert('로그인이 필요합니다.');
-  //       setLoadingPlay(false);
-  //       return;
-  //     }
+      if (!token) {
+        alert('로그인이 필요합니다.');
+        setLoadingPlay(false);
+        return;
+      }
 
-  //     // ✅ CloudFront 서명 쿠키 발급
-  //     const playAuth = await fetch(
-  //       `${API_BASE_URL}/api/signed-urls/lecture/${course.id}`,
-  //       {
-  //         method: 'GET',
-  //         credentials: 'include', // 쿠키 저장
-  //         headers: {
-  //           Authorization: `Bearer ${token}`,
-  //         },
-  //       }
-  //     );
+      // ✅ CloudFront 서명 쿠키 발급
+      const playAuth = await fetch(
+        `${API_BASE_URL}/api/signed-urls/lecture/${course.id}`,
+        {
+          method: 'GET',
+          credentials: 'include', // 쿠키 저장
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
-  //     console.log('🔥 playAuth status:', playAuth.status);
-  //     if (!playAuth.ok) {
-  //       const t = await playAuth.text();
-  //       console.error('🔥 playAuth body:', t);
-  //       throw new Error(`play-auth failed: ${playAuth.status} ${t}`);
-  //     }
+      console.log('🔥 playAuth status:', playAuth.status);
+      if (!playAuth.ok) {
+        const t = await playAuth.text();
+        console.error('🔥 playAuth body:', t);
+        throw new Error(`play-auth failed: ${playAuth.status} ${t}`);
+      }
 
-  //     const data = await playAuth.json();
-  //     console.log("🔥 DATA FROM SERVER:", data);
-  //     const urlFromServer = data?.streamUrl as string | undefined;
-  //     const fallback = `https://${CF_STREAM_DOMAIN}/${encodeURI(course.video_url)}`;
-
-
+      const data = await playAuth.json();
+      console.log("🔥 DATA FROM SERVER:", data);
+      const urlFromServer = data?.streamUrl as string | undefined;
+      const fallback = `https://${CF_STREAM_DOMAIN}/${encodeURI(course.video_url)}`;
 
 
-  //     setStreamUrl(urlFromServer || fallback);
-  //     console.log('✅ streamUrl set:', urlFromServer || fallback);
-  //   } catch (err) {
-  //     console.error(err);
-  //     setErrorMsg('영상 재생 준비 중 문제가 발생했습니다.');
-  //   } finally {
-  //     setLoadingPlay(false);
-  //   }
-  // };
+
+
+      setStreamUrl(urlFromServer || fallback);
+      console.log('✅ streamUrl set:', urlFromServer || fallback);
+    } catch (err) {
+      console.error(err);
+      setErrorMsg('영상 재생 준비 중 문제가 발생했습니다.');
+    } finally {
+      setLoadingPlay(false);
+    }
+  };
 
   return (
     <section className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
