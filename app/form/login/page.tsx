@@ -17,14 +17,18 @@ export default function LoginForm() {
     setError('');
 
     try {
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`,
-        formData,
-        {
-          withCredentials: true, // 🔥 CORS 해결을 위한 옵션
-          validateStatus: () => true,   // ✅ 추가!!
-        }
-      );
+        const response = await axios.post(
+         `${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`,
+         formData,
+          {
+           withCredentials: true,           // ✅ 이미 있음 (필수)
+           validateStatus: () => true,      // ✅ 이미 있음 (axios 에러 throw 방지)
+            headers: {                       // ✅ 이 줄 새로 추가
+              'Content-Type': 'application/json'
+    }
+  }
+);
+
 
       if (response.data.success) {
         const userData = response.data.data;
