@@ -87,6 +87,9 @@ export default function MpsLecture() {
         {
           method: 'GET',
           credentials: 'include', // ✅ 중요: 쿠키를 브라우저에 저장
+          headers: {               // ✅ JWT 추가해줘야 함 !!
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          },
         }
       );
 
