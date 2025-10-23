@@ -72,7 +72,7 @@ const NoticeDetail = () => {
   const isWriter = user?.id === notice.writer_id;
 
   return (
-    <section className="w-full px-4 lg:px-24 py-12 bg-gradient-to-b from-gray-50 to-gray-100 mt-20">
+    <section className="w-full px-4 lg:px-24 py-12 bg-gradient-to-b from-gray-50 to-gray-100 mt-20 pt-20">
       <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
         {/* 헤더 */}
         <div className="border-b border-gray-200 pb-8 mb-8">
