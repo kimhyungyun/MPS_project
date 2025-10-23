@@ -167,6 +167,7 @@ export default function IndexPage() {
                 key={current.url}
                 ref={videoRef}
                 src={current.url}
+                controlsList="nodownload"
                 controls
                 autoPlay
                 playsInline
