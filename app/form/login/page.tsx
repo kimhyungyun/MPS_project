@@ -16,48 +16,55 @@ export default function LoginForm() {
     e.preventDefault();
     setError('');
 
-    try {
-        const response = await axios.post(
-         `${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`,
-         formData,
-          {
-           withCredentials: true,           // ✅ 이미 있음 (필수)
-           validateStatus: () => true,      // ✅ 이미 있음 (axios 에러 throw 방지)
-            headers: {                       // ✅ 이 줄 새로 추가
-              'Content-Type': 'application/json'
+try {
+  console.log('[DEBUG] 요청 보냄:', formData);
+
+  const response = await axios.post(
+    `${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`,
+    formData,
+    {
+      withCredentials: true,
+      validateStatus: () => true,
+      headers: {
+        'Content-Type': 'application/json',
+      },
     }
+  );
+
+  // ✅ 진짜 중요한 디버깅 출력
+  console.log('[DEBUG] AXIOS RAW RESPONSE:', response);
+  console.log('[DEBUG] AXIOS DATA:', response.data);
+
+  if (response.data?.success === true) {
+    const userData = response.data.data;
+    console.log('[DEBUG] Login SUCCESS — userData:', userData);
+
+    localStorage.setItem('token', userData.access_token);
+    localStorage.setItem('user', JSON.stringify(userData));
+    document.cookie = `user=${JSON.stringify(userData)}; path=/`;
+    document.cookie = `token=${userData.access_token}; path=/`;
+
+    if (userData.mb_level >= 8) {
+      console.log('Login - Redirecting to admin page, mb_level:', userData.mb_level);
+      setTimeout(() => {
+        window.location.href = '/admin';
+      }, 100);
+    } else {
+      console.log('Login - Redirecting to main page, mb_level:', userData.mb_level);
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 100);
+    }
+  } else {
+    console.log('[DEBUG] Login FAILED — 응답 내용:', response.data);
+    setError(response.data?.message || '로그인에 실패했습니다.');
   }
-);
+} catch (err: any) {
+  console.error('[DEBUG] Axios CATCH 블록 ERROR:', err);
+  console.error('[DEBUG] err.response:', err?.response);
+  setError(err.response?.data?.message || '로그인에 실패했습니다. 다시 시도해주세요.');
+}
 
-
-      if (response.data.success) {
-        const userData = response.data.data;
-        console.log('Login response:', userData);
-
-        // Set both localStorage and cookies
-        localStorage.setItem('token', userData.access_token);
-        localStorage.setItem('user', JSON.stringify(userData));
-        document.cookie = `user=${JSON.stringify(userData)}; path=/`;
-        document.cookie = `token=${userData.access_token}; path=/`;
-
-        // mb_level이 8 이상이면 관리자 페이지로, 그렇지 않으면 메인 페이지로 이동
-        if (userData.mb_level >= 8) {
-          console.log('Login - Redirecting to admin page, mb_level:', userData.mb_level);
-          setTimeout(() => {
-            window.location.href = '/admin';
-          }, 100);
-        } else {
-          console.log('Login - Redirecting to main page, mb_level:', userData.mb_level);
-          setTimeout(() => {
-            window.location.href = '/';
-          }, 100);
-        }
-      } else {
-        setError(response.data.message || '로그인에 실패했습니다.');
-      }
-    } catch (err: any) {
-      setError(err.response?.data?.message || '로그인에 실패했습니다. 다시 시도해주세요.');
-    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
