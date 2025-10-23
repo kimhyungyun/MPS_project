@@ -15,7 +15,7 @@ interface Course {
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL; // 예: https://api.mps-admin.com
 const CF_STREAM_DOMAIN =
-  process.env.NEXT_PUBLIC_STREAM_DOMAIN || 'dookesj1vlw1l.cloudfront.net';
+  process.env.NEXT_PUBLIC_STREAM_DOMAIN || 'media.mps-admin.com';
 
 function HlsPlayer({ src }: { src: string }) {
   const ref = useRef<HTMLVideoElement>(null);
