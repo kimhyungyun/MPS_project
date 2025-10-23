@@ -78,6 +78,9 @@ export default function MpsLecture() {
         setLoadingPlay(false);
         return;
       }
+      console.log("🔥 PLAY REQUEST START");
+      console.log("🔥 TOKEN SENT:", localStorage.getItem('token'));
+
 
       // ✅ 2) CloudFront 서명 쿠키 발급 요청
       const playAuth = await fetch(
