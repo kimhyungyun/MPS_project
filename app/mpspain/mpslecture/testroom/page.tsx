@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/router"; // ✅ 추가: 로그인 차단에 필요
 
 type VideoItem = {
   no: number;
@@ -42,21 +43,34 @@ const VIDEO_LIST: VideoItem[] = [
 ];
 
 export default function IndexPage() {
+  const router = useRouter();
+
+  // ✅ 로그인 체크 (localStorage 기반)
+  useEffect(() => {
+    const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
+    if (!isLoggedIn) {
+      router.replace("/login");
+    }
+  }, []);
+
+  // ✅ 로그인 안 되어 있으면 렌더를 잠시 중단
+  if (typeof window !== "undefined" && localStorage.getItem("isLoggedIn") !== "true") {
+    return <div />; // 로딩 중 처리
+  }
+
+  // ✅ 로그인 통과 이후 기존 UI 시작
   const [current, setCurrent] = useState<VideoItem | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
-  // 선택 시 자동재생 보조 (브라우저 정책 때문에 실패하면 무시)
+  // 선택 시 자동재생 보조
   useEffect(() => {
     if (videoRef.current) {
       const v = videoRef.current;
-      // 새 소스로 교체될 때 완전 리로드를 유도
       v.load();
       const tryPlay = async () => {
         try {
           await v.play();
-        } catch {
-          // 자동재생이 막히면 사용자 조작으로 재생되게 둠
-        }
+        } catch {}
       };
       tryPlay();
     }
@@ -77,7 +91,7 @@ export default function IndexPage() {
           </p>
         </div>
 
-        {/* 리스트 (카드형 게시글 스타일) */}
+        {/* 리스트 */}
         <div className="space-y-3">
           {VIDEO_LIST.map((item) => {
             const isActive = current?.no === item.no;
@@ -91,7 +105,6 @@ export default function IndexPage() {
                     : "border-neutral-200 hover:shadow-md",
                 ].join(" ")}
               >
-                {/* 번호 + 제목 */}
                 <div className="flex items-center gap-4">
                   <div
                     className={[
@@ -100,7 +113,6 @@ export default function IndexPage() {
                         ? "bg-indigo-600 text-white"
                         : "bg-neutral-100 text-neutral-700",
                     ].join(" ")}
-                    aria-label={`강의 ${item.no}번`}
                   >
                     {String(item.no).padStart(2, "0")}
                   </div>
@@ -109,7 +121,6 @@ export default function IndexPage() {
                   </div>
                 </div>
 
-                {/* 재생 버튼 */}
                 <button
                   onClick={() => setCurrent(item)}
                   className={[
@@ -119,7 +130,6 @@ export default function IndexPage() {
                       : "border-neutral-300 bg-white text-neutral-800 hover:border-neutral-400",
                   ].join(" ")}
                 >
-                  {/* Play 아이콘 (SVG) */}
                   <svg
                     className={[
                       "h-4 w-4 transition",
@@ -128,7 +138,6 @@ export default function IndexPage() {
                         : "fill-neutral-700 group-hover:fill-neutral-900",
                     ].join(" ")}
                     viewBox="0 0 24 24"
-                    aria-hidden="true"
                   >
                     <path d="M8 5v14l11-7z" />
                   </svg>
@@ -139,7 +148,7 @@ export default function IndexPage() {
           })}
         </div>
 
-        {/* 고정 플레이어 영역 (항상 리스트 “아래”) */}
+        {/* 고정 플레이어 */}
         <div className="mt-8 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
           <div className="mb-3 flex items-center justify-between">
             <div className="text-sm font-semibold text-neutral-800">
@@ -155,17 +164,15 @@ export default function IndexPage() {
           <div className="aspect-video w-full overflow-hidden rounded-xl bg-black">
             {current ? (
               <video
-                key={current.url} // URL 변경 시 완전 리렌더
+                key={current.url}
                 ref={videoRef}
                 src={current.url}
                 controls
                 autoPlay
-                className="h-full w-full"
-                // 모바일에서 전체화면 진입 허용
                 playsInline
+                className="h-full w-full"
               />
             ) : (
-              // 플레이어 자리 유지용 스켈레톤
               <div className="flex h-full w-full items-center justify-center">
                 <div className="animate-pulse text-sm text-neutral-400">
                   선택한 강의가 여기에서 재생됩니다
@@ -174,7 +181,6 @@ export default function IndexPage() {
             )}
           </div>
 
-          {/* 간단 가이드 */}
           <p className="mt-3 text-xs text-neutral-500">
             자동재생이 차단될 수 있습니다. 이 경우 플레이 버튼을 한 번 눌러 주세요.
           </p>
