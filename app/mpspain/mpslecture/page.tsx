@@ -13,7 +13,7 @@ interface Course {
   type: string;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL; // 예: https://api.mps-admin.com
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 const CF_STREAM_DOMAIN =
   process.env.NEXT_PUBLIC_STREAM_DOMAIN || 'media.mps-admin.com';
 
@@ -126,6 +126,7 @@ export default function MpsLecture() {
       }
 
       const data = await playAuth.json();
+      console.log("🔥 DATA FROM SERVER:", data)
       const urlFromServer = data?.streamUrl as string | undefined;
       const fallback = `https://${CF_STREAM_DOMAIN}/${encodeURI(
         course.video_url
