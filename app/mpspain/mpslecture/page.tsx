@@ -25,7 +25,11 @@ function HlsPlayer({ src }: { src: string }) {
     if (!video || !src) return;
 
     if (Hls.isSupported()) {
-      const hls = new Hls();
+     const hls = new Hls({
+       xhrSetup: (xhr) => {
+      xhr.withCredentials = true;  // ✅ 쿠키 강제 포함
+    }
+  });
       hls.loadSource(src);
       hls.attachMedia(video);
       return () => hls.destroy();
