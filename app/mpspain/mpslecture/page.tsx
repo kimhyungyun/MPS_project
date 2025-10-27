@@ -208,7 +208,12 @@ export default function MpsLecture() {
             ))}
           </div>
         )}
-
+        {(() => {
+          console.log("🎯 최종 렌더 직전 streamUrl =", streamUrl);
+          console.log("🎯 selected =", selected);
+          console.log("🎯 typeof selected =", typeof selected);
+          return null;
+        })()}
         {selected && (
           <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
             <div className="bg-white p-6 rounded-lg max-w-4xl w-full relative">
