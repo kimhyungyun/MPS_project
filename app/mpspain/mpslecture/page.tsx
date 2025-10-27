@@ -9,7 +9,7 @@ interface Course {
   description: string;
   price: number;
   thumbnail_url: string;
-  video_url: string; // ✅ S3 출력 폴더명(videoId)만 저장 (예: "facemusclefinal")
+  video_url: string; // 예: "facemusclefinal/1 안면근 최종" (폴더 경로까지만 저장)
   type: string;
 }
 
@@ -21,23 +21,54 @@ function HlsPlayer({ src }: { src: string }) {
   const ref = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
+    console.log('🎯 [HLS PLAYER INIT] src =', src);
+
     const video = ref.current;
     if (!video || !src) return;
 
-    // ✅ 모든 HLS 요청에 쿠키를 강제 포함 (m3u8 + ts + key 파일 전부)
     if (Hls.isSupported()) {
+      // Hls 내부 요청 URL/상태를 전부 로그
+      Hls.DefaultConfig.debug = true;
+
+      // 모든 HLS 요청(m3u8/ts/key)에 쿠키 포함
       Hls.DefaultConfig.xhrSetup = function (xhr) {
-        xhr.withCredentials = true;  // ✅ 핵심 한 방
+        xhr.withCredentials = true;
+        console.log('🍪 [HLS xhrSetup] document.cookie =', document.cookie);
       };
 
       const hls = new Hls();
+
+      // Hls 이벤트 훅(원인 추적용)
+      hls.on(Hls.Events.ERROR, (_evt, data) => {
+        console.log('❌ [HLS ERROR]', JSON.stringify({
+          type: data?.type,
+          details: data?.details,
+          fatal: data?.fatal,
+          response: {
+            code: (data as any)?.response?.code,
+            text: (data as any)?.response?.text,
+            url: (data as any)?.response?.url,
+          }
+        }));
+      });
+
+      hls.on(Hls.Events.MANIFEST_LOADING, (_evt, data) => {
+        console.log('📥 [MANIFEST_LOADING]', data?.url);
+      });
+      hls.on(Hls.Events.MANIFEST_PARSED, (_evt, data) => {
+        console.log('✅ [MANIFEST_PARSED] levels:', data?.levels?.length);
+      });
+      hls.on(Hls.Events.FRAG_LOADING, (_evt, data) => {
+        console.log('📦 [FRAG_LOADING]', data?.frag?.url);
+      });
+
       hls.loadSource(src);
       hls.attachMedia(video);
 
       return () => hls.destroy();
     } else {
-      // Safari fallback
-      video.src = src;
+      // Safari 등 네이티브 HLS
+      (video as HTMLVideoElement).src = src;
     }
   }, [src]);
 
@@ -51,7 +82,6 @@ function HlsPlayer({ src }: { src: string }) {
   );
 }
 
-
 export default function MpsLecture() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [selected, setSelected] = useState<Course | null>(null);
@@ -60,7 +90,7 @@ export default function MpsLecture() {
   const [streamUrl, setStreamUrl] = useState<string>('');
   const [errorMsg, setErrorMsg] = useState<string>('');
 
-  // ✅ 진단 로그
+  // 진단 로그
   console.log('✅ API_BASE_URL:', API_BASE_URL);
   console.log('✅ 강의 목록 요청 URL:', `${API_BASE_URL}/api/lectures`);
 
@@ -73,9 +103,10 @@ export default function MpsLecture() {
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = (await res.json()) as Course[];
+        console.log('📚 [COURSES]', data);
         setCourses(data);
       } catch (e: any) {
-        console.error(e);
+        console.error('❌ [LECTURE LIST ERROR]', e);
         setErrorMsg('강의 목록을 불러오지 못했습니다.');
       } finally {
         setLoadingList(false);
@@ -85,23 +116,20 @@ export default function MpsLecture() {
 
   // 재생 준비 (쿠키 발급 → streamUrl 세팅)
   const preparePlay = async (course: Course) => {
+    console.log('👆 [CLICK COURSE]', course.id, course.title);
+    console.log('📦 [RAW video_url from DB]', course.video_url);
+
     setSelected(course);
     setLoadingPlay(true);
     setErrorMsg('');
     setStreamUrl('');
 
     try {
-      // ✅ 토큰 안전 확보
       const token =
         typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
-      // 디버깅 로그
-      console.log('🔥 PLAY REQUEST START');
-      console.log('🔥 USING TOKEN:', token ? '[present]' : '[missing]');
-      console.log(
-        '🔥 CALL:',
-        `${API_BASE_URL}/api/signed-urls/lecture/${course.id}`
-      );
+      console.log('🔑 [TOKEN]', token ? '[present]' : '[missing]');
+      console.log('🌐 [AUTH CALL]', `${API_BASE_URL}/api/signed-urls/lecture/${course.id}`);
 
       if (!token) {
         alert('로그인이 필요합니다.');
@@ -109,7 +137,6 @@ export default function MpsLecture() {
         return;
       }
 
-      // ✅ CloudFront 서명 쿠키 발급
       const playAuth = await fetch(
         `${API_BASE_URL}/api/signed-urls/lecture/${course.id}`,
         {
@@ -121,25 +148,28 @@ export default function MpsLecture() {
         }
       );
 
-      console.log('🔥 playAuth status:', playAuth.status);
+      console.log('📡 [AUTH STATUS]', playAuth.status);
+      console.log('🍪 [AFTER AUTH] document.cookie =', document.cookie);
+
       if (!playAuth.ok) {
         const t = await playAuth.text();
-        console.error('🔥 playAuth body:', t);
+        console.error('🔥 [AUTH FAIL BODY]', t);
         throw new Error(`play-auth failed: ${playAuth.status} ${t}`);
       }
 
       const data = await playAuth.json();
-      console.log("🔥 DATA FROM SERVER:", data);
+      console.log('✅ [SERVER DATA]', data);
+
       const urlFromServer = data?.streamUrl as string | undefined;
-      const fallback = `https://${CF_STREAM_DOMAIN}/${encodeURI(course.video_url)}`;
+      // 혹시 서버가 못 주면 폴더 경로 + index.m3u8로 fallback
+      const fallback = `https://${CF_STREAM_DOMAIN}/${encodeURI(course.video_url)}/index.m3u8`;
 
+      const finalUrl = urlFromServer || fallback;
+      console.log('🎯 [FINAL STREAM URL]', finalUrl);
 
-
-
-      setStreamUrl(urlFromServer || fallback);
-      console.log('✅ streamUrl set:', urlFromServer || fallback);
+      setStreamUrl(finalUrl);
     } catch (err) {
-      console.error(err);
+      console.error('❌ [PREPARE PLAY ERROR]', err);
       setErrorMsg('영상 재생 준비 중 문제가 발생했습니다.');
     } finally {
       setLoadingPlay(false);
@@ -152,9 +182,7 @@ export default function MpsLecture() {
         <h1 className="text-4xl font-bold text-center mb-8">MPS 강의실</h1>
 
         {loadingList ? (
-          <p className="text-center text-gray-500">
-            강의 목록을 불러오는 중입니다...
-          </p>
+          <p className="text-center text-gray-500">강의 목록을 불러오는 중입니다...</p>
         ) : errorMsg ? (
           <p className="text-center text-red-600">{errorMsg}</p>
         ) : (
@@ -169,6 +197,10 @@ export default function MpsLecture() {
                   src={c.thumbnail_url}
                   alt={c.title}
                   className="w-full h-40 object-cover rounded-lg mb-4"
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = '/placeholder.png'; // 썸네일 없을 때 폴백
+                  }}
                 />
                 <h2 className="text-lg font-semibold mb-2">{c.title}</h2>
                 <p className="text-gray-600 text-sm">{c.description}</p>
