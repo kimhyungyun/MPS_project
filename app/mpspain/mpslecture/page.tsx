@@ -216,39 +216,40 @@ export default function MpsLecture() {
           console.log("🎯 typeof selected =", typeof selected);
           return null;
         })()}
-        {true && (
-          <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded-lg max-w-4xl w-full relative">
-              <button
-                className="absolute top-4 right-4 text-gray-600 hover:text-gray-800"
-                onClick={() => {
-                  setSelected(null);
-                  setStreamUrl('');
-                }}
-              >
-                ✕
-              </button>
-              <h2 className="text-2xl font-bold mb-4">{selected?.title}</h2>
+{true && (
+  <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
+    <div className="bg-white p-6 rounded-lg max-w-4xl w-full relative">
+      <button
+        className="absolute top-4 right-4 text-gray-600 hover:text-gray-800"
+        onClick={() => {
+          setSelected(null);
+          setStreamUrl('');
+        }}
+      >
+        ✕
+      </button>
 
-              {loadingPlay ? (
-                <div className="flex flex-col items-center justify-center h-64">
-                  <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500 mb-4"></div>
-                  <p className="text-gray-500">영상 준비 중...</p>
-                </div>
-              ) : errorMsg || !streamUrl ? (
-                <p className="text-center text-red-600 mt-20">
-                  {errorMsg || '영상 준비 실패'}
-                </p>
-              ) : (
-                <div className="aspect-video w-full rounded-lg overflow-hidden shadow-lg mb-6 border">
-                  <HlsPlayer src={streamUrl} />
-                </div>
-              )}
+      {/* 선택 강의 없으면라도 제목 안 깨지고 표시되게 */}
+      <h2 className="text-2xl font-bold mb-4">
+        {selected?.title || '(강의 미선택)'}
+      </h2>
 
-              <p className="text-gray-700 mt-4">{selected?.description}</p>
-            </div>
-          </div>
-        )}
+      {streamUrl ? (
+        <div className="aspect-video w-full rounded-lg overflow-hidden shadow-lg mb-6 border">
+          <HlsPlayer src={streamUrl} />
+        </div>
+      ) : (
+        <p className="text-center text-gray-500 mt-20">
+          🔄 스트림 URL 준비중...
+        </p>
+      )}
+
+      <p className="text-gray-700 mt-4">
+        {selected?.description || '(설명 없음)'}
+      </p>
+    </div>
+  </div>
+)}
       </div>
     </section>
   );
