@@ -41,6 +41,7 @@ function HlsPlayer({ src }: { src: string }) {
 
       // Hls 이벤트 훅(원인 추적용)
       hls.on(Hls.Events.ERROR, (_evt, data) => {
+        console.log('🚨 HLS ERROR RAW EVENT', data);
         console.log('❌ [HLS ERROR]', JSON.stringify({
           type: data?.type,
           details: data?.details,
