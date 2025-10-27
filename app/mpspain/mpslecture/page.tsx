@@ -216,7 +216,7 @@ export default function MpsLecture() {
           console.log("🎯 typeof selected =", typeof selected);
           return null;
         })()}
-        {selected && streamUrl && (
+        {true && (
           <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
             <div className="bg-white p-6 rounded-lg max-w-4xl w-full relative">
               <button
@@ -228,7 +228,7 @@ export default function MpsLecture() {
               >
                 ✕
               </button>
-              <h2 className="text-2xl font-bold mb-4">{selected.title}</h2>
+              <h2 className="text-2xl font-bold mb-4">{selected?.title}</h2>
 
               {loadingPlay ? (
                 <div className="flex flex-col items-center justify-center h-64">
@@ -245,7 +245,7 @@ export default function MpsLecture() {
                 </div>
               )}
 
-              <p className="text-gray-700 mt-4">{selected.description}</p>
+              <p className="text-gray-700 mt-4">{selected?.description}</p>
             </div>
           </div>
         )}
