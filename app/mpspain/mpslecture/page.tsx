@@ -27,6 +27,7 @@ function HlsPlayer({ src }: { src: string }) {
     if (!video || !src) return;
 
     if (Hls.isSupported()) {
+        console.log("🚨 HLS LOAD STARTED, SRC = ", src); // <= 여기!
       // Hls 내부 요청 URL/상태를 전부 로그
       Hls.DefaultConfig.debug = true;
 
