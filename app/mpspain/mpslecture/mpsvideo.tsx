@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import HlsPlayer from './HlsPlayer';
-
+import { useState, useEffect, useRef } from 'react';
+import Hls from 'hls.js';
 
 interface Course {
   id: number;
@@ -18,18 +17,57 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 const CF_STREAM_DOMAIN =
   process.env.NEXT_PUBLIC_STREAM_DOMAIN || 'media.mps-admin.com';
 
-export default function MpsLecture() {
-  console.log("✅ MpsLecture 렌더됨");
 
+function HlsPlayer({ src }: { src: string }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    if (!src) return;
+    const video = videoRef.current;
+    if (!video) return;
+
+    console.log("🎯 [HLS INIT] src =", src);
+
+    if (Hls.isSupported()) {
+      Hls.DefaultConfig.debug = true;
+      Hls.DefaultConfig.xhrSetup = function (xhr) {
+        xhr.withCredentials = true;
+        console.log("🍪 [xhrSetup cookie]", document.cookie);
+      };
+
+      const hls = new Hls();
+
+      hls.on(Hls.Events.ERROR, (_evt, data) => {
+        console.log("❌ [HLS ERROR]", data);
+      });
+
+      hls.loadSource(src);
+      hls.attachMedia(video);
+
+      return () => hls.destroy();
+    } else {
+      video.src = src;
+    }
+  }, [src]);
+
+  return (
+    <video
+      ref={videoRef}
+      controls
+      playsInline
+      className="w-full rounded-lg shadow border"
+    />
+  );
+}
+
+
+export default function Mpsvideo() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [selected, setSelected] = useState<Course | null>(null);
+  const [loadingList, setLoadingList] = useState(true);
+  const [loadingPlay, setLoadingPlay] = useState(false);
   const [streamUrl, setStreamUrl] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
-  const [loadingList, setLoadingList] = useState(true);
-
-  // selected & streamUrl 상태 추적
-  console.log("🎯 selected =", selected);
-  console.log("🎯 streamUrl =", streamUrl);
 
   useEffect(() => {
     (async () => {
@@ -37,8 +75,8 @@ export default function MpsLecture() {
         const res = await fetch(`${API_BASE_URL}/api/lectures`);
         const data = await res.json();
         setCourses(data);
-      } catch {
-        setErrorMsg('강의 목록을 불러오지 못했습니다.');
+      } catch (e) {
+        setErrorMsg("강의 목록을 불러오지 못했습니다.");
       } finally {
         setLoadingList(false);
       }
@@ -46,57 +84,53 @@ export default function MpsLecture() {
   }, []);
 
   const preparePlay = async (course: Course) => {
-    console.log("🟥 카드 클릭됨:", course.title);
-
     setSelected(course);
-    setStreamUrl('');
+    setStreamUrl("");
+    setErrorMsg("");
+    setLoadingPlay(true);
 
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       if (!token) {
-        alert('로그인이 필요합니다.');
+        alert("로그인이 필요합니다.");
         return;
       }
 
-      const res = await fetch(
+      const playAuth = await fetch(
         `${API_BASE_URL}/api/signed-urls/lecture/${course.id}`,
         {
-          method: 'GET',
-          credentials: 'include',
+          method: "GET",
+          credentials: "include",
           headers: { Authorization: `Bearer ${token}` },
         }
       );
 
-      const data = await res.json();
+      if (!playAuth.ok) throw new Error("Auth failed");
+      const data = await playAuth.json();
+
       const urlFromServer = data?.streamUrl;
       const fallback = `https://${CF_STREAM_DOMAIN}/${encodeURI(course.video_url)}/index.m3u8`;
       const finalUrl = urlFromServer || fallback;
 
-      console.log('🎯 [FINAL STREAM URL]', finalUrl);
+      console.log("🎯 [FINAL STREAM URL]", finalUrl);
+
       setStreamUrl(finalUrl);
     } catch (err) {
       console.error(err);
-      setErrorMsg('영상 재생 오류 발생');
+      setErrorMsg("영상 재생 중 오류");
+    } finally {
+      setLoadingPlay(false);
     }
   };
+
 
   return (
     <section className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
       <div className="max-w-7xl mx-auto px-4 py-12">
         <h1 className="text-4xl font-bold text-center mb-8">MPS 강의실</h1>
 
-        <button 
-          className="bg-red-500 text-white px-3 py-2 rounded mb-4"
-          onClick={() => {
-            setSelected({title:'TEST' } as any);
-            setStreamUrl("https://bitdash-a.akamaihd.net/content/sintel/hls/playlist.m3u8");
-          }}
-        >
-          ✅ 플레이하기
-        </button>
-
         {loadingList ? (
-          <p className="text-center text-gray-500">강의 목록 로딩…</p>
+          <p className="text-center text-gray-500">강의 목록을 불러오는 중…</p>
         ) : errorMsg ? (
           <p className="text-center text-red-600">{errorMsg}</p>
         ) : (
@@ -126,7 +160,7 @@ export default function MpsLecture() {
                 className="absolute top-4 right-4 text-gray-600 hover:text-gray-800"
                 onClick={() => {
                   setSelected(null);
-                  setStreamUrl('');
+                  setStreamUrl("");
                 }}
               >
                 ✕
@@ -143,6 +177,8 @@ export default function MpsLecture() {
                   🔄 스트림 URL 준비중...
                 </p>
               )}
+
+              <p className="text-gray-700">{selected.description}</p>
             </div>
           </div>
         )}

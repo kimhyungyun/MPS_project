@@ -1,5 +1,6 @@
-import MpsLecture from "./mpslecture";
+import Mpsvideo from "./mpsvideo";
+
 
 export default function Page() {
-  return <MpsLecture />;
+  return <Mpsvideo />;
 }
