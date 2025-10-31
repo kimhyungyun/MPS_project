@@ -32,7 +32,7 @@ function HlsPlayer({ src }: { src: string }) {
       Hls.DefaultConfig.debug = true;
       Hls.DefaultConfig.xhrSetup = function (xhr) {
         xhr.withCredentials = true;
-        console.log("🍪 [xhrSetup cookie]", document.cookie);
+        console.log(" 🍪 [xhrSetup cookie]", document.cookie);
       };
 
       const hls = new Hls();
@@ -76,7 +76,7 @@ export default function Mpsvideo() {
         const data = await res.json();
         setCourses(data);
       } catch (e) {
-        setErrorMsg("강의 목록을 불러오지 못했습니다.");
+        setErrorMsg("강의 목록을 불러오지 못했습니다아.");
       } finally {
         setLoadingList(false);
       }
