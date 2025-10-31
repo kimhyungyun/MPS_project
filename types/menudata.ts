@@ -25,7 +25,7 @@ export const menuData: MenuItem[] = [
     submenu: [
       { title: "동영상 강의", href: "/mpspain/mpslecture" },
       { title: "자료실", href: "/mpspain/mpslecture/dataroom" },
-      { title: "테스트", href: "/mpspain/mpslecture/testroom" },
+
     ],
   },
 
