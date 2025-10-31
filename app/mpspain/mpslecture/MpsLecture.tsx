@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import HlsPlayer from './HlsPlayer';
 
+
 interface Course {
   id: number;
   title: string;
@@ -91,7 +92,7 @@ export default function MpsLecture() {
             setStreamUrl("https://bitdash-a.akamaihd.net/content/sintel/hls/playlist.m3u8");
           }}
         >
-          ✅ 테스트 모달 + 공용 HLS 스트림 열기
+          ✅ 플레이하기
         </button>
 
         {loadingList ? (
