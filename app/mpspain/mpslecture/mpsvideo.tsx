@@ -9,14 +9,12 @@ interface Course {
   description: string;
   price: number;
   thumbnail_url: string;
-  video_url: string;
+  video_folder?: string;
+  video_name?: string;
   type: string;
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
-const CF_STREAM_DOMAIN =
-  process.env.NEXT_PUBLIC_STREAM_DOMAIN || 'media.mps-admin.com';
-
 
 function HlsPlayer({ src }: { src: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -60,7 +58,6 @@ function HlsPlayer({ src }: { src: string }) {
   );
 }
 
-
 export default function Mpsvideo() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [selected, setSelected] = useState<Course | null>(null);
@@ -76,7 +73,7 @@ export default function Mpsvideo() {
         const data = await res.json();
         setCourses(data);
       } catch (e) {
-        setErrorMsg("강의 목록을 불러오지 못했습니다아.");
+        setErrorMsg("강의 목록을 불러오지 못했습니다.");
       } finally {
         setLoadingList(false);
       }
@@ -108,14 +105,10 @@ export default function Mpsvideo() {
       if (!playAuth.ok) throw new Error("Auth failed");
       const data = await playAuth.json();
 
-      const urlFromServer = data?.streamUrl;
-      const src = `https://${CF_STREAM_DOMAIN}/${course.video_url}.m3u8`;
-      const fallback = src;
-      const finalUrl = urlFromServer || fallback;
+      console.log("🎯 [FINAL STREAM URL]", data.streamUrl);
 
-      console.log("🎯 [FINAL STREAM URL]", finalUrl);
-
-      setStreamUrl(finalUrl);
+      // ✅ 서버에서 내려준 URL만 사용
+      setStreamUrl(data.streamUrl);
     } catch (err) {
       console.error(err);
       setErrorMsg("영상 재생 중 오류");
@@ -123,7 +116,6 @@ export default function Mpsvideo() {
       setLoadingPlay(false);
     }
   };
-
 
   return (
     <section className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
@@ -174,9 +166,7 @@ export default function Mpsvideo() {
               </div>
 
               {!streamUrl && (
-                <p className="text-center text-gray-500 mb-4">
-                  🔄 스트림 URL 준비중...
-                </p>
+                <p className="text-center text-gray-500 mb-4">🔄 스트림 URL 준비중...</p>
               )}
 
               <p className="text-gray-700">{selected.description}</p>
