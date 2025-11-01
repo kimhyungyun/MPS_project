@@ -109,7 +109,7 @@ export default function Mpsvideo() {
       const data = await playAuth.json();
 
       const urlFromServer = data?.streamUrl;
-      const fallback = `https://${CF_STREAM_DOMAIN}/${course.video_url}/${course.video_url}.m3u8`;
+      const fallback = `https://${CF_STREAM_DOMAIN}/${encodeURI(course.video_url)}.m3u8`;
       const finalUrl = urlFromServer || fallback;
 
       console.log("🎯 [FINAL STREAM URL]", finalUrl);
