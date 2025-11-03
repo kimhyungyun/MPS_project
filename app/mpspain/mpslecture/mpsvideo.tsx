@@ -24,7 +24,7 @@ function HlsPlayer({ src }: { src: string }) {
     const video = videoRef.current;
     if (!video) return;
 
-    console.log("🎯[HLS INIT] src =", src);
+    console.log("🎯 [HLS INIT] src =", src);
 
     if (Hls.isSupported()) {
       Hls.DefaultConfig.debug = true;
