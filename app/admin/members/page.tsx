@@ -93,20 +93,38 @@ export default function AdminMembersPage() {
         },
       );
 
-      if (response.ok) {
-        const data = await response.json();
-        const rawMembers: Member[] = data.data.members;
-        setTotalMembers(data.data.total);
-        setMembers(sortMembers(rawMembers, sortKey, sortOrder));
-      } else {
-        setError('회원 목록을 불러오는데 실패했습니다.');
-      }
-    } catch {
-      setError('서버 오류가 발생했습니다.');
-    } finally {
-      setLoading(false);
+    if (!response.ok) {
+      let body: any = null;
+      try {
+        body = await response.json();
+      } catch {}
+
+      console.error(
+        '[회원 목록 API 실패]',
+        'status =',
+        response.status,
+        'body =',
+        body,
+      );
+
+      setError(
+        body?.message
+          ? `회원 목록 조회 실패: ${body.message}`
+          : '회원 목록을 불러오는데 실패했습니다.',
+      );
+      return;
     }
-  };
+
+    const data = await response.json();
+    const rawMembers: Member[] = data.data.members;
+    setTotalMembers(data.data.total);
+    setMembers(sortMembers(rawMembers, sortKey, sortOrder));
+  } catch {
+    setError('서버 오류가 발생했습니다.');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleLevelChange = async (mb_id: string, newLevel: number) => {
     try {
