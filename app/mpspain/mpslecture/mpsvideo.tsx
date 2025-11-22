@@ -36,10 +36,9 @@ function HlsPlayer({ src }: { src: string }) {
     if (!video) return;
 
     if (Hls.isSupported()) {
-      Hls.DefaultConfig.debug = true;
+      Hls.DefaultConfig.debug = false;
       Hls.DefaultConfig.xhrSetup = function (xhr) {
         xhr.withCredentials = true;
-        console.log(' 🍪 [xhrSetup cookie]', document.cookie);
       };
 
       const hls = new Hls();
@@ -62,7 +61,7 @@ function HlsPlayer({ src }: { src: string }) {
       ref={videoRef}
       controls
       playsInline
-      className="w-full rounded-lg shadow border"
+      className="w-full rounded-xl border bg-black"
     />
   );
 }
@@ -78,6 +77,8 @@ export default function Mpsvideo() {
   const [errorMsg, setErrorMsg] = useState('');
   const [selectedGroup, setSelectedGroup] = useState<GroupKey>('A_CLASS'); // 기본 A반
 
+  const listRef = useRef<HTMLDivElement | null>(null);
+
   useEffect(() => {
     (async () => {
       try {
@@ -85,12 +86,27 @@ export default function Mpsvideo() {
         const data = await res.json();
         setCourses(data);
       } catch (e) {
+        console.error(e);
         setErrorMsg('강의 목록을 불러오지 못했습니다.');
       } finally {
         setLoadingList(false);
       }
     })();
   }, []);
+
+  const handleSelectGroup = (key: GroupKey) => {
+    setSelectedGroup(key);
+
+    // 구성 선택 후 아래 강의 목록으로 스무스 스크롤
+    setTimeout(() => {
+      if (listRef.current) {
+        listRef.current.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        });
+      }
+    }, 0);
+  };
 
   const preparePlay = async (course: Course) => {
     setSelected(course);
@@ -120,13 +136,13 @@ export default function Mpsvideo() {
       setStreamUrl(data.streamUrl);
     } catch (err) {
       console.error(err);
-      setErrorMsg('영상 재생 중 오류');
+      setErrorMsg('영상 재생 중 오류가 발생했습니다.');
     } finally {
       setLoadingPlay(false);
     }
   };
 
-  // 선택된 그룹 기준으로 강의 필터
+  // 선택된 구성 기준으로 필터링
   const filteredCourses = courses.filter((c) => {
     if (!selectedGroup) return false;
 
@@ -152,134 +168,175 @@ export default function Mpsvideo() {
     description: string;
     onClick: () => void;
   }) => (
-    <div
+    <button
+      type="button"
       onClick={onClick}
-      className={`flex flex-col justify-between rounded-2xl border p-5 shadow-sm cursor-pointer transition 
-      ${active ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg scale-[1.01]' : 'bg-white hover:shadow-md'}`}
+      className={`flex w-full flex-col justify-between rounded-2xl border p-4 text-left transition 
+      ${active ? 'border-indigo-600 bg-indigo-600 text-white shadow-lg' : 'border-slate-200 bg-white hover:border-indigo-400 hover:shadow-md'}`}
     >
       <div>
-        <p className="text-xs uppercase tracking-wide opacity-80 mb-1">
+        <p
+          className={`text-[11px] font-medium tracking-wide ${
+            active ? 'text-indigo-100' : 'text-slate-400'
+          }`}
+        >
           {subtitle}
         </p>
-        <h2 className="text-xl font-bold mb-2">{title}</h2>
-        <p className={`text-sm ${active ? 'opacity-90' : 'text-gray-600'}`}>
+        <h2 className="mt-1 text-lg font-semibold">{title}</h2>
+        <p
+          className={`mt-2 text-sm ${
+            active ? 'text-indigo-50' : 'text-slate-600'
+          }`}
+        >
           {description}
         </p>
       </div>
-      <div className="mt-4 text-sm font-medium flex items-center gap-1">
-        {active ? '선택됨 • 강의 목록 아래에서 확인' : '구성 보기'}
+      <div className="mt-3 flex items-center text-xs font-medium">
+        <span className="mr-1">{active ? '선택됨' : '구성 보기'}</span>
         <span>{active ? '👀' : '▶️'}</span>
       </div>
-    </div>
+    </button>
   );
 
   return (
-    <section className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
-      <div className="max-w-7xl mx-auto px-4 py-12">
-        <h1 className="text-4xl font-bold text-center mb-10">MPS 강의실</h1>
+    <main className="min-h-screen bg-slate-50">
+      <div className="mx-auto max-w-6xl px-4 py-10 lg:py-12">
+        {/* 헤더 */}
+        <header className="mb-10 text-center">
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+            MPS 강의실
+          </h1>
+          <p className="mt-3 text-sm text-slate-600">
+            캠프 수강생용 강의와 부위별 유료 패키지 강의를 한 곳에서 관리합니다.
+          </p>
+        </header>
 
-        {/* 상단: A/B반 vs 패키지 모음 영역 */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
-          {/* A/B반 영역 */}
-          <div>
-            <h2 className="text-lg font-semibold mb-3">캠프 수강생 전용 강의</h2>
-            <p className="text-sm text-gray-600 mb-4">
-              A/B반으로 나뉜 캠프 강의 구성입니다. 캠프 수강 권한이 있는 경우 재생 가능합니다.
+        {/* 상단 구성 선택 영역 */}
+        <section className="mb-10 grid gap-6 lg:grid-cols-2">
+          {/* A/B반 */}
+          <div className="rounded-2xl bg-white p-5 shadow-sm">
+            <h2 className="text-base font-semibold text-slate-900">
+              캠프 수강생 전용 강의
+            </h2>
+            <p className="mt-1 text-xs text-slate-500">
+              A/B반 캠프 수강생만 시청 가능한 강의 구성입니다.
             </p>
-            <div className="space-y-4">
+
+            <div className="mt-4 space-y-3">
               <GroupCard
                 active={selectedGroup === 'A_CLASS'}
                 title="A반 강의영상"
                 subtitle="CLASS GROUP A"
                 description="A반 수강생을 위한 강의 모음입니다."
-                onClick={() => setSelectedGroup('A_CLASS')}
+                onClick={() => handleSelectGroup('A_CLASS')}
               />
               <GroupCard
                 active={selectedGroup === 'B_CLASS'}
                 title="B반 강의영상"
                 subtitle="CLASS GROUP B"
                 description="B반 수강생을 위한 강의 모음입니다."
-                onClick={() => setSelectedGroup('B_CLASS')}
+                onClick={() => handleSelectGroup('B_CLASS')}
               />
             </div>
           </div>
 
-          {/* C/D/E 패키지 영역 */}
-          <div>
-            <h2 className="text-lg font-semibold mb-3">유료 패키지 강의 모음</h2>
-            <p className="text-sm text-gray-600 mb-4">
-              부위별로 나뉜 유료 패키지 강의 구성입니다. 해당 패키지 결제 후 시청 가능합니다.
+          {/* C/D/E 패키지 */}
+          <div className="rounded-2xl bg-white p-5 shadow-sm">
+            <h2 className="text-base font-semibold text-slate-900">
+              유료 패키지 강의 모음
+            </h2>
+            <p className="mt-1 text-xs text-slate-500">
+              부위별로 구성된 패키지 강의입니다. 해당 패키지 결제 후 시청 가능합니다.
             </p>
-            <div className="space-y-4">
+
+            <div className="mt-4 space-y-3">
               <GroupCard
                 active={selectedGroup === 'PKG_C'}
                 title="안면부, 어깨, 경추 강의 모음"
                 subtitle="PACKAGE C"
-                description="안면부, 어깨, 경추 영역을 집중 구성한 패키지입니다."
-                onClick={() => setSelectedGroup('PKG_C')}
+                description="안면부, 어깨, 경추 영역을 묶은 패키지 구성입니다."
+                onClick={() => handleSelectGroup('PKG_C')}
               />
               <GroupCard
                 active={selectedGroup === 'PKG_D'}
                 title="허리, 대퇴부 강의 모음"
                 subtitle="PACKAGE D"
-                description="허리와 대퇴부에 특화된 강의 패키지입니다."
-                onClick={() => setSelectedGroup('PKG_D')}
+                description="허리 및 대퇴부에 초점을 맞춘 패키지입니다."
+                onClick={() => handleSelectGroup('PKG_D')}
               />
               <GroupCard
                 active={selectedGroup === 'PKG_E'}
                 title="상지, 가슴, 슬하부 강의 모음"
                 subtitle="PACKAGE E"
-                description="상지, 가슴, 슬하부를 묶은 패키지 구성입니다."
-                onClick={() => setSelectedGroup('PKG_E')}
+                description="상지, 가슴, 슬하부를 통합한 패키지 구성입니다."
+                onClick={() => handleSelectGroup('PKG_E')}
               />
             </div>
           </div>
-        </div>
+        </section>
 
         {/* 목록 / 에러 / 로딩 */}
         {loadingList ? (
-          <p className="text-center text-gray-500">강의 목록을 불러오는 중…</p>
-        ) : errorMsg ? (
-          <p className="text-center text-red-600">{errorMsg}</p>
-        ) : filteredCourses.length === 0 ? (
-          <p className="text-center text-gray-500">
-            선택한 구성에 해당하는 강의가 없습니다.
+          <p className="text-center text-sm text-slate-500">
+            강의 목록을 불러오는 중입니다…
           </p>
+        ) : errorMsg ? (
+          <p className="text-center text-sm text-red-600">{errorMsg}</p>
         ) : (
-          <>
-            <h3 className="text-xl font-semibold mb-4">
-              선택된 구성의 강의 목록 ({filteredCourses.length}개)
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {filteredCourses.map((c) => (
-                <div
-                  key={c.id}
-                  className="bg-white rounded-xl shadow-md p-4 cursor-pointer hover:shadow-xl transition"
-                  onClick={() => preparePlay(c)}
-                >
-                  <img
-                    src={c.thumbnail_url}
-                    alt={c.title}
-                    className="w-full h-40 object-cover rounded-lg mb-4"
-                  />
-                  <h2 className="text-lg font-semibold mb-2 line-clamp-2">
-                    {c.title}
-                  </h2>
-                  <p className="text-gray-600 text-sm line-clamp-3">
-                    {c.description}
-                  </p>
-                </div>
-              ))}
+          <section ref={listRef}>
+            <div className="mb-4 flex items-baseline justify-between">
+              <h3 className="text-lg font-semibold text-slate-900">
+                선택된 구성의 강의 목록
+              </h3>
+              <p className="text-xs text-slate-500">
+                총{' '}
+                <span className="font-semibold">
+                  {filteredCourses.length}
+                </span>
+                개 강의
+              </p>
             </div>
-          </>
+
+            {filteredCourses.length === 0 ? (
+              <p className="text-center text-sm text-slate-500">
+                선택한 구성에 해당하는 강의가 없습니다.
+              </p>
+            ) : (
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {filteredCourses.map((c) => (
+                  <article
+                    key={c.id}
+                    className="flex cursor-pointer flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200 transition hover:shadow-md"
+                    onClick={() => preparePlay(c)}
+                  >
+                    <div className="relative h-40 w-full overflow-hidden">
+                      <img
+                        src={c.thumbnail_url}
+                        alt={c.title}
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                    <div className="flex flex-1 flex-col p-4">
+                      <h4 className="line-clamp-2 text-sm font-semibold text-slate-900">
+                        {c.title}
+                      </h4>
+                      <p className="mt-2 line-clamp-3 text-xs text-slate-600">
+                        {c.description}
+                      </p>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
         )}
 
         {/* 영상 모달 */}
         {selected && (
-          <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded-lg max-w-4xl w-full relative">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4">
+            <div className="relative w-full max-w-4xl rounded-2xl bg-white p-5 shadow-xl">
               <button
-                className="absolute top-4 right-4 text-gray-600 hover:text-gray-800"
+                className="absolute right-4 top-4 text-slate-400 hover:text-slate-700"
                 onClick={() => {
                   setSelected(null);
                   setStreamUrl('');
@@ -288,23 +345,33 @@ export default function Mpsvideo() {
                 ✕
               </button>
 
-              <h2 className="text-2xl font-bold mb-4">{selected.title}</h2>
+              <h2 className="mb-4 pr-8 text-xl font-semibold text-slate-900">
+                {selected.title}
+              </h2>
 
-              <div className="aspect-video w-full rounded-lg overflow-hidden shadow-lg mb-6 border">
-                <HlsPlayer src={streamUrl} />
+              <div className="mb-4 overflow-hidden rounded-xl border">
+                <div className="aspect-video w-full bg-black">
+                  <HlsPlayer src={streamUrl} />
+                </div>
               </div>
 
               {!streamUrl && (
-                <p className="text-center text-gray-500 mb-4">
+                <p className="mb-3 text-center text-xs text-slate-500">
                   🔄 스트림 URL 준비중...
                 </p>
               )}
 
-              <p className="text-gray-700">{selected.description}</p>
+              {loadingPlay && (
+                <p className="mb-2 text-center text-xs text-slate-500">
+                  재생 인증 처리 중입니다…
+                </p>
+              )}
+
+              <p className="text-sm text-slate-700">{selected.description}</p>
             </div>
           </div>
         )}
       </div>
-    </section>
+    </main>
   );
 }
