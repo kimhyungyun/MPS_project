@@ -21,9 +21,9 @@ export default function LoginForm() {
          `${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`,
          formData,
           {
-           withCredentials: true,           // ✅ 이미 있음 (필수)
-           validateStatus: () => true,      // ✅ 이미 있음 (axios 에러 throw 방지)
-            headers: {                       // ✅ 이 줄 새로 추가
+           withCredentials: true,          
+           validateStatus: () => true,      
+            headers: {                       
               'Content-Type': 'application/json'
     }
   }

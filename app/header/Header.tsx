@@ -6,6 +6,7 @@ import { menuData } from "@/types/menudata";
 import Image from "next/image";
 import axios from "axios";
 import { AxiosError } from 'axios';
+import { useRouter } from "next/router";
  
 
 interface User {
@@ -19,6 +20,7 @@ const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 10);
@@ -70,6 +72,7 @@ const Header = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
+    router.push("/");
   };
 
   return (
