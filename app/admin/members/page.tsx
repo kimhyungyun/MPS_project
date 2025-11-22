@@ -119,8 +119,9 @@ export default function AdminMembersPage() {
     const rawMembers: Member[] = data.data.members;
     setTotalMembers(data.data.total);
     setMembers(sortMembers(rawMembers, sortKey, sortOrder));
-  } catch {
-    setError('서버 오류가 발생했습니다.');
+  } catch (err) {
+  console.error('🔥 getMembers() 오류 발생:', err);
+  throw err; // 일단 그대로 던져서 프론트에서 에러 내용 보이게
   } finally {
     setLoading(false);
   }
