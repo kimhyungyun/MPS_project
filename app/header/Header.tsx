@@ -6,7 +6,7 @@ import { menuData } from "@/types/menudata";
 import Image from "next/image";
 import axios from "axios";
 import { AxiosError } from 'axios';
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation";
  
 
 interface User {
