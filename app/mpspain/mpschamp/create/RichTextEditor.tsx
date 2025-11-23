@@ -77,7 +77,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
 
   const headingLevels = [1, 2, 3] as const;
 
-  // Handlers
   const setLinkHandler = () => {
     if (!editor) return;
     const previousUrl = editor.getAttributes('link').href;
@@ -155,7 +154,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
       </label>
 
       {/* Toolbar */}
-      <div className="mb-2 rounded-t-xl border border-b-0 border-gray-200 bg-gray-50 px-3 py-2 flex flex-wrap items-center gap-3 text-xs sm:text-sm">
+      <div className="mb-2 rounded-t-xl border border-b-0 border-gray-200 bg-gray-50 px-3 py-2 flex flex-wrap items-center gap-3 text-xs sm:text-sm relative">
         {/* 1. 텍스트 스타일 */}
         <div className="flex items-center gap-1">
           <button
@@ -373,9 +372,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
           <div className="relative">
             <button
               type="button"
-              onClick={() =>
-                setIsTablePickerOpen((prev) => !prev)
-              }
+              onClick={() => setIsTablePickerOpen((prev) => !prev)}
               className="px-2 py-1 rounded hover:bg-gray-200"
             >
               표
@@ -385,52 +382,40 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
               <div className="absolute z-20 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg p-2">
                 <div className="text-xs text-gray-600 mb-1 text-right">
                   {tableHoverSize.rows > 0 && tableHoverSize.cols > 0
-                    ? `${tableHoverSize.rows} x ${tableHoverSize.cols}`
+                    ? `${tableHoverSize.rows} × ${tableHoverSize.cols}`
                     : '표 크기 선택'}
                 </div>
-                <div className="grid grid-cols-8 gap-0.5">
-                  {Array.from({ length: 8 }).map((_, rowIndex) =>
-                    Array.from({ length: 8 }).map((__, colIndex) => {
-                      const row = rowIndex + 1;
-                      const col = colIndex + 1;
-                      const active =
-                        tableHoverSize.rows >= row &&
-                        tableHoverSize.cols >= col;
+                {/* 8×8 그리드, 가로로 확실하게 8칸 나오도록 width 고정 */}
+                <div className="grid grid-cols-8 gap-0.5 w-[168px]">
+                  {Array.from({ length: 64 }).map((_, index) => {
+                    const row = Math.floor(index / 8) + 1;
+                    const col = (index % 8) + 1;
+                    const active =
+                      tableHoverSize.rows >= row &&
+                      tableHoverSize.cols >= col;
 
-                      return (
-                        <div
-                          key={`${row}-${col}`}
-                          onMouseEnter={() =>
-                            setTableHoverSize({ rows: row, cols: col })
-                          }
-                          onClick={() => {
-                            insertTable(row, col);
-                            setIsTablePickerOpen(false);
-                          }}
-                          className={`w-5 h-5 border rounded-sm cursor-pointer ${
-                            active
-                              ? 'bg-blue-500 border-blue-500'
-                              : 'bg-white border-gray-300 hover:bg-gray-100'
-                          }`}
-                        />
-                      );
-                    }),
-                  )}
+                    return (
+                      <div
+                        key={index}
+                        onMouseEnter={() =>
+                          setTableHoverSize({ rows: row, cols: col })
+                        }
+                        onClick={() => {
+                          insertTable(row, col);
+                          setIsTablePickerOpen(false);
+                        }}
+                        className={`h-5 w-5 border rounded-sm cursor-pointer ${
+                          active
+                            ? 'bg-blue-500 border-blue-500'
+                            : 'bg-white border-gray-300 hover:bg-gray-100'
+                        }`}
+                      />
+                    );
+                  })}
                 </div>
               </div>
             )}
           </div>
-
-          {/* 표 삭제 버튼: 표 안에 있을 때만 */}
-          {editor.isActive('table') && (
-            <button
-              type="button"
-              onClick={deleteTableHandler}
-              className="px-2 py-1 rounded hover:bg-red-50 text-red-500"
-            >
-              표 삭제
-            </button>
-          )}
 
           <input
             ref={imageInputRef}
@@ -465,13 +450,23 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
             ⟳
           </button>
         </div>
+
+        {/* 👇 표 삭제 버튼: absolute로 오른쪽에 고정 (툴바 안 흔들림) */}
+        {editor.isActive('table') && (
+          <button
+            type="button"
+            onClick={deleteTableHandler}
+            className="absolute right-3 top-1/2 -translate-y-1/2 px-2 py-1 rounded hover:bg-red-50 text-red-500 text-xs sm:text-sm"
+          >
+            표 삭제
+          </button>
+        )}
       </div>
 
       <div className="bg-white rounded-b-xl border border-gray-200 p-2">
         <EditorContent editor={editor} className={styles.tiptap} />
       </div>
 
-      {/* 글자수 */}
       <div className="mt-1 text-right text-xs text-gray-500">
         글자 수: {editor.storage.characterCount.characters()}
       </div>
