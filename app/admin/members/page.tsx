@@ -34,8 +34,9 @@ export default function AdminMembersPage() {
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
+  const pageSize = 10;          // 🔹 한 페이지당 회원 수
   const pageGroupSize = 10;
-  const totalPages = Math.ceil(totalMembers / 10);
+  const totalPages = Math.ceil(totalMembers / pageSize);
   const currentPageGroup = Math.ceil(currentPage / pageGroupSize);
   const startPage = (currentPageGroup - 1) * pageGroupSize + 1;
   const endPage = Math.min(startPage + pageGroupSize - 1, totalPages);
@@ -259,6 +260,7 @@ export default function AdminMembersPage() {
             <thead className="bg-gray-50">
               <tr>
                 {[
+                  '번호',
                   '아이디',
                   '이름',
                   '닉네임',
@@ -281,7 +283,7 @@ export default function AdminMembersPage() {
               {loading ? (
                 <tr>
                   <td
-                    colSpan={8}
+                    colSpan={9}
                     className="px-6 py-4 text-center text-sm text-gray-500"
                   >
                     로딩 중...
@@ -290,48 +292,63 @@ export default function AdminMembersPage() {
               ) : members.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={8}
+                    colSpan={9}
                     className="px-6 py-4 text-center text-sm text-gray-500"
                   >
                     {search ? '검색 결과가 없습니다.' : '회원이 없습니다.'}
                   </td>
                 </tr>
               ) : (
-                members.map((member) => (
-                  <tr key={member.mb_id}>
-                    <td className="px-6 py-4 text-sm">{member.mb_id}</td>
-                    <td className="px-6 py-4 text-sm">{member.mb_name}</td>
-                    <td className="px-6 py-4 text-sm">{member.mb_nick}</td>
-                    <td className="px-6 py-4 text-sm">{member.mb_email}</td>
-                    <td className="px-6 py-4 text-sm">{member.mb_school}</td>
-                    <td className="px-6 py-4 text-sm">
-                      {[member.mb_addr1, member.mb_addr2]
-                        .filter(Boolean)
-                        .join(' ')}
-                    </td>
-                    <td className="px-6 py-4 text-sm">{member.mb_hp}</td>
-                    <td className="px-6 py-4 text-sm text-center">
-                      {/* 레벨 셀렉트 UI 개선: 가운데 정렬 */}
-                      <select
-                        value={member.mb_level}
-                        onChange={(e) =>
-                          handleLevelChange(
-                            member.mb_id,
-                            Number(e.target.value),
-                          )
-                        }
-                        className="w-24 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 px-3 py-2 text-sm font-semibold text-center"
-                        style={{ textAlignLast: 'center' as any }}
-                      >
-                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((level) => (
-                          <option key={level} value={level} className="text-center">
-                            {level}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                  </tr>
-                ))
+                members.map((member, idx) => {
+                  const index = (currentPage - 1) * pageSize + (idx + 1);
+                  return (
+                    <tr key={member.mb_id}>
+                      {/* 🔹 번호 컬럼 */}
+                      <td className="px-6 py-4 text-sm text-gray-500">
+                        {index}
+                      </td>
+                      <td className="px-6 py-4 text-sm">{member.mb_id}</td>
+                      <td className="px-6 py-4 text-sm">{member.mb_name}</td>
+                      <td className="px-6 py-4 text-sm">{member.mb_nick}</td>
+                      <td className="px-6 py-4 text-sm">{member.mb_email}</td>
+                      <td className="px-6 py-4 text-sm">{member.mb_school}</td>
+                      <td className="px-6 py-4 text-sm">
+                        {[member.mb_addr1, member.mb_addr2]
+                          .filter(Boolean)
+                          .join(' ')}
+                      </td>
+                      <td className="px-6 py-4 text-sm">{member.mb_hp}</td>
+                      <td className="px-6 py-4 text-sm text-center">
+                        {/* 레벨 셀렉트 UI 개선: 가운데 정렬 + 패딩 줄임 */}
+                        <select
+                          value={member.mb_level}
+                          onChange={(e) =>
+                            handleLevelChange(
+                              member.mb_id,
+                              Number(e.target.value),
+                            )
+                          }
+                          className="w-20 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm font-semibold text-center"
+                          style={{
+                            textAlignLast: 'center' as any,
+                            paddingLeft: 0,
+                            paddingRight: 0,
+                          }}
+                        >
+                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((level) => (
+                            <option
+                              key={level}
+                              value={level}
+                              className="text-center"
+                            >
+                              {level}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
