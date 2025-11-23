@@ -1,11 +1,25 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import Underline from '@tiptap/extension-underline';
+import Highlight from '@tiptap/extension-highlight';
 import TextAlign from '@tiptap/extension-text-align';
+import TextStyle from '@tiptap/extension-text-style';
+import Color from '@tiptap/extension-color';
+import Link from '@tiptap/extension-link';
+import ImageExt from '@tiptap/extension-image';
+import YouTube from '@tiptap/extension-youtube';
+import Table from '@tiptap/extension-table';
+import TableRow from '@tiptap/extension-table-row';
+import TableHeader from '@tiptap/extension-table-header';
+import TableCell from '@tiptap/extension-table-cell';
+import CharacterCount from '@tiptap/extension-character-count';
+
 import { noticeService } from '@/app/services/noticeService';
 import axios from 'axios';
 
@@ -31,11 +45,13 @@ const CreateNotice = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [user, setUser] = useState<any>(null);
 
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
+
   useEffect(() => {
     try {
       const userData = JSON.parse(localStorage.getItem('user') || '{}');
       console.log('User data from localStorage:', userData);
-      
+
       if (!userData || !userData.mb_id || !userData.mb_level) {
         console.error('Invalid user data:', userData);
         alert('사용자 정보를 찾을 수 없습니다. 다시 로그인해주세요.');
@@ -43,9 +59,8 @@ const CreateNotice = () => {
         return;
       }
 
-      // Convert mb_level to number
       userData.mb_level = Number(userData.mb_level);
-      
+
       if (userData.mb_level < 8) {
         alert('관리자만 공지사항을 작성할 수 있습니다.');
         router.push('/mpspain/mpschamp');
@@ -60,19 +75,51 @@ const CreateNotice = () => {
     }
   }, [router]);
 
-  // Tiptap editor
+  // TipTap v2 editor
   const editor = useEditor({
     extensions: [
-      StarterKit,
-      TextAlign.configure({ types: ['heading', 'paragraph'] }),
+      Color.configure({ types: ['textStyle'] }),
+      TextStyle,
+      Underline,
+      Highlight,
+      TextAlign.configure({
+        types: ['heading', 'paragraph'],
+      }),
+      Link.configure({
+        openOnClick: true,
+        autolink: true,
+        linkOnPaste: true,
+      }),
+      ImageExt.configure({
+        inline: false,
+        allowBase64: true,
+      }),
+      YouTube.configure({
+        controls: true,
+        nocookie: true,
+      }),
+      Table.configure({
+        resizable: true,
+      }),
+      TableRow,
+      TableHeader,
+      TableCell,
+      CharacterCount,
+      StarterKit.configure({
+        heading: {
+          levels: [1, 2, 3, 4, 5, 6],
+        },
+        // history: 기본 true라 따로 건드릴 필요 없음
+      }),
     ],
     content: form.content,
     onUpdate: ({ editor }) => {
-      setForm(prev => ({ ...prev, content: editor.getHTML() }));
+      setForm((prev) => ({ ...prev, content: editor.getHTML() }));
     },
     editorProps: {
       attributes: {
-        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none',
+        class:
+          'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none min-h-[200px]',
       },
     },
     immediatelyRender: false,
@@ -80,7 +127,7 @@ const CreateNotice = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!form.title.trim()) {
       alert('제목을 입력해주세요.');
       return;
@@ -102,7 +149,7 @@ const CreateNotice = () => {
       title: form.title,
       content: form.content,
       isImportant: form.isImportant,
-      writerId: Number(user.mb_id)
+      writerId: Number(user.mb_id),
     });
 
     setIsSubmitting(true);
@@ -111,7 +158,7 @@ const CreateNotice = () => {
       await noticeService.createNotice({
         title: form.title,
         content: form.content,
-        is_important: form.isImportant
+        is_important: form.isImportant,
       });
 
       router.push('/mpspain/mpschamp');
@@ -123,12 +170,19 @@ const CreateNotice = () => {
           router.push('/form/login');
         } else if (error.response?.status === 400) {
           console.error('Validation error:', error.response.data);
-          alert(error.response.data.message || '입력 데이터가 올바르지 않습니다. 다시 확인해주세요.');
+          alert(
+            error.response.data.message ||
+              '입력 데이터가 올바르지 않습니다. 다시 확인해주세요.',
+          );
         } else {
           alert(error.message || '공지사항 작성 중 오류가 발생했습니다.');
         }
       } else {
-        alert(error instanceof Error ? error.message : '공지사항 작성 중 오류가 발생했습니다.');
+        alert(
+          error instanceof Error
+            ? error.message
+            : '공지사항 작성 중 오류가 발생했습니다.',
+        );
       }
     } finally {
       setIsSubmitting(false);
@@ -137,36 +191,107 @@ const CreateNotice = () => {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      setForm(prev => ({
+      setForm((prev) => ({
         ...prev,
-        attachments: [...prev.attachments, ...Array.from(e.target.files || [])]
+        attachments: [...prev.attachments, ...Array.from(e.target.files || [])],
       }));
     }
   };
 
   const removeFile = (index: number) => {
-    setForm(prev => ({
+    setForm((prev) => ({
       ...prev,
-      attachments: prev.attachments.filter((_, i) => i !== index)
+      attachments: prev.attachments.filter((_, i) => i !== index),
     }));
   };
+
+  // === Toolbar handlers ===
+  const setLinkHandler = () => {
+    if (!editor) return;
+    const previousUrl = editor.getAttributes('link').href;
+    const url = window.prompt('링크 URL을 입력하세요', previousUrl || 'https://');
+
+    if (url === null) return;
+
+    if (url === '') {
+      editor.chain().focus().unsetLink().run();
+      return;
+    }
+
+    editor
+      .chain()
+      .focus()
+      .extendMarkRange('link')
+      .setLink({ href: url })
+      .run();
+  };
+
+  const insertYouTubeHandler = () => {
+    if (!editor) return;
+    const url = window.prompt(
+      'YouTube URL을 입력하세요',
+      'https://www.youtube.com/watch?v=',
+    );
+    if (!url) return;
+    editor.commands.setYoutubeVideo({
+      src: url,
+      width: 640,
+      height: 360,
+    });
+  };
+
+  const insertEditorImage = (file: File) => {
+    if (!editor) return;
+
+    // ⚠️ 지금은 blob URL로 에디터 안에서만 보이는 상태
+    // 실제 서비스에선 여기에 S3/VdoCipher 업로드 로직 추가하고
+    // 응답 받은 실제 URL을 src로 넣어야 함
+    const src = URL.createObjectURL(file);
+
+    editor
+      .chain()
+      .focus()
+      .setImage({
+        src,
+        alt: file.name,
+      })
+      .run();
+  };
+
+  const insertTableHandler = () => {
+    if (!editor) return;
+    editor
+      .chain()
+      .focus()
+      .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+      .run();
+  };
+
+  const headingLevels = [1, 2, 3] as const; // TS용 타입 고정
 
   return (
     <section className="w-full px-4 lg:px-24 py-12 bg-gradient-to-br from-indigo-50 via-white to-blue-50 min-h-screen mt-20">
       <div className="max-w-4xl mx-auto bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl p-8 border border-white/20">
-        <h1 className="text-3xl font-bold text-gray-800 mb-8 border-b border-gray-100 pb-4">공지사항 작성</h1>
-        
+        <h1 className="text-3xl font-bold text-gray-800 mb-8 border-b border-gray-100 pb-4">
+          공지사항 작성
+        </h1>
+
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* 제목 */}
           <div className="group">
-            <label htmlFor="title" className="block text-sm font-semibold text-gray-700 mb-2 group-hover:text-blue-600 transition-colors duration-200">
+            <label
+              htmlFor="title"
+              className="block text-sm font-semibold text-gray-700 mb-2 group-hover:text-blue-600 transition-colors duration-200"
+            >
               제목
             </label>
             <input
               type="text"
               id="title"
               value={form.title}
-              onChange={(e) => setForm(prev => ({ ...prev, title: e.target.value }))}
+              onChange={(e) =>
+                setForm((prev) => ({ ...prev, title: e.target.value }))
+              }
               className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 bg-white/50 backdrop-blur-sm shadow-sm hover:shadow-md"
               required
             />
@@ -174,27 +299,306 @@ const CreateNotice = () => {
 
           {/* 본문 */}
           <div className="group">
-            <label htmlFor="content" className="block text-sm font-semibold text-gray-700 mb-2 group-hover:text-blue-600 transition-colors duration-200">
+            <label
+              htmlFor="content"
+              className="block text-sm font-semibold text-gray-700 mb-2 group-hover:text-blue-600 transition-colors duration-200"
+            >
               본문
             </label>
-            <div className="space-y-4">
-              <div className="bg-white rounded-xl border border-gray-200 p-2 min-h-[200px]">
-                <EditorContent editor={editor} />
+
+            {/* Toolbar */}
+            <div className="mb-2 rounded-t-xl border border-b-0 border-gray-200 bg-gray-50 px-3 py-2 flex flex-wrap gap-2 text-sm">
+              {/* text style */}
+              <div className="flex gap-1 border-r pr-2">
+                <button
+                  type="button"
+                  onClick={() => editor?.chain().focus().toggleBold().run()}
+                  className={`px-2 py-1 rounded ${
+                    editor?.isActive('bold')
+                      ? 'bg-blue-500 text-white'
+                      : 'hover:bg-gray-200'
+                  }`}
+                >
+                  B
+                </button>
+                <button
+                  type="button"
+                  onClick={() => editor?.chain().focus().toggleItalic().run()}
+                  className={`px-2 py-1 rounded italic ${
+                    editor?.isActive('italic')
+                      ? 'bg-blue-500 text-white'
+                      : 'hover:bg-gray-200'
+                  }`}
+                >
+                  I
+                </button>
+                <button
+                  type="button"
+                  onClick={() => editor?.chain().focus().toggleUnderline().run()}
+                  className={`px-2 py-1 rounded underline ${
+                    editor?.isActive('underline')
+                      ? 'bg-blue-500 text-white'
+                      : 'hover:bg-gray-200'
+                  }`}
+                >
+                  U
+                </button>
+                <button
+                  type="button"
+                  onClick={() => editor?.chain().focus().toggleStrike().run()}
+                  className={`px-2 py-1 rounded line-through ${
+                    editor?.isActive('strike')
+                      ? 'bg-blue-500 text-white'
+                      : 'hover:bg-gray-200'
+                  }`}
+                >
+                  S
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    editor?.chain().focus().toggleHighlight().run()
+                  }
+                  className={`px-2 py-1 rounded ${
+                    editor?.isActive('highlight')
+                      ? 'bg-yellow-400 text-black'
+                      : 'hover:bg-gray-200'
+                  }`}
+                >
+                  HL
+                </button>
+              </div>
+
+              {/* heading */}
+              <div className="flex gap-1 border-r pr-2">
+                {headingLevels.map((level) => (
+                  <button
+                    key={level}
+                    type="button"
+                    onClick={() =>
+                      editor
+                        ?.chain()
+                        .focus()
+                        .toggleHeading({ level })
+                        .run()
+                    }
+                    className={`px-2 py-1 rounded ${
+                      editor?.isActive('heading', { level })
+                        ? 'bg-blue-500 text-white'
+                        : 'hover:bg-gray-200'
+                    }`}
+                  >
+                    H{level}
+                  </button>
+                ))}
+              </div>
+
+              {/* align */}
+              <div className="flex gap-1 border-r pr-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    editor?.chain().focus().setTextAlign('left').run()
+                  }
+                  className={`px-2 py-1 rounded ${
+                    editor?.isActive({ textAlign: 'left' })
+                      ? 'bg-blue-500 text-white'
+                      : 'hover:bg-gray-200'
+                  }`}
+                >
+                  좌
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    editor?.chain().focus().setTextAlign('center').run()
+                  }
+                  className={`px-2 py-1 rounded ${
+                    editor?.isActive({ textAlign: 'center' })
+                      ? 'bg-blue-500 text-white'
+                      : 'hover:bg-gray-200'
+                  }`}
+                >
+                  중
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    editor?.chain().focus().setTextAlign('right').run()
+                  }
+                  className={`px-2 py-1 rounded ${
+                    editor?.isActive({ textAlign: 'right' })
+                      ? 'bg-blue-500 text-white'
+                      : 'hover:bg-gray-200'
+                  }`}
+                >
+                  우
+                </button>
+              </div>
+
+              {/* list / block */}
+              <div className="flex gap-1 border-r pr-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    editor?.chain().focus().toggleBulletList().run()
+                  }
+                  className={`px-2 py-1 rounded ${
+                    editor?.isActive('bulletList')
+                      ? 'bg-blue-500 text-white'
+                      : 'hover:bg-gray-200'
+                  }`}
+                >
+                  • 리스트
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    editor?.chain().focus().toggleOrderedList().run()
+                  }
+                  className={`px-2 py-1 rounded ${
+                    editor?.isActive('orderedList')
+                      ? 'bg-blue-500 text-white'
+                      : 'hover:bg-gray-200'
+                  }`}
+                >
+                  1. 리스트
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    editor?.chain().focus().toggleBlockquote().run()
+                  }
+                  className={`px-2 py-1 rounded ${
+                    editor?.isActive('blockquote')
+                      ? 'bg-blue-500 text-white'
+                      : 'hover:bg-gray-200'
+                  }`}
+                >
+                  ❝ 인용
+                </button>
+                <button
+                  type="button"
+                  onClick={() => editor?.chain().focus().toggleCode().run()}
+                  className={`px-2 py-1 rounded ${
+                    editor?.isActive('code')
+                      ? 'bg-blue-500 text-white'
+                      : 'hover:bg-gray-200'
+                  }`}
+                >
+                  {'</>'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    editor?.chain().focus().toggleCodeBlock().run()
+                  }
+                  className={`px-2 py-1 rounded ${
+                    editor?.isActive('codeBlock')
+                      ? 'bg-blue-500 text-white'
+                      : 'hover:bg-gray-200'
+                  }`}
+                >
+                  코드블럭
+                </button>
+              </div>
+
+              {/* table */}
+              <div className="flex gap-1 border-r pr-2">
+                <button
+                  type="button"
+                  onClick={insertTableHandler}
+                  className="px-2 py-1 rounded hover:bg-gray-200"
+                >
+                  표 추가
+                </button>
+              </div>
+
+              {/* link / media */}
+              <div className="flex gap-1 border-r pr-2">
+                <button
+                  type="button"
+                  onClick={setLinkHandler}
+                  className={`px-2 py-1 rounded ${
+                    editor?.isActive('link')
+                      ? 'bg-blue-500 text-white'
+                      : 'hover:bg-gray-200'
+                  }`}
+                >
+                  링크
+                </button>
+
+                <button
+                  type="button"
+                  onClick={insertYouTubeHandler}
+                  className="px-2 py-1 rounded hover:bg-gray-200"
+                >
+                  YouTube
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => imageInputRef.current?.click()}
+                  className="px-2 py-1 rounded hover:bg-gray-200"
+                >
+                  이미지
+                </button>
+                <input
+                  ref={imageInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    insertEditorImage(file);
+                    e.target.value = '';
+                  }}
+                />
+              </div>
+
+              {/* undo / redo */}
+              <div className="flex gap-1">
+                <button
+                  type="button"
+                  onClick={() => editor?.chain().focus().undo().run()}
+                  className="px-2 py-1 rounded hover:bg-gray-200"
+                >
+                  되돌리기
+                </button>
+                <button
+                  type="button"
+                  onClick={() => editor?.chain().focus().redo().run()}
+                  className="px-2 py-1 rounded hover:bg-gray-200"
+                >
+                  다시하기
+                </button>
               </div>
             </div>
+
+            <div className="bg-white rounded-b-xl border border-gray-200 p-2">
+              <EditorContent editor={editor} />
+            </div>
+
+            {/* 글자수 */}
+            {editor && (
+              <div className="mt-1 text-right text-xs text-gray-500">
+                글자 수: {editor.storage.characterCount.characters()}
+              </div>
+            )}
           </div>
 
-          {/* 이미지와 첨부파일 영역 */}
+          {/* 이미지와 첨부파일 영역 (기존 로직 유지) */}
           <div className="flex gap-6">
-            {/* 본문 이미지 */}
+            {/* 본문 이미지 (대표 이미지 용도) */}
             <div className="flex-1">
               <label className="block text-sm font-semibold text-gray-700 mb-2 group-hover:text-blue-600 transition-colors duration-200">
                 본문 이미지
               </label>
-              <div 
+              <div
                 className={`flex justify-center items-center h-[140px] px-6 border-2 border-dashed rounded-xl transition-all duration-200 ${
-                  isDragging 
-                    ? 'border-blue-400 bg-blue-50' 
+                  isDragging
+                    ? 'border-blue-400 bg-blue-50'
                     : 'border-gray-200 bg-white/50 backdrop-blur-sm hover:bg-white/80'
                 } shadow-sm hover:shadow-md`}
                 onDragEnter={(e) => {
@@ -217,7 +621,7 @@ const CreateNotice = () => {
                   setIsDragging(false);
                   const files = e.dataTransfer.files;
                   if (files && files[0] && files[0].type.startsWith('image/')) {
-                    setForm(prev => ({ ...prev, image: files[0] }));
+                    setForm((prev) => ({ ...prev, image: files[0] }));
                   }
                 }}
               >
@@ -233,11 +637,23 @@ const CreateNotice = () => {
                       />
                       <button
                         type="button"
-                        onClick={() => setForm(prev => ({ ...prev, image: null }))}
+                        onClick={() =>
+                          setForm((prev) => ({ ...prev, image: null }))
+                        }
                         className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors duration-200"
                       >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M6 18L18 6M6 6l12 12"
+                          />
                         </svg>
                       </button>
                     </div>
@@ -271,7 +687,10 @@ const CreateNotice = () => {
                             className="sr-only"
                             onChange={(e) => {
                               if (e.target.files && e.target.files[0]) {
-                                setForm(prev => ({ ...prev, image: e.target.files![0] }));
+                                setForm((prev) => ({
+                                  ...prev,
+                                  image: e.target.files![0],
+                                }));
                               }
                             }}
                           />
@@ -290,10 +709,10 @@ const CreateNotice = () => {
               <label className="block text-sm font-semibold text-gray-700 mb-2 group-hover:text-blue-600 transition-colors duration-200">
                 첨부파일
               </label>
-              <div 
+              <div
                 className={`flex justify-center items-center h-[140px] px-6 border-2 border-dashed rounded-xl transition-all duration-200 ${
-                  isFileDragging 
-                    ? 'border-blue-400 bg-blue-50' 
+                  isFileDragging
+                    ? 'border-blue-400 bg-blue-50'
                     : 'border-gray-200 bg-white/50 backdrop-blur-sm hover:bg-white/80'
                 } shadow-sm hover:shadow-md`}
                 onDragEnter={(e) => {
@@ -316,9 +735,12 @@ const CreateNotice = () => {
                   setIsFileDragging(false);
                   const files = e.dataTransfer.files;
                   if (files) {
-                    setForm(prev => ({
+                    setForm((prev) => ({
                       ...prev,
-                      attachments: [...prev.attachments, ...Array.from(files)]
+                      attachments: [
+                        ...prev.attachments,
+                        ...Array.from(files),
+                      ],
                     }));
                   }
                 }}
@@ -328,8 +750,13 @@ const CreateNotice = () => {
                     <div className="w-full">
                       <ul className="divide-y divide-gray-200">
                         {form.attachments.map((file, index) => (
-                          <li key={index} className="py-2 flex items-center justify-between">
-                            <span className="text-sm text-gray-600 truncate max-w-[200px]">{file.name}</span>
+                          <li
+                            key={index}
+                            className="py-2 flex items-center justify-between"
+                          >
+                            <span className="text-sm text-gray-600 truncate max-w-[200px]">
+                              {file.name}
+                            </span>
                             <button
                               type="button"
                               onClick={() => removeFile(index)}
@@ -389,10 +816,18 @@ const CreateNotice = () => {
                 type="checkbox"
                 id="isImportant"
                 checked={form.isImportant}
-                onChange={(e) => setForm(prev => ({ ...prev, isImportant: e.target.checked }))}
+                onChange={(e) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    isImportant: e.target.checked,
+                  }))
+                }
                 className="h-5 w-5 text-blue-500 focus:ring-blue-400 border-gray-300 rounded-md transition-all duration-200"
               />
-              <label htmlFor="isImportant" className="ml-3 block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="isImportant"
+                className="ml-3 block text-sm font-medium text-gray-700"
+              >
                 중요 공지로 설정
               </label>
             </div>
@@ -407,7 +842,7 @@ const CreateNotice = () => {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 font-medium shadow-sm hover:shadow-md"
+                className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 font-medium shadow-sm hover:shadow-md disabled:opacity-60"
               >
                 {isSubmitting ? '저장 중...' : '저장'}
               </button>
@@ -419,4 +854,4 @@ const CreateNotice = () => {
   );
 };
 
-export default CreateNotice; 
+export default CreateNotice;
