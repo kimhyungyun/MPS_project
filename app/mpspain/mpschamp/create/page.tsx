@@ -78,13 +78,25 @@ const CreateNotice = () => {
   // TipTap v2 editor
   const editor = useEditor({
     extensions: [
-      Color.configure({ types: ['textStyle'] }),
+      // ⭐ StarterKit을 맨 위에
+      StarterKit.configure({
+        heading: {
+          levels: [1, 2, 3, 4, 5, 6],
+        },
+      }),
+
+      // 서식 관련
       TextStyle,
+      Color.configure({ types: ['textStyle'] }),
       Underline,
       Highlight,
+
+      // 정렬
       TextAlign.configure({
         types: ['heading', 'paragraph'],
       }),
+
+      // 링크 / 이미지 / 미디어
       Link.configure({
         openOnClick: true,
         autolink: true,
@@ -98,19 +110,15 @@ const CreateNotice = () => {
         controls: true,
         nocookie: true,
       }),
-      Table.configure({
-        resizable: true,
-      }),
+
+      // 표
+      Table.configure({ resizable: true }),
       TableRow,
       TableHeader,
       TableCell,
+
+      // 글자수
       CharacterCount,
-      StarterKit.configure({
-        heading: {
-          levels: [1, 2, 3, 4, 5, 6],
-        },
-        // history: 기본 true라 따로 건드릴 필요 없음
-      }),
     ],
     content: form.content,
     onUpdate: ({ editor }) => {
@@ -243,9 +251,7 @@ const CreateNotice = () => {
   const insertEditorImage = (file: File) => {
     if (!editor) return;
 
-    // ⚠️ 지금은 blob URL로 에디터 안에서만 보이는 상태
-    // 실제 서비스에선 여기에 S3/VdoCipher 업로드 로직 추가하고
-    // 응답 받은 실제 URL을 src로 넣어야 함
+    // 현재는 blob URL → 에디터 안에서만 보임
     const src = URL.createObjectURL(file);
 
     editor
@@ -267,7 +273,7 @@ const CreateNotice = () => {
       .run();
   };
 
-  const headingLevels = [1, 2, 3] as const; // TS용 타입 고정
+  const headingLevels = [1, 2, 3] as const;
 
   return (
     <section className="w-full px-4 lg:px-24 py-12 bg-gradient-to-br from-indigo-50 via-white to-blue-50 min-h-screen mt-20">
@@ -307,13 +313,13 @@ const CreateNotice = () => {
             </label>
 
             {/* Toolbar */}
-            <div className="mb-2 rounded-t-xl border border-b-0 border-gray-200 bg-gray-50 px-3 py-2 flex flex-wrap gap-2 text-sm">
-              {/* text style */}
-              <div className="flex gap-1 border-r pr-2">
+            <div className="mb-2 rounded-t-xl border border-b-0 border-gray-200 bg-gray-50 px-3 py-2 flex flex-wrap items-center gap-3 text-xs sm:text-sm">
+              {/* 1. 텍스트 스타일 */}
+              <div className="flex items-center gap-1">
                 <button
                   type="button"
                   onClick={() => editor?.chain().focus().toggleBold().run()}
-                  className={`px-2 py-1 rounded ${
+                  className={`px-2 py-1 rounded font-semibold ${
                     editor?.isActive('bold')
                       ? 'bg-blue-500 text-white'
                       : 'hover:bg-gray-200'
@@ -361,7 +367,7 @@ const CreateNotice = () => {
                   }
                   className={`px-2 py-1 rounded ${
                     editor?.isActive('highlight')
-                      ? 'bg-yellow-400 text-black'
+                      ? 'bg-yellow-300 text-black'
                       : 'hover:bg-gray-200'
                   }`}
                 >
@@ -369,8 +375,11 @@ const CreateNotice = () => {
                 </button>
               </div>
 
-              {/* heading */}
-              <div className="flex gap-1 border-r pr-2">
+              {/* 작은 구분선 */}
+              <span className="h-5 border-l border-gray-200" />
+
+              {/* 2. Heading */}
+              <div className="flex items-center gap-1">
                 {headingLevels.map((level) => (
                   <button
                     key={level}
@@ -393,8 +402,10 @@ const CreateNotice = () => {
                 ))}
               </div>
 
-              {/* align */}
-              <div className="flex gap-1 border-r pr-2">
+              <span className="h-5 border-l border-gray-200" />
+
+              {/* 3. 정렬 */}
+              <div className="flex items-center gap-1">
                 <button
                   type="button"
                   onClick={() =>
@@ -436,8 +447,10 @@ const CreateNotice = () => {
                 </button>
               </div>
 
-              {/* list / block */}
-              <div className="flex gap-1 border-r pr-2">
+              <span className="h-5 border-l border-gray-200" />
+
+              {/* 4. 리스트 / 블록 */}
+              <div className="flex items-center gap-1">
                 <button
                   type="button"
                   onClick={() =>
@@ -449,7 +462,7 @@ const CreateNotice = () => {
                       : 'hover:bg-gray-200'
                   }`}
                 >
-                  • 리스트
+                  •
                 </button>
                 <button
                   type="button"
@@ -462,7 +475,7 @@ const CreateNotice = () => {
                       : 'hover:bg-gray-200'
                   }`}
                 >
-                  1. 리스트
+                  1.
                 </button>
                 <button
                   type="button"
@@ -475,7 +488,7 @@ const CreateNotice = () => {
                       : 'hover:bg-gray-200'
                   }`}
                 >
-                  ❝ 인용
+                  ❝
                 </button>
                 <button
                   type="button"
@@ -499,23 +512,14 @@ const CreateNotice = () => {
                       : 'hover:bg-gray-200'
                   }`}
                 >
-                  코드블럭
+                  코드
                 </button>
               </div>
 
-              {/* table */}
-              <div className="flex gap-1 border-r pr-2">
-                <button
-                  type="button"
-                  onClick={insertTableHandler}
-                  className="px-2 py-1 rounded hover:bg-gray-200"
-                >
-                  표 추가
-                </button>
-              </div>
+              <span className="h-5 border-l border-gray-200" />
 
-              {/* link / media */}
-              <div className="flex gap-1 border-r pr-2">
+              {/* 5. 링크 / 미디어 / 표 */}
+              <div className="flex items-center gap-1">
                 <button
                   type="button"
                   onClick={setLinkHandler}
@@ -533,7 +537,7 @@ const CreateNotice = () => {
                   onClick={insertYouTubeHandler}
                   className="px-2 py-1 rounded hover:bg-gray-200"
                 >
-                  YouTube
+                  YT
                 </button>
 
                 <button
@@ -541,8 +545,17 @@ const CreateNotice = () => {
                   onClick={() => imageInputRef.current?.click()}
                   className="px-2 py-1 rounded hover:bg-gray-200"
                 >
-                  이미지
+                  Img
                 </button>
+
+                <button
+                  type="button"
+                  onClick={insertTableHandler}
+                  className="px-2 py-1 rounded hover:bg-gray-200"
+                >
+                  표
+                </button>
+
                 <input
                   ref={imageInputRef}
                   type="file"
@@ -557,21 +570,23 @@ const CreateNotice = () => {
                 />
               </div>
 
-              {/* undo / redo */}
-              <div className="flex gap-1">
+              <span className="h-5 border-l border-gray-200" />
+
+              {/* 6. Undo / Redo */}
+              <div className="flex items-center gap-1">
                 <button
                   type="button"
                   onClick={() => editor?.chain().focus().undo().run()}
                   className="px-2 py-1 rounded hover:bg-gray-200"
                 >
-                  되돌리기
+                  ⟲
                 </button>
                 <button
                   type="button"
                   onClick={() => editor?.chain().focus().redo().run()}
                   className="px-2 py-1 rounded hover:bg-gray-200"
                 >
-                  다시하기
+                  ⟳
                 </button>
               </div>
             </div>
