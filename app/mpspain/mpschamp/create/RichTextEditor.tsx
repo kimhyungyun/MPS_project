@@ -16,6 +16,8 @@ import TableRow from '@tiptap/extension-table-row';
 import TableHeader from '@tiptap/extension-table-header';
 import TableCell from '@tiptap/extension-table-cell';
 import CharacterCount from '@tiptap/extension-character-count';
+import FontFamily from '@tiptap/extension-font-family';
+import FontSize from './extensions/fontSize';
 
 import styles from './CreateNotice.module.css';
 
@@ -37,6 +39,8 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
         },
       }),
       TextStyle,
+      FontFamily,
+      FontSize,
       Color.configure({ types: ['textStyle'] }),
       Underline,
       Highlight,
@@ -76,6 +80,24 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
   });
 
   const headingLevels = [1, 2, 3] as const;
+
+  const fontFamilies = [
+  { label: '기본', value: '' },
+  { label: '돋움', value: 'Dotum, sans-serif' },
+  { label: '바탕', value: 'Batang, serif' },
+  { label: '나눔고딕', value: 'Nanum Gothic, sans-serif' },
+  { label: '나눔명조', value: 'Nanum Myeongjo, serif' },
+];
+
+const fontSizes = [
+  { label: '10pt', value: '10px' },
+  { label: '12pt', value: '12px' },
+  { label: '14pt', value: '14px' },
+  { label: '16pt', value: '16px' },
+  { label: '18pt', value: '18px' },
+  { label: '20pt', value: '20px' },
+];
+
 
   const setLinkHandler = () => {
     if (!editor) return;
@@ -156,7 +178,52 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
       {/* Toolbar */}
       <div className="mb-2 rounded-t-xl border border-b-0 border-gray-200 bg-gray-50 px-3 py-2 flex flex-wrap items-center gap-3 text-xs sm:text-sm relative">
         {/* 1. 텍스트 스타일 */}
+          <div className="flex items-center gap-2">
+    {/* 글꼴 */}
+    <select
+      className="border border-gray-200 rounded px-2 py-1 bg-white text-xs sm:text-sm"
+      value={editor.getAttributes('textStyle').fontFamily || ''}
+      onChange={(e) => {
+        const value = e.target.value;
+        if (!value) {
+          editor.chain().focus().unsetMark('textStyle').run();
+        } else {
+          editor.chain().focus().setFontFamily(value).run();
+        }
+      }}
+    >
+      {fontFamilies.map((f) => (
+        <option key={f.label} value={f.value}>
+          {f.label}
+        </option>
+      ))}
+    </select>
+
+    {/* 글자 크기 */}
+    <select
+      className="border border-gray-200 rounded px-2 py-1 bg-white text-xs sm:text-sm"
+      value={editor.getAttributes('textStyle').fontSize || ''}
+      onChange={(e) => {
+        const value = e.target.value;
+        if (!value) {
+          editor.chain().focus().unsetFontSize().run();
+        } else {
+          editor.chain().focus().setFontSize(value).run();
+        }
+      }}
+    >
+      <option value="">크기</option>
+      {fontSizes.map((s) => (
+        <option key={s.value} value={s.value}>
+          {s.label}
+        </option>
+      ))}
+    </select>
+  </div>
+
+  <span className="h-5 border-l border-gray-200" />
         <div className="flex items-center gap-1">
+            
           <button
             type="button"
             onClick={() => editor.chain().focus().toggleBold().run()}
