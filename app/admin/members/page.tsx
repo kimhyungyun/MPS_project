@@ -40,6 +40,7 @@ export default function AdminMembersPage() {
   const startPage = (currentPageGroup - 1) * pageGroupSize + 1;
   const endPage = Math.min(startPage + pageGroupSize - 1, totalPages);
 
+  // 페이지 내 정렬(백엔드가 정렬 안 해줄 때 대비용)
   const sortMembers = (
     list: Member[],
     key: SortKey | null,
@@ -71,18 +72,28 @@ export default function AdminMembersPage() {
       router.push('/');
       return;
     }
+
     fetchMembers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage]);
+  }, [currentPage, sortKey, sortOrder, search]);
 
   const fetchMembers = async () => {
     try {
-      setLoading(true);
+      if (isSearching === false) {
+        setLoading(true);
+      }
       setError(null);
+
+      const params = new URLSearchParams();
+      params.set('page', String(currentPage));
+      if (search) params.set('search', search);
+      if (sortKey) {
+        params.set('sortKey', sortKey);
+        params.set('sortOrder', sortOrder);
+      }
+
       const response = await fetch(
-        `${API_URL}/api/admin/members?page=${currentPage}${
-          search ? `&search=${encodeURIComponent(search)}` : ''
-        }`,
+        `${API_URL}/api/admin/members?${params.toString()}`,
         {
           method: 'GET',
           headers: {
@@ -93,39 +104,43 @@ export default function AdminMembersPage() {
         },
       );
 
-    if (!response.ok) {
-      let body: any = null;
-      try {
-        body = await response.json();
-      } catch {}
+      if (!response.ok) {
+        let body: any = null;
+        try {
+          body = await response.json();
+        } catch {}
 
-      console.error(
-        '[회원 목록 API 실패]',
-        'status =',
-        response.status,
-        'body =',
-        body,
-      );
+        console.error(
+          '[회원 목록 API 실패]',
+          'status =',
+          response.status,
+          'body =',
+          body,
+        );
 
-      setError(
-        body?.message
-          ? `회원 목록 조회 실패: ${body.message}`
-          : '회원 목록을 불러오는데 실패했습니다.',
-      );
-      return;
+        setError(
+          body?.message
+            ? `회원 목록 조회 실패: ${body.message}`
+            : '회원 목록을 불러오는데 실패했습니다.',
+        );
+        return;
+      }
+
+      const data = await response.json();
+      const rawMembers: Member[] = data.data.members;
+      setTotalMembers(data.data.total);
+
+      // 백엔드가 정렬해주더라도 문제 없음. 정렬 해주지 않으면 여기서라도 맞춰줌.
+      const processed = sortMembers(rawMembers, sortKey, sortOrder);
+      setMembers(processed);
+    } catch (err) {
+      console.error('🔥 getMembers() 오류 발생:', err);
+      setError('회원 목록을 불러오는데 실패했습니다.');
+    } finally {
+      setLoading(false);
+      setIsSearching(false);
     }
-
-    const data = await response.json();
-    const rawMembers: Member[] = data.data.members;
-    setTotalMembers(data.data.total);
-    setMembers(sortMembers(rawMembers, sortKey, sortOrder));
-  } catch (err) {
-  console.error('🔥 getMembers() 오류 발생:', err);
-  throw err; // 일단 그대로 던져서 프론트에서 에러 내용 보이게
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const handleLevelChange = async (mb_id: string, newLevel: number) => {
     try {
@@ -156,26 +171,31 @@ export default function AdminMembersPage() {
     }
   };
 
-  const handleSearch = async (e: React.FormEvent) => {
+  const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setIsSearching(true);
-    setCurrentPage(1);
-    await fetchMembers();
-    setIsSearching(false);
+    setCurrentPage(1); // 검색 시 항상 1페이지로
   };
 
+  // 정렬 버튼 클릭: 없음 → asc → desc → 없음
   const handleSortClick = (key: SortKey) => {
-    let nextOrder: SortOrder = 'asc';
+    setCurrentPage(1); // 정렬 변경 시 1페이지로 이동
 
-    if (sortKey === key) {
-      nextOrder = sortOrder === 'asc' ? 'desc' : 'asc';
-    } else {
-      nextOrder = key === 'latest' ? 'desc' : 'asc';
+    if (sortKey !== key) {
+      // 다른 정렬 키로 변경될 때: 기본 방향
+      const initialOrder: SortOrder = key === 'latest' ? 'desc' : 'asc';
+      setSortKey(key);
+      setSortOrder(initialOrder);
+      return;
     }
 
-    setSortKey(key);
-    setSortOrder(nextOrder);
-    setMembers((prev) => sortMembers(prev, key, nextOrder));
+    // 같은 키를 다시 클릭했을 때: asc -> desc -> 정렬 해제
+    if (sortOrder === 'asc') {
+      setSortOrder('desc');
+    } else if (sortOrder === 'desc') {
+      setSortKey(null); // 정렬 해제
+      setSortOrder('asc'); // 기본값으로 리셋
+    }
   };
 
   const handlePrevGroup = () => {
@@ -304,7 +324,7 @@ export default function AdminMembersPage() {
                     </td>
                     <td className="px-6 py-4 text-sm">{member.mb_hp}</td>
                     <td className="px-6 py-4 text-sm">
-                      {/* 레벨 셀렉트 크기 키움 */}
+                      {/* 레벨 셀렉트 UI 개선 */}
                       <select
                         value={member.mb_level}
                         onChange={(e) =>
@@ -313,7 +333,7 @@ export default function AdminMembersPage() {
                             Number(e.target.value),
                           )
                         }
-                        className="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 px-3 py-2 text-sm min-w-[90px]"
+                        className="w-24 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 px-3 py-2 text-sm font-semibold text-center"
                       >
                         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((level) => (
                           <option key={level} value={level}>
