@@ -15,7 +15,7 @@ interface Member {
   mb_level: number;
 }
 
-type SortKey = 'name' | 'level' | 'latest';
+type SortKey = 'name' | 'latest';
 type SortOrder = 'asc' | 'desc';
 
 export default function AdminMembersPage() {
@@ -53,8 +53,6 @@ export default function AdminMembersPage() {
 
       if (key === 'name') {
         comp = a.mb_name.localeCompare(b.mb_name);
-      } else if (key === 'level') {
-        comp = a.mb_level - b.mb_level;
       } else if (key === 'latest') {
         // 최신순: mb_id 기준 (필요하면 created_at 등으로 교체)
         comp = a.mb_id.localeCompare(b.mb_id);
@@ -130,7 +128,7 @@ export default function AdminMembersPage() {
       const rawMembers: Member[] = data.data.members;
       setTotalMembers(data.data.total);
 
-      // 백엔드가 정렬해주더라도 문제 없음. 정렬 해주지 않으면 여기서라도 맞춰줌.
+      // 백엔드가 정렬해주더라도 문제 없음. 정렬 안 해주면 여기서라도 맞춰줌.
       const processed = sortMembers(rawMembers, sortKey, sortOrder);
       setMembers(processed);
     } catch (err) {
@@ -245,17 +243,6 @@ export default function AdminMembersPage() {
           </button>
           <button
             type="button"
-            onClick={() => handleSortClick('level')}
-            className={`px-3 py-1.5 rounded-md text-sm border transition-colors ${
-              sortKey === 'level'
-                ? 'bg-indigo-600 text-white border-indigo-600'
-                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-            }`}
-          >
-            {renderSortLabel('레벨순', 'level')}
-          </button>
-          <button
-            type="button"
             onClick={() => handleSortClick('latest')}
             className={`px-3 py-1.5 rounded-md text-sm border transition-colors ${
               sortKey === 'latest'
@@ -323,8 +310,8 @@ export default function AdminMembersPage() {
                         .join(' ')}
                     </td>
                     <td className="px-6 py-4 text-sm">{member.mb_hp}</td>
-                    <td className="px-6 py-4 text-sm">
-                      {/* 레벨 셀렉트 UI 개선 */}
+                    <td className="px-6 py-4 text-sm text-center">
+                      {/* 레벨 셀렉트 UI 개선: 가운데 정렬 */}
                       <select
                         value={member.mb_level}
                         onChange={(e) =>
@@ -334,9 +321,10 @@ export default function AdminMembersPage() {
                           )
                         }
                         className="w-24 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 px-3 py-2 text-sm font-semibold text-center"
+                        style={{ textAlignLast: 'center' as any }}
                       >
                         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((level) => (
-                          <option key={level} value={level}>
+                          <option key={level} value={level} className="text-center">
                             {level}
                           </option>
                         ))}
