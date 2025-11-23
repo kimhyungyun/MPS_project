@@ -18,6 +18,9 @@ import TableCell from '@tiptap/extension-table-cell';
 import CharacterCount from '@tiptap/extension-character-count';
 import FontFamily from '@tiptap/extension-font-family';
 import FontSize from './extensions/fontSize';
+import ResizeImage from 'tiptap-extension-resize-image';
+
+
 
 import styles from './CreateNotice.module.css';
 
@@ -56,6 +59,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
         inline: false,
         allowBase64: true,
       }),
+      ResizeImage,
       YouTube.configure({
         controls: true,
         nocookie: true,
@@ -81,12 +85,14 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
 
   const headingLevels = [1, 2, 3] as const;
 
-  const fontFamilies = [
+const fontFamilies = [
   { label: '기본', value: '' },
   { label: '돋움', value: 'Dotum, sans-serif' },
+  { label: '굴림', value: 'Gulim, sans-serif' },
   { label: '바탕', value: 'Batang, serif' },
-  { label: '나눔고딕', value: 'Nanum Gothic, sans-serif' },
-  { label: '나눔명조', value: 'Nanum Myeongjo, serif' },
+  { label: '맑은 고딕', value: '"Malgun Gothic", sans-serif' },
+  { label: '나눔고딕', value: '"Nanum Gothic", sans-serif' },
+  { label: '나눔명조', value: '"Nanum Myeongjo", serif' },
 ];
 
 const fontSizes = [
@@ -96,7 +102,14 @@ const fontSizes = [
   { label: '16pt', value: '16px' },
   { label: '18pt', value: '18px' },
   { label: '20pt', value: '20px' },
+  { label: '22pt', value: '22px' },
+  { label: '24pt', value: '24px' },
+  { label: '28pt', value: '28px' },
+  { label: '32pt', value: '32px' },
+  { label: '40pt', value: '40px' },
+  { label: '52pt', value: '52px' },
 ];
+
 
 
   const setLinkHandler = () => {
