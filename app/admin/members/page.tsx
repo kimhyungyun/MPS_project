@@ -34,14 +34,13 @@ export default function AdminMembersPage() {
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-  const pageSize = 10;          // 🔹 한 페이지당 회원 수
+  const pageSize = 10;
   const pageGroupSize = 10;
   const totalPages = Math.ceil(totalMembers / pageSize);
   const currentPageGroup = Math.ceil(currentPage / pageGroupSize);
   const startPage = (currentPageGroup - 1) * pageGroupSize + 1;
   const endPage = Math.min(startPage + pageGroupSize - 1, totalPages);
 
-  // 페이지 내 정렬(백엔드가 정렬 안 해줄 때 대비용)
   const sortMembers = (
     list: Member[],
     key: SortKey | null,
@@ -55,7 +54,6 @@ export default function AdminMembersPage() {
       if (key === 'name') {
         comp = a.mb_name.localeCompare(b.mb_name);
       } else if (key === 'latest') {
-        // 최신순: mb_id 기준 (필요하면 created_at 등으로 교체)
         comp = a.mb_id.localeCompare(b.mb_id);
       }
 
@@ -129,7 +127,6 @@ export default function AdminMembersPage() {
       const rawMembers: Member[] = data.data.members;
       setTotalMembers(data.data.total);
 
-      // 백엔드가 정렬해주더라도 문제 없음. 정렬 안 해주면 여기서라도 맞춰줌.
       const processed = sortMembers(rawMembers, sortKey, sortOrder);
       setMembers(processed);
     } catch (err) {
@@ -173,27 +170,24 @@ export default function AdminMembersPage() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setIsSearching(true);
-    setCurrentPage(1); // 검색 시 항상 1페이지로
+    setCurrentPage(1);
   };
 
-  // 정렬 버튼 클릭: 없음 → asc → desc → 없음
   const handleSortClick = (key: SortKey) => {
-    setCurrentPage(1); // 정렬 변경 시 1페이지로 이동
+    setCurrentPage(1);
 
     if (sortKey !== key) {
-      // 다른 정렬 키로 변경될 때: 기본 방향
       const initialOrder: SortOrder = key === 'latest' ? 'desc' : 'asc';
       setSortKey(key);
       setSortOrder(initialOrder);
       return;
     }
 
-    // 같은 키를 다시 클릭했을 때: asc -> desc -> 정렬 해제
     if (sortOrder === 'asc') {
       setSortOrder('desc');
     } else if (sortOrder === 'desc') {
-      setSortKey(null); // 정렬 해제
-      setSortOrder('asc'); // 기본값으로 리셋
+      setSortKey(null);
+      setSortOrder('asc');
     }
   };
 
@@ -256,102 +250,120 @@ export default function AdminMembersPage() {
         </div>
 
         <div className="bg-white shadow rounded-lg overflow-hidden mb-6">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                {[
-                  '번호',
-                  '아이디',
-                  '이름',
-                  '닉네임',
-                  '이메일',
-                  '학교',
-                  '주소',
-                  '휴대폰',
-                  '레벨',
-                ].map((head) => (
-                  <th
-                    key={head}
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    {head}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {loading ? (
+          {/* 가로 스크롤 허용 + 테이블 넓게 */}
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
                 <tr>
-                  <td
-                    colSpan={9}
-                    className="px-6 py-4 text-center text-sm text-gray-500"
-                  >
-                    로딩 중...
-                  </td>
+                  {[
+                    '번호',
+                    '아이디',
+                    '이름',
+                    '닉네임',
+                    '이메일',
+                    '학교',
+                    '주소',
+                    '휴대폰',
+                    '레벨',
+                  ].map((head) => (
+                    <th
+                      key={head}
+                      className="px-6 py-3 text-center text-sm font-semibold text-gray-600 tracking-wider"
+                    >
+                      {head}
+                    </th>
+                  ))}
                 </tr>
-              ) : members.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={9}
-                    className="px-6 py-4 text-center text-sm text-gray-500"
-                  >
-                    {search ? '검색 결과가 없습니다.' : '회원이 없습니다.'}
-                  </td>
-                </tr>
-              ) : (
-                members.map((member, idx) => {
-                  const index = (currentPage - 1) * pageSize + (idx + 1);
-                  return (
-                    <tr key={member.mb_id}>
-                      {/* 🔹 번호 컬럼 */}
-                      <td className="px-6 py-4 text-sm text-gray-500">
-                        {index}
-                      </td>
-                      <td className="px-6 py-4 text-sm">{member.mb_id}</td>
-                      <td className="px-6 py-4 text-sm">{member.mb_name}</td>
-                      <td className="px-6 py-4 text-sm">{member.mb_nick}</td>
-                      <td className="px-6 py-4 text-sm">{member.mb_email}</td>
-                      <td className="px-6 py-4 text-sm">{member.mb_school}</td>
-                      <td className="px-6 py-4 text-sm">
-                        {[member.mb_addr1, member.mb_addr2]
-                          .filter(Boolean)
-                          .join(' ')}
-                      </td>
-                      <td className="px-6 py-4 text-sm">{member.mb_hp}</td>
-                      <td className="px-6 py-4 text-sm text-center">
-                        {/* 레벨 셀렉트 UI 개선: 가운데 정렬 + 패딩 줄임 */}
-                        <select
-                          value={member.mb_level}
-                          onChange={(e) =>
-                            handleLevelChange(
-                              member.mb_id,
-                              Number(e.target.value),
-                            )
-                          }
-                          className="w-20 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm font-semibold text-center"
-                          style={{
-                            textAlignLast: 'center' as any,
-                            paddingLeft: 0,
-                            paddingRight: 0,
-                          }}
-                        >
-                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((level) => (
-                            <option
-                              key={level}
-                              value={level}
-                              className="text-center"
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {loading ? (
+                  <tr>
+                    <td
+                      colSpan={9}
+                      className="px-6 py-4 text-center text-sm text-gray-500"
+                    >
+                      로딩 중...
+                    </td>
+                  </tr>
+                ) : members.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={9}
+                      className="px-6 py-4 text-center text-sm text-gray-500"
+                    >
+                      {search ? '검색 결과가 없습니다.' : '회원이 없습니다.'}
+                    </td>
+                  </tr>
+                ) : (
+                  members.map((member, idx) => {
+                    const index = (currentPage - 1) * pageSize + (idx + 1);
+                    return (
+                      <tr key={member.mb_id}>
+                        {/* 번호 */}
+                        <td className="px-6 py-4 text-sm text-center text-gray-700 whitespace-nowrap">
+                          {index}
+                        </td>
+                        <td className="px-6 py-4 text-sm whitespace-nowrap">
+                          {member.mb_id}
+                        </td>
+                        <td className="px-6 py-4 text-sm whitespace-nowrap">
+                          {member.mb_name}
+                        </td>
+                        <td className="px-6 py-4 text-sm whitespace-nowrap">
+                          {member.mb_nick}
+                        </td>
+                        <td className="px-6 py-4 text-sm whitespace-nowrap">
+                          {member.mb_email}
+                        </td>
+                        <td className="px-6 py-4 text-sm whitespace-nowrap">
+                          {member.mb_school}
+                        </td>
+                        {/* 주소는 길어질 수 있어서 줄바꿈 허용 */}
+                        <td className="px-6 py-4 text-sm">
+                          {[member.mb_addr1, member.mb_addr2]
+                            .filter(Boolean)
+                            .join(' ')}
+                        </td>
+                        <td className="px-6 py-4 text-sm whitespace-nowrap">
+                          {member.mb_hp}
+                        </td>
+                        <td className="px-6 py-4 text-sm">
+                          {/* 레벨: 거의 정사각형 + 가운데 정렬 */}
+                          <div className="flex justify-center">
+                            <select
+                              value={member.mb_level}
+                              onChange={(e) =>
+                                handleLevelChange(
+                                  member.mb_id,
+                                  Number(e.target.value),
+                                )
+                              }
+                              className="w-12 h-8 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm font-semibold text-center"
+                              style={{
+                                textAlignLast: 'center' as any,
+                                paddingLeft: 0,
+                                paddingRight: 0,
+                              }}
                             >
-                              {level}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+                              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((level) => (
+                                <option
+                                  key={level}
+                                  value={level}
+                                  className="text-center"
+                                >
+                                  {level}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* 검색 */}
