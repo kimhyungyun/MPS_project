@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import Hls from 'hls.js';
 
 type LectureType =
@@ -23,6 +24,14 @@ interface Course {
   video_name?: string;
   type: LectureType;
   classGroup: ClassGroup;
+}
+
+// 👤 사용자 타입
+interface User {
+  mb_id: string;
+  mb_name: string;
+  mb_nick: string;
+  mb_level: number;
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -69,6 +78,9 @@ function HlsPlayer({ src }: { src: string }) {
 type GroupKey = 'A_CLASS' | 'B_CLASS' | 'PKG_C' | 'PKG_D' | 'PKG_E' | null;
 
 export default function Mpsvideo() {
+  const router = useRouter();
+
+  const [user, setUser] = useState<User | null>(null);
   const [courses, setCourses] = useState<Course[]>([]);
   const [selected, setSelected] = useState<Course | null>(null);
   const [loadingList, setLoadingList] = useState(true);
@@ -79,10 +91,35 @@ export default function Mpsvideo() {
 
   const listRef = useRef<HTMLDivElement | null>(null);
 
+  // ✅ 로그인 체크 + 강의 목록 로딩
   useEffect(() => {
-    (async () => {
+    const init = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/lectures`);
+        const raw = localStorage.getItem('user');
+        if (!raw) {
+          alert('로그인이 필요합니다.');
+          router.push('/form/login');
+          return;
+        }
+
+        let parsedUser: User;
+        try {
+          parsedUser = JSON.parse(raw) as User;
+        } catch (e) {
+          console.error('user parse error:', e);
+          alert('로그인 정보가 올바르지 않습니다. 다시 로그인 해주세요.');
+          router.push('/form/login');
+          return;
+        }
+
+        setUser(parsedUser);
+
+        // 강의 목록 가져오기
+        const res = await fetch(`${API_BASE_URL}/api/lectures`, {
+          credentials: 'include',
+        });
+        if (!res.ok) throw new Error('강의 목록 API 실패');
+
         const data = await res.json();
         setCourses(data);
       } catch (e) {
@@ -91,8 +128,10 @@ export default function Mpsvideo() {
       } finally {
         setLoadingList(false);
       }
-    })();
-  }, []);
+    };
+
+    init();
+  }, [router]);
 
   const handleSelectGroup = (key: GroupKey) => {
     setSelectedGroup(key);
@@ -118,6 +157,7 @@ export default function Mpsvideo() {
       const token = localStorage.getItem('token');
       if (!token) {
         alert('로그인이 필요합니다.');
+        router.push('/form/login');
         return;
       }
 
@@ -127,7 +167,7 @@ export default function Mpsvideo() {
           method: 'GET',
           credentials: 'include',
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
 
       if (!playAuth.ok) throw new Error('Auth failed');
@@ -172,7 +212,11 @@ export default function Mpsvideo() {
       type="button"
       onClick={onClick}
       className={`flex w-full flex-col justify-between rounded-2xl border p-4 text-left transition 
-      ${active ? 'border-indigo-600 bg-indigo-600 text-white shadow-lg' : 'border-slate-200 bg-white hover:border-indigo-400 hover:shadow-md'}`}
+      ${
+        active
+          ? 'border-indigo-600 bg-indigo-600 text-white shadow-lg'
+          : 'border-slate-200 bg-white hover:border-indigo-400 hover:shadow-md'
+      }`}
     >
       <div>
         <p
@@ -197,6 +241,11 @@ export default function Mpsvideo() {
       </div>
     </button>
   );
+
+  // 로그인 체크 후 리다이렉트 중일 때
+  if (!user && !loadingList) {
+    return null;
+  }
 
   return (
     <main className="min-h-screen bg-slate-50">
