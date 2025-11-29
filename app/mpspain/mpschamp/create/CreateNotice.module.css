@@ -35,19 +35,24 @@
   font-size: 0.9em;
 }
 
+/* 표 전체 */
 .tiptap table {
   border-collapse: collapse;
   margin: 0.25rem 0;
   max-width: 100%;
-  width: auto;       /* 🔁 원래 100%였다면 이걸로 줄이는게 자연스러움 */
+  width: auto;
+  border: 2px solid #d1d5db; /* 전체 테두리 */
 }
 
-.tiptap table {
-  border-collapse: collapse;
-  margin: 0.25rem 0;
-  max-width: 100%;
-  width: auto;       /* 🔁 원래 100%였다면 이걸로 줄이는게 자연스러움 */
+/* 셀 */
+.tiptap th,
+.tiptap td {
+  border: 2px solid #d1d5db !important; /* 다른 스타일 덮어쓰기 */
+  padding: 2px 4px;
+  text-align: left;
+  background-color: #ffffff;            /* 배경 흰색 고정 */
 }
+
 .tiptap img {
   max-width: 900px;
   display: block;

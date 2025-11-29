@@ -3,11 +3,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { noticeService, Notice } from '@/app/services/noticeService';
+import styles from '../create/CreateNotice.module.css';
 
 const NoticeDetail = () => {
   const router = useRouter();
   const params = useParams();
-  const id = parseInt(params.id as string);
+  const id = parseInt(params.id as string, 10);
 
   const [notice, setNotice] = useState<Notice | null>(null);
   const [user, setUser] = useState<any>(null);
@@ -19,11 +20,6 @@ const NoticeDetail = () => {
       try {
         const userData = JSON.parse(localStorage.getItem('user') || '{}');
         setUser(userData);
-
-        if (!userData) {
-          router.push('/form/login');
-          return;
-        }
 
         const fetchedNotice = await noticeService.getNotice(id);
         setNotice(fetchedNotice);
@@ -61,7 +57,11 @@ const NoticeDetail = () => {
   };
 
   if (loading) {
-    return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        Loading...
+      </div>
+    );
   }
 
   if (!notice) {
@@ -91,7 +91,9 @@ const NoticeDetail = () => {
               <div className="mb-2">
                 <span className="text-sm font-medium text-gray-400">제목</span>
               </div>
-              <h1 className="text-3xl font-bold text-gray-800 tracking-tight">{notice.title}</h1>
+              <h1 className="text-3xl font-bold text-gray-800 tracking-tight">
+                {notice.title}
+              </h1>
             </div>
             {(isAdmin || isWriter) && (
               <div className="flex gap-3">
@@ -113,14 +115,34 @@ const NoticeDetail = () => {
           </div>
           <div className="flex items-center gap-8 text-sm text-gray-500">
             <div className="flex items-center gap-2">
-              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              <svg
+                className="w-4 h-4 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                />
               </svg>
               <span>{notice.user?.mb_name || '관리자'}</span>
             </div>
             <div className="flex items-center gap-2">
-              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              <svg
+                className="w-4 h-4 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
               </svg>
               <div className="flex items-center gap-2">
                 {notice.isImportant && (
@@ -137,14 +159,16 @@ const NoticeDetail = () => {
         </div>
 
         {/* 본문 */}
-        <div className="prose max-w-none mb-8">
+        <div className={`${styles.tiptap} prose max-w-none mb-8`}>
           <div dangerouslySetInnerHTML={{ __html: notice.content }} />
         </div>
 
         {/* 첨부파일 */}
         {notice.attachments && notice.attachments.length > 0 && (
           <div className="border-t border-gray-200 pt-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">첨부파일</h3>
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">
+              첨부파일
+            </h3>
             <div className="space-y-2">
               {notice.attachments.map((file) => (
                 <a
@@ -154,8 +178,18 @@ const NoticeDetail = () => {
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 text-blue-600 hover:text-blue-700"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
+                    />
                   </svg>
                   <span>{file.name}</span>
                 </a>
