@@ -12,9 +12,13 @@ interface User {
   mb_level: number;
 }
 
-// 🔧 날짜 포맷 변환 함수
-const formatDate = (dateString: string) => {
-  const date = new Date(dateString);
+// 🔧 날짜 포맷 변환 함수 (string | Date 전부 처리 + 방어 코드)
+const formatDate = (value: string | Date | null | undefined) => {
+  if (!value) return '';
+
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
@@ -76,12 +80,18 @@ const MpsChamp = () => {
     return null;
   }
 
-  // 중요 + 날짜순 정렬
+  // 중요 + 작성일(created_at) 순 정렬
   const sortedNotices = [...notices].sort((a, b) => {
+    // 중요 먼저
     if (a.isImportant !== b.isImportant) {
-      return b.isImportant ? 1 : -1;
+      return Number(b.isImportant) - Number(a.isImportant);
     }
-    return new Date(b.date).getTime() - new Date(a.date).getTime();
+
+    // 그 다음 최신 작성일 순
+    const aDate = (a as any).created_at ?? (a as any).date;
+    const bDate = (b as any).created_at ?? (b as any).date;
+
+    return new Date(bDate).getTime() - new Date(aDate).getTime();
   });
 
   const handleNoticeClick = (noticeId: number) => {
@@ -186,7 +196,9 @@ const MpsChamp = () => {
                   </div>
                 </div>
                 <div className="col-span-2 text-center text-sm text-gray-500">
-                  {formatDate(item.date)}
+                  {formatDate(
+                    (item as any).created_at ?? (item as any).date
+                  )}
                 </div>
                 <div className="col-span-2 text-center text-sm text-gray-500">
                   {item.user?.mb_name || '관리자'}

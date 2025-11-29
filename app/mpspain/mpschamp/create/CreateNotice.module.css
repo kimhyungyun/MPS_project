@@ -53,9 +53,10 @@
   background-color: #ffffff;            /* 배경 흰색 고정 */
 }
 
+/* 이미지: 에디터에서 지정한 크기 그대로, 너무 크면 900px까지만 */
 .tiptap img {
   max-width: 900px;
+  height: auto;              /* ✅ 비율 유지 */
   display: block;
   margin: 0.25rem auto;
 }
-
