@@ -1,7 +1,17 @@
+// app/services/noticeService.ts
+
 import axios from 'axios';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
+// ✅ 백엔드에서 내려주는 첨부파일(조회용) 타입
+export interface NoticeAttachment {
+  id: number;
+  name: string;
+  url: string;
+}
+
+// ✅ 프론트에서 사용하는 Notice 타입
 export interface Notice {
   id: number;
   title: string;
@@ -12,22 +22,33 @@ export interface Notice {
   user?: {
     mb_name: string;
   };
-  attachments?: {
-    id: number;
-    name: string;
-    url: string;
-  }[];
+  attachments?: NoticeAttachment[];
 }
 
+// ✅ 생성/수정 요청에 실어 보낼 첨부파일 타입 (백엔드 DTO랑 맞춤)
+export interface NoticeAttachmentRequest {
+  fileName: string;
+  fileUrl: string;
+  fileSize?: number;
+  mimeType?: string;
+}
+
+// ✅ 백엔드 CreateNoticeDto랑 맞춘 요청 DTO
 export interface CreateNoticeDto {
   title: string;
   content: string;
   is_important?: boolean;
+
+  // 대표 이미지 URL
+  coverImageUrl?: string;
+
+  // 첨부파일 목록
+  attachments?: NoticeAttachmentRequest[];
 }
 
 class NoticeService {
   private getAuthHeader() {
-    const token = localStorage.getItem('token');
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
     return token ? { Authorization: `Bearer ${token}` } : {};
   }
 
@@ -39,7 +60,7 @@ class NoticeService {
           'Content-Type': 'application/json',
         },
       });
-      return response.data;
+      return response.data as Notice;
     } catch (error) {
       console.error('Error creating notice:', error);
       throw error;
@@ -49,7 +70,7 @@ class NoticeService {
   async getNotices() {
     try {
       const response = await axios.get(`${API_URL}/api/notices`);
-      return response.data;
+      return response.data as Notice[];
     } catch (error) {
       console.error('Error fetching notices:', error);
       throw error;
@@ -59,7 +80,7 @@ class NoticeService {
   async getNotice(id: number) {
     try {
       const response = await axios.get(`${API_URL}/api/notices/${id}`);
-      return response.data;
+      return response.data as Notice;
     } catch (error) {
       console.error('Error fetching notice:', error);
       throw error;
@@ -70,22 +91,30 @@ class NoticeService {
     title?: string;
     content?: string;
     isImportant?: boolean;
+    coverImageUrl?: string;
+    attachments?: NoticeAttachmentRequest[];
   }) {
-    const token = localStorage.getItem('token');
-    const requestData = {
-      title: data.title,
-      content: data.content,
-      isImportant: data.isImportant
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+
+    // 백엔드 UpdateNoticeDto는 is_important / coverImageUrl / attachments 구조이므로 거기에 맞게 변환
+    const requestData: CreateNoticeDto = {
+      title: data.title ?? '',
+      content: data.content ?? '',
+      is_important: data.isImportant,
+      coverImageUrl: data.coverImageUrl,
+      attachments: data.attachments,
     };
+
     console.log('Updating notice with data:', requestData);
-    
+
     try {
-      const response = await axios.put(`${API_URL}/api/notices/${id}`, requestData, {
+      const response = await axios.patch(`${API_URL}/api/notices/${id}`, requestData, {
         headers: {
-          Authorization: `Bearer ${token}`
-        }
+          Authorization: token ? `Bearer ${token}` : '',
+          'Content-Type': 'application/json',
+        },
       });
-      return response.data;
+      return response.data as Notice;
     } catch (error) {
       if (axios.isAxiosError(error)) {
         console.error('Error response:', error.response?.data);
@@ -109,4 +138,4 @@ class NoticeService {
   }
 }
 
-export const noticeService = new NoticeService(); 
+export const noticeService = new NoticeService();

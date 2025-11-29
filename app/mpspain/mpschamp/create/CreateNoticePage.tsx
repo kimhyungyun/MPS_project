@@ -82,10 +82,27 @@ const CreateNoticePage = () => {
     setIsSubmitting(true);
 
     try {
+      // ⚠️ 지금은 S3 업로드 안 하고, "가짜 URL"로 메타데이터만 저장하는 버전
+      const coverImageUrl = form.image
+        ? `/uploads/cover/${encodeURIComponent(form.image.name)}`
+        : undefined;
+
+      const attachmentsPayload =
+        form.attachments.length > 0
+          ? form.attachments.map((file) => ({
+              fileName: file.name,
+              fileUrl: `/uploads/files/${encodeURIComponent(file.name)}`,
+              fileSize: file.size,
+              mimeType: file.type,
+            }))
+          : undefined;
+
       await noticeService.createNotice({
         title: form.title,
         content: form.content,
         is_important: form.isImportant,
+        coverImageUrl,
+        attachments: attachmentsPayload,
       });
 
       router.push('/mpspain/mpschamp');

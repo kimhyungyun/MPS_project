@@ -20,8 +20,6 @@ import FontFamily from '@tiptap/extension-font-family';
 import FontSize from './extensions/fontSize';
 import ResizeImage from 'tiptap-extension-resize-image';
 
-
-
 import styles from './CreateNotice.module.css';
 
 interface RichTextEditorProps {
@@ -29,62 +27,10 @@ interface RichTextEditorProps {
   onChange: (value: string) => void;
 }
 
-const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
-  const [isTablePickerOpen, setIsTablePickerOpen] = useState(false);
-  const [tableHoverSize, setTableHoverSize] = useState({ rows: 0, cols: 0 });
-  const imageInputRef = useRef<HTMLInputElement | null>(null);
+// Heading 버튼용
+const headingLevels = [1, 2, 3] as const;
 
-  const editor = useEditor({
-    extensions: [
-      StarterKit.configure({
-        heading: {
-          levels: [1, 2, 3, 4, 5, 6],
-        },
-      }),
-      TextStyle,
-      FontFamily,
-      FontSize,
-      Color.configure({ types: ['textStyle'] }),
-      Underline,
-      Highlight,
-      TextAlign.configure({
-        types: ['heading', 'paragraph', 'bulletList', 'orderedList'],
-      }),
-      Link.configure({
-        openOnClick: true,
-        autolink: true,
-        linkOnPaste: true,
-      }),
-      ImageExt.configure({
-        inline: false,
-        allowBase64: true,
-      }),
-      ResizeImage,
-      YouTube.configure({
-        controls: true,
-        nocookie: true,
-      }),
-      Table.configure({ resizable: true }),
-      TableRow,
-      TableHeader,
-      TableCell,
-      CharacterCount,
-    ],
-    content: value,
-    onUpdate: ({ editor }) => {
-      onChange(editor.getHTML());
-    },
-    editorProps: {
-      attributes: {
-        class:
-          'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none min-h-[200px]',
-      },
-    },
-    immediatelyRender: false,
-  });
-
-  const headingLevels = [1, 2, 3] as const;
-
+// 글꼴 목록
 const fontFamilies = [
   { label: '기본', value: '' },
   { label: '돋움', value: 'Dotum, sans-serif' },
@@ -95,6 +41,7 @@ const fontFamilies = [
   { label: '나눔명조', value: '"Nanum Myeongjo", serif' },
 ];
 
+// 폰트 크기 목록
 const fontSizes = [
   { label: '10pt', value: '10px' },
   { label: '12pt', value: '12px' },
@@ -110,8 +57,72 @@ const fontSizes = [
   { label: '52pt', value: '52px' },
 ];
 
+const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
+  const [isTablePickerOpen, setIsTablePickerOpen] = useState(false);
+  const [tableHoverSize, setTableHoverSize] = useState({ rows: 0, cols: 0 });
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
 
+  const editor = useEditor({
+    extensions: [
+      // 기본
+      StarterKit.configure({
+        heading: {
+          levels: [1, 2, 3, 4, 5, 6],
+        },
+      }),
 
+      // 텍스트 스타일
+      TextStyle,
+      FontFamily,
+      FontSize,
+      Color.configure({ types: ['textStyle'] }),
+      Underline,
+      Highlight,
+
+      // 정렬
+      TextAlign.configure({
+        types: ['heading', 'paragraph', 'bulletList', 'orderedList'],
+      }),
+
+      // 링크 / 이미지 / 유튜브
+      Link.configure({
+        openOnClick: true,
+        autolink: true,
+        linkOnPaste: true,
+      }),
+      ImageExt.configure({
+        inline: false,
+        allowBase64: true,
+      }),
+      ResizeImage,
+      YouTube.configure({
+        controls: true,
+        nocookie: true,
+      }),
+
+      // 표
+      Table.configure({ resizable: true }),
+      TableRow,
+      TableHeader,
+      TableCell,
+
+      // 글자 수
+      CharacterCount,
+    ],
+    content: value,
+    onUpdate: ({ editor }) => {
+      onChange(editor.getHTML());
+    },
+    editorProps: {
+      attributes: {
+        class:
+          'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none min-h-[200px]',
+      },
+    },
+    immediatelyRender: false,
+  });
+
+  // 링크 설정
   const setLinkHandler = () => {
     if (!editor) return;
     const previousUrl = editor.getAttributes('link').href;
@@ -132,6 +143,7 @@ const fontSizes = [
       .run();
   };
 
+  // 유튜브 삽입
   const insertYouTubeHandler = () => {
     if (!editor) return;
     const url = window.prompt(
@@ -139,6 +151,7 @@ const fontSizes = [
       'https://www.youtube.com/watch?v=',
     );
     if (!url) return;
+
     editor.commands.setYoutubeVideo({
       src: url,
       width: 640,
@@ -146,6 +159,7 @@ const fontSizes = [
     });
   };
 
+  // 이미지 삽입 (본문)
   const insertEditorImage = (file: File) => {
     if (!editor) return;
     const src = URL.createObjectURL(file);
@@ -160,6 +174,7 @@ const fontSizes = [
       .run();
   };
 
+  // 표 삽입
   const insertTable = (rows: number, cols: number) => {
     if (!editor) return;
     editor
@@ -169,6 +184,7 @@ const fontSizes = [
       .run();
   };
 
+  // 표 삭제
   const deleteTableHandler = () => {
     if (!editor) return;
     editor.chain().focus().deleteTable().run();
@@ -188,55 +204,58 @@ const fontSizes = [
         본문
       </label>
 
-      {/* Toolbar */}
+      {/* ───── 툴바 ───── */}
       <div className="mb-2 rounded-t-xl border border-b-0 border-gray-200 bg-gray-50 px-3 py-2 flex flex-wrap items-center gap-3 text-xs sm:text-sm relative">
-        {/* 1. 텍스트 스타일 */}
-          <div className="flex items-center gap-2">
-    {/* 글꼴 */}
-    <select
-      className="border border-gray-200 rounded px-2 py-1 bg-white text-xs sm:text-sm"
-      value={editor.getAttributes('textStyle').fontFamily || ''}
-      onChange={(e) => {
-        const value = e.target.value;
-        if (!value) {
-          editor.chain().focus().unsetMark('textStyle').run();
-        } else {
-          editor.chain().focus().setFontFamily(value).run();
-        }
-      }}
-    >
-      {fontFamilies.map((f) => (
-        <option key={f.label} value={f.value}>
-          {f.label}
-        </option>
-      ))}
-    </select>
+        {/* 1) 글꼴 / 크기 */}
+        <div className="flex items-center gap-2">
+          {/* 글꼴 */}
+          <select
+            className="border border-gray-200 rounded px-2 py-1 bg-white text-xs sm:text-sm"
+            value={editor.getAttributes('textStyle').fontFamily || ''}
+            onChange={(e) => {
+              const value = e.target.value;
+              if (!value) {
+                // 전체 textStyle 날리면 fontSize도 날라갈 수 있어서
+                // FontSize Extension이 setFontSize만 쓰는 구조면 이걸로도 ok
+                editor.chain().focus().unsetMark('textStyle').run();
+              } else {
+                editor.chain().focus().setFontFamily(value).run();
+              }
+            }}
+          >
+            {fontFamilies.map((f) => (
+              <option key={f.label} value={f.value}>
+                {f.label}
+              </option>
+            ))}
+          </select>
 
-    {/* 글자 크기 */}
-    <select
-      className="border border-gray-200 rounded px-2 py-1 bg-white text-xs sm:text-sm"
-      value={editor.getAttributes('textStyle').fontSize || ''}
-      onChange={(e) => {
-        const value = e.target.value;
-        if (!value) {
-          editor.chain().focus().unsetFontSize().run();
-        } else {
-          editor.chain().focus().setFontSize(value).run();
-        }
-      }}
-    >
-      <option value="">크기</option>
-      {fontSizes.map((s) => (
-        <option key={s.value} value={s.value}>
-          {s.label}
-        </option>
-      ))}
-    </select>
-  </div>
+          {/* 글자 크기 */}
+          <select
+            className="border border-gray-200 rounded px-2 py-1 bg-white text-xs sm:text-sm"
+            value={editor.getAttributes('textStyle').fontSize || ''}
+            onChange={(e) => {
+              const value = e.target.value;
+              if (!value) {
+                editor.chain().focus().unsetFontSize().run();
+              } else {
+                editor.chain().focus().setFontSize(value).run();
+              }
+            }}
+          >
+            <option value="">크기</option>
+            {fontSizes.map((s) => (
+              <option key={s.value} value={s.value}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+        </div>
 
-  <span className="h-5 border-l border-gray-200" />
+        <span className="h-5 border-l border-gray-200" />
+
+        {/* 2) 굵기/기울임/밑줄/취소선/하이라이트 */}
         <div className="flex items-center gap-1">
-            
           <button
             type="button"
             onClick={() => editor.chain().focus().toggleBold().run()}
@@ -296,7 +315,7 @@ const fontSizes = [
 
         <span className="h-5 border-l border-gray-200" />
 
-        {/* 2. Heading */}
+        {/* 3) Heading */}
         <div className="flex items-center gap-1">
           {headingLevels.map((level) => (
             <button
@@ -318,7 +337,7 @@ const fontSizes = [
 
         <span className="h-5 border-l border-gray-200" />
 
-        {/* 3. 정렬 */}
+        {/* 4) 정렬 */}
         <div className="flex items-center gap-1">
           <button
             type="button"
@@ -333,7 +352,9 @@ const fontSizes = [
           </button>
           <button
             type="button"
-            onClick={() => editor.chain().focus().setTextAlign('center').run()}
+            onClick={() =>
+              editor.chain().focus().setTextAlign('center').run()
+            }
             className={`px-2 py-1 rounded ${
               editor.isActive({ textAlign: 'center' })
                 ? 'bg-blue-500 text-white'
@@ -357,7 +378,7 @@ const fontSizes = [
 
         <span className="h-5 border-l border-gray-200" />
 
-        {/* 4. 리스트 / 블럭 */}
+        {/* 5) 리스트 / 블록 */}
         <div className="flex items-center gap-1">
           <button
             type="button"
@@ -418,8 +439,9 @@ const fontSizes = [
 
         <span className="h-5 border-l border-gray-200" />
 
-        {/* 5. 링크 / 미디어 / 표 */}
+        {/* 6) 링크 / 미디어 / 표 */}
         <div className="flex items-center gap-1 relative">
+          {/* 링크 */}
           <button
             type="button"
             onClick={setLinkHandler}
@@ -432,6 +454,7 @@ const fontSizes = [
             링크
           </button>
 
+          {/* 유튜브 */}
           <button
             type="button"
             onClick={insertYouTubeHandler}
@@ -440,6 +463,7 @@ const fontSizes = [
             YT
           </button>
 
+          {/* 이미지 */}
           <button
             type="button"
             onClick={() => imageInputRef.current?.click()}
@@ -448,7 +472,20 @@ const fontSizes = [
             Img
           </button>
 
-          {/* 표 버튼 + 그리드 픽커 */}
+          <input
+            ref={imageInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              insertEditorImage(file);
+              e.target.value = '';
+            }}
+          />
+
+          {/* 표 + 그리드 픽커 */}
           <div className="relative">
             <button
               type="button"
@@ -465,7 +502,6 @@ const fontSizes = [
                     ? `${tableHoverSize.rows} × ${tableHoverSize.cols}`
                     : '표 크기 선택'}
                 </div>
-                {/* 8×8 그리드, 가로로 확실하게 8칸 나오도록 width 고정 */}
                 <div className="grid grid-cols-8 gap-0.5 w-[168px]">
                   {Array.from({ length: 64 }).map((_, index) => {
                     const row = Math.floor(index / 8) + 1;
@@ -496,24 +532,11 @@ const fontSizes = [
               </div>
             )}
           </div>
-
-          <input
-            ref={imageInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              insertEditorImage(file);
-              e.target.value = '';
-            }}
-          />
         </div>
 
         <span className="h-5 border-l border-gray-200" />
 
-        {/* 6. Undo / Redo */}
+        {/* 7) Undo / Redo */}
         <div className="flex items-center gap-1">
           <button
             type="button"
@@ -531,7 +554,7 @@ const fontSizes = [
           </button>
         </div>
 
-        {/* 👇 표 삭제 버튼: absolute로 오른쪽에 고정 (툴바 안 흔들림) */}
+        {/* 표 삭제 버튼: 오른쪽 고정 */}
         {editor.isActive('table') && (
           <button
             type="button"
@@ -543,10 +566,12 @@ const fontSizes = [
         )}
       </div>
 
+      {/* ───── 에디터 본문 ───── */}
       <div className="bg-white rounded-b-xl border border-gray-200 p-2">
         <EditorContent editor={editor} className={styles.tiptap} />
       </div>
 
+      {/* 글자 수 */}
       <div className="mt-1 text-right text-xs text-gray-500">
         글자 수: {editor.storage.characterCount.characters()}
       </div>

@@ -71,6 +71,13 @@ const NoticeDetail = () => {
   const isAdmin = user?.mb_level >= 8;
   const isWriter = user?.id === notice.writer_id;
 
+  // ✅ created_at 우선, 없으면 date fallback
+  const createdAtValue =
+    (notice as any).created_at ?? (notice as any).date ?? null;
+  const createdAtText = createdAtValue
+    ? new Date(createdAtValue).toLocaleDateString()
+    : '';
+
   return (
     <section className="w-full px-4 lg:px-24 py-12 bg-gradient-to-b from-gray-50 to-gray-100 mt-20 pt-20">
       <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
@@ -151,7 +158,7 @@ const NoticeDetail = () => {
                   </span>
                 )}
                 <span className="text-sm text-gray-500">
-                  {new Date(notice.date).toLocaleDateString()}
+                  {createdAtText || '-'}
                 </span>
               </div>
             </div>
