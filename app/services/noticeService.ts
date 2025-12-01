@@ -28,6 +28,7 @@ export interface Notice {
 
 // ✅ 생성/수정 요청에 실어 보낼 첨부파일 타입 (백엔드 DTO랑 맞춤)
 export interface NoticeAttachmentRequest {
+  id?: number;               // 기존 첨부파일이면 id 존재
   fileName: string;
   fileUrl: string;
   fileSize?: number;
@@ -101,6 +102,8 @@ class NoticeService {
     isImportant?: boolean;
     coverImageUrl?: string;
     attachments?: NoticeAttachmentRequest[];
+    deleteAttachmentIds?: number[];   // 🔥 새로 추가
+    removeCoverImage?: boolean;       // 🔥 새로 추가
   }) {
     const token =
       typeof window !== 'undefined' ? localStorage.getItem('token') : null;
