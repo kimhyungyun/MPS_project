@@ -10,6 +10,14 @@ export interface UploadedFileInfo {
   mimeType?: string;
 }
 
+// ✅ 항상 Record<string, string> 리턴하도록 타입 고정
+function getAuthHeader(): Record<string, string> {
+  if (typeof window === 'undefined') return {};
+  const token = localStorage.getItem('token');
+  if (!token) return {};
+  return { Authorization: `Bearer ${token}` };
+}
+
 /**
  * S3 업로드 (공지 첨부, 커버, 본문 이미지 공통)
  * 백엔드: POST /api/files/upload
@@ -21,7 +29,10 @@ export async function uploadFileToServer(file: File): Promise<UploadedFileInfo> 
   const res = await fetch(`${API_BASE_URL}/files/upload`, {
     method: 'POST',
     body: formData,
-    credentials: 'include', // 쿠키 쓰면 대비
+    credentials: 'include', // 쿠키 포함
+    headers: {
+      ...getAuthHeader(), // ✅ 이제 타입 에러 안 남
+    },
   });
 
   if (!res.ok) {
@@ -48,6 +59,9 @@ export async function getPresignedDownloadUrl(key: string): Promise<string> {
     {
       method: 'GET',
       credentials: 'include',
+      headers: {
+        ...getAuthHeader(), // ✅ 여기도 동일
+      },
     },
   );
 

@@ -56,7 +56,9 @@ const CreateNoticePage = () => {
       setUser(userData);
     } catch (error) {
       console.error('Error parsing user data:', error);
-      alert('사용자 정보를 불러오는 중 오류가 발생했습니다. 다시 로그인해주세요.');
+      alert(
+        '사용자 정보를 불러오는 중 오류가 발생했습니다. 다시 로그인해주세요.',
+      );
       router.push('/form/login');
     }
   }, [router]);

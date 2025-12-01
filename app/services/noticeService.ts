@@ -3,6 +3,7 @@
 import axios from 'axios';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const BASE_URL = `${API_URL}/api`;
 
 // ✅ 백엔드에서 내려주는 첨부파일(조회용) 타입
 export interface NoticeAttachment {
@@ -48,17 +49,20 @@ export interface CreateNoticeDto {
 
 class NoticeService {
   private getAuthHeader() {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    const token =
+      typeof window !== 'undefined' ? localStorage.getItem('token') : null;
     return token ? { Authorization: `Bearer ${token}` } : {};
   }
 
   async createNotice(data: CreateNoticeDto) {
     try {
-      const response = await axios.post(`${API_URL}/api/notices`, data, {
+      const response = await axios.post(`${BASE_URL}/notices`, data, {
         headers: {
           ...this.getAuthHeader(),
           'Content-Type': 'application/json',
         },
+        // 필요하면 쿠키도 같이
+        withCredentials: true,
       });
       return response.data as Notice;
     } catch (error) {
@@ -69,7 +73,9 @@ class NoticeService {
 
   async getNotices() {
     try {
-      const response = await axios.get(`${API_URL}/api/notices`);
+      const response = await axios.get(`${BASE_URL}/notices`, {
+        withCredentials: true,
+      });
       return response.data as Notice[];
     } catch (error) {
       console.error('Error fetching notices:', error);
@@ -79,7 +85,9 @@ class NoticeService {
 
   async getNotice(id: number) {
     try {
-      const response = await axios.get(`${API_URL}/api/notices/${id}`);
+      const response = await axios.get(`${BASE_URL}/notices/${id}`, {
+        withCredentials: true,
+      });
       return response.data as Notice;
     } catch (error) {
       console.error('Error fetching notice:', error);
@@ -94,7 +102,8 @@ class NoticeService {
     coverImageUrl?: string;
     attachments?: NoticeAttachmentRequest[];
   }) {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    const token =
+      typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
     // 백엔드 UpdateNoticeDto는 is_important / coverImageUrl / attachments 구조이므로 거기에 맞게 변환
     const requestData: CreateNoticeDto = {
@@ -108,12 +117,17 @@ class NoticeService {
     console.log('Updating notice with data:', requestData);
 
     try {
-      const response = await axios.patch(`${API_URL}/api/notices/${id}`, requestData, {
-        headers: {
-          Authorization: token ? `Bearer ${token}` : '',
-          'Content-Type': 'application/json',
+      const response = await axios.patch(
+        `${BASE_URL}/notices/${id}`,
+        requestData,
+        {
+          headers: {
+            Authorization: token ? `Bearer ${token}` : '',
+            'Content-Type': 'application/json',
+          },
+          withCredentials: true,
         },
-      });
+      );
       return response.data as Notice;
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -127,8 +141,9 @@ class NoticeService {
 
   async deleteNotice(id: number) {
     try {
-      const response = await axios.delete(`${API_URL}/api/notices/${id}`, {
+      const response = await axios.delete(`${BASE_URL}/notices/${id}`, {
         headers: this.getAuthHeader(),
+        withCredentials: true,
       });
       return response.data;
     } catch (error) {
