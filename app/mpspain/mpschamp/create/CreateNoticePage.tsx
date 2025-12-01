@@ -1,11 +1,11 @@
+// app/(어딘가)/CreateNoticePage.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-
-import { noticeService } from '@/app/services/noticeService';
 import axios from 'axios';
 
+import { noticeService } from '@/app/services/noticeService';
 import RichTextEditor from './RichTextEditor';
 import CoverImageUploader from './CoverImageUploader';
 import AttachmentsUploader from './AttachmentsUploader';
@@ -15,8 +15,8 @@ interface NoticeForm {
   title: string;
   content: string;
   isImportant: boolean;
-  image: File | null;
-  attachments: File[];
+  image: File | null;   // 본문 이미지(커버)
+  attachments: File[];  // 첨부파일들
 }
 
 const CreateNoticePage = () => {
@@ -39,7 +39,6 @@ const CreateNoticePage = () => {
       console.log('User data from localStorage:', userData);
 
       if (!userData || !userData.mb_id || !userData.mb_level) {
-        console.error('Invalid user data:', userData);
         alert('사용자 정보를 찾을 수 없습니다. 다시 로그인해주세요.');
         router.push('/form/login');
         return;
@@ -85,8 +84,8 @@ const CreateNoticePage = () => {
     setIsSubmitting(true);
 
     try {
-      // 1) 커버(본문 이미지) S3 업로드
-      let coverImageUrl: string | undefined = undefined;
+      // 1) 본문 이미지(커버) S3 업로드
+      let coverImageUrl: string | undefined;
 
       if (form.image) {
         const uploadedCover = await uploadFileToServer(form.image);
@@ -98,36 +97,30 @@ const CreateNoticePage = () => {
         coverImageUrl = `https://${bucket}.s3.${region}.amazonaws.com/${uploadedCover.key}`;
       }
 
-      // 2) 첨부파일 S3 업로드
+      // 2) 첨부파일들 S3 업로드
       let attachmentsPayload:
         | {
             fileName: string;
-            fileUrl: string; // S3 key
+            fileUrl: string; // S3 key (notices/...)
             fileSize?: number;
             mimeType?: string;
           }[]
-        | undefined = undefined;
+        | undefined;
 
       if (form.attachments.length > 0) {
-        const results: {
-          fileName: string;
-          fileUrl: string;
-          fileSize?: number;
-          mimeType?: string;
-        }[] = [];
+        const uploadedList = await Promise.all(
+          form.attachments.map(async (file) => {
+            const uploaded = await uploadFileToServer(file);
+            return {
+              fileName: uploaded.fileName,
+              fileUrl: uploaded.key,      // DB에는 key만 저장
+              fileSize: uploaded.fileSize,
+              mimeType: uploaded.mimeType,
+            };
+          }),
+        );
 
-        for (const file of form.attachments) {
-          const uploaded = await uploadFileToServer(file);
-
-          results.push({
-            fileName: uploaded.fileName,
-            fileUrl: uploaded.key, // DB에는 key만 저장
-            fileSize: uploaded.fileSize,
-            mimeType: uploaded.mimeType,
-          });
-        }
-
-        attachmentsPayload = results;
+        attachmentsPayload = uploadedList;
       }
 
       // 3) 공지 생성 API 호출
@@ -142,6 +135,7 @@ const CreateNoticePage = () => {
       router.push('/mpspain/mpschamp');
     } catch (error) {
       console.error('Error creating notice:', error);
+
       if (axios.isAxiosError(error)) {
         if (error.response?.status === 401) {
           alert('로그인이 필요합니다.');
@@ -149,7 +143,7 @@ const CreateNoticePage = () => {
         } else if (error.response?.status === 400) {
           console.error('Validation error:', error.response.data);
           alert(
-            error.response.data.message ||
+            (error.response.data as any)?.message ||
               '입력 데이터가 올바르지 않습니다. 다시 확인해주세요.',
           );
         } else {
@@ -203,9 +197,9 @@ const CreateNoticePage = () => {
             }
           />
 
-          {/* 이미지 + 첨부파일 영역 */}
+          {/* 본문 이미지 + 첨부파일 */}
           <div className="flex gap-6 flex-col md:flex-row">
-            {/* 본문 이미지 (커버) */}
+            {/* 본문 이미지(커버) */}
             <div className="flex-1">
               <CoverImageUploader
                 image={form.image}
@@ -226,7 +220,7 @@ const CreateNoticePage = () => {
             </div>
           </div>
 
-          {/* 버튼 */}
+          {/* 버튼 영역 */}
           <div className="flex items-center justify-between pt-4">
             <div className="flex items-center">
               <input
