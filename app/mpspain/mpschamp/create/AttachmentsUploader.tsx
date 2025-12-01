@@ -1,3 +1,4 @@
+// app/components/AttachmentsUploader.tsx
 'use client';
 
 import { useState } from 'react';

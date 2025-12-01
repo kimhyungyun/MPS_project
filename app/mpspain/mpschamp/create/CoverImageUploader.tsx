@@ -1,3 +1,4 @@
+// app/components/CoverImageUploader.tsx
 'use client';
 
 import { useState } from 'react';
@@ -50,35 +51,35 @@ const CoverImageUploader: React.FC<CoverImageUploaderProps> = ({
         }}
       >
         <div className="space-y-2 text-center">
-{image ? (
-  <div className="w-full">
-    <ul className="divide-y divide-gray-200">
-      <li className="py-2 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded overflow-hidden border border-gray-200 bg-gray-50 flex items-center justify-center">
-            <Image
-              src={URL.createObjectURL(image)}
-              alt="Preview"
-              width={48}
-              height={48}
-              className="object-cover"
-            />
-          </div>
-          <span className="text-sm text-gray-700 truncate max-w-[180px]">
-            {image.name}
-          </span>
-        </div>
-        <button
-          type="button"
-          onClick={() => onChange(null)}
-          className="text-red-500 hover:text-red-600 transition-colors duration-200 text-sm"
-        >
-          삭제
-        </button>
-      </li>
-    </ul>
-  </div>
-) : (
+          {image ? (
+            <div className="w-full">
+              <ul className="divide-y divide-gray-200">
+                <li className="py-2 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded overflow-hidden border border-gray-200 bg-gray-50 flex items-center justify-center">
+                      <Image
+                        src={URL.createObjectURL(image)}
+                        alt="Preview"
+                        width={48}
+                        height={48}
+                        className="object-cover"
+                      />
+                    </div>
+                    <span className="text-sm text-gray-700 truncate max-w-[180px]">
+                      {image.name}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onChange(null)}
+                    className="text-red-500 hover:text-red-600 transition-colors duration-200 text-sm"
+                  >
+                    삭제
+                  </button>
+                </li>
+              </ul>
+            </div>
+          ) : (
             <>
               <svg
                 className="mx-auto h-12 w-12 text-gray-400"
