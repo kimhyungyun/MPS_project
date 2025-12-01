@@ -43,7 +43,7 @@ export default function FindIdPage() {
       const dashedPhone = formatPhoneDashed(digitsPhone);       // 010-1234-5678
 
       const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/auth/find-id`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/auth/find-id`,
         {
           name: formData.name,
           phone: dashedPhone, // 백엔드는 이걸로만 검색
