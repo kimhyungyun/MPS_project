@@ -1,3 +1,4 @@
+// app/mpspain/mpschamp/create/CreateNoticePage.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -5,17 +6,16 @@ import { useRouter } from 'next/navigation';
 import axios from 'axios';
 
 import { noticeService } from '@/app/services/noticeService';
-import RichTextEditor from './RichTextEditor';
-import CoverImageUploader from './CoverImageUploader';
-import AttachmentsUploader from './AttachmentsUploader';
 import { uploadFileToServer } from '@/app/services/fileUpload';
+
+import RichTextEditor from './RichTextEditor';
+import AttachmentsUploader from './AttachmentsUploader';
 
 interface NoticeForm {
   title: string;
   content: string;
   isImportant: boolean;
-  image: File | null;    // 왼쪽 “본문 이미지” 박스
-  attachments: File[];   // 오른쪽 일반 첨부파일
+  attachments: File[];
 }
 
 const CreateNoticePage = () => {
@@ -25,19 +25,20 @@ const CreateNoticePage = () => {
     title: '',
     content: '',
     isImportant: false,
-    image: null,
     attachments: [],
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [user, setUser] = useState<any>(null);
 
-  // 로그인 / 권한 체크
+  // 사용자 체크
   useEffect(() => {
     try {
       const userData = JSON.parse(localStorage.getItem('user') || '{}');
+      console.log('User data from localStorage:', userData);
 
       if (!userData || !userData.mb_id || !userData.mb_level) {
+        console.error('Invalid user data:', userData);
         alert('사용자 정보를 찾을 수 없습니다. 다시 로그인해주세요.');
         router.push('/form/login');
         return;
@@ -52,8 +53,8 @@ const CreateNoticePage = () => {
       }
 
       setUser(userData);
-    } catch (err) {
-      console.error('Error parsing user data:', err);
+    } catch (error) {
+      console.error('Error parsing user data:', error);
       alert('사용자 정보를 불러오는 중 오류가 발생했습니다. 다시 로그인해주세요.');
       router.push('/form/login');
     }
@@ -81,46 +82,45 @@ const CreateNoticePage = () => {
     setIsSubmitting(true);
 
     try {
-      // 🔥 1) 첨부파일 payload 구성
-      type AttachmentReq = {
-        fileName: string;
-        fileUrl: string;      // S3 key
-        fileSize?: number;
-        mimeType?: string;
-      };
+      // 1) 첨부파일 S3 업로드
+      let attachmentsPayload:
+        | {
+            fileName: string;
+            fileUrl: string; // S3 key
+            fileSize?: number;
+            mimeType?: string;
+          }[]
+        | undefined = undefined;
 
-      const attachmentsPayload: AttachmentReq[] = [];
+      if (form.attachments.length > 0) {
+        const results: {
+          fileName: string;
+          fileUrl: string;
+          fileSize?: number;
+          mimeType?: string;
+        }[] = [];
 
-      // 1-1) 왼쪽 “본문 이미지”도 첨부파일로 취급 (이미지 다운로드 전용)
-      if (form.image) {
-        const uploaded = await uploadFileToServer(form.image);
-        attachmentsPayload.push({
-          fileName: uploaded.fileName,
-          fileUrl: uploaded.key,
-          fileSize: uploaded.fileSize,
-          mimeType: uploaded.mimeType,
-        });
+        for (const file of form.attachments) {
+          const uploaded = await uploadFileToServer(file);
+
+          results.push({
+            fileName: uploaded.fileName,
+            fileUrl: uploaded.key, // DB에는 key만 저장
+            fileSize: uploaded.fileSize,
+            mimeType: uploaded.mimeType,
+          });
+        }
+
+        attachmentsPayload = results;
       }
 
-      // 1-2) 오른쪽 일반 첨부파일들
-      for (const file of form.attachments) {
-        const uploaded = await uploadFileToServer(file);
-        attachmentsPayload.push({
-          fileName: uploaded.fileName,
-          fileUrl: uploaded.key,
-          fileSize: uploaded.fileSize,
-          mimeType: uploaded.mimeType,
-        });
-      }
-
-      // 🔥 2) 공지 생성 API 호출
-      // ✅ 더 이상 coverImageUrl 안 보냄
+      // 2) 공지 생성 API 호출
       await noticeService.createNotice({
         title: form.title,
         content: form.content,
+        // 🔥 여기만 snake_case로 매핑
         is_important: form.isImportant,
-        attachments:
-          attachmentsPayload.length > 0 ? attachmentsPayload : undefined,
+        attachments: attachmentsPayload,
       });
 
       router.push('/mpspain/mpschamp');
@@ -131,8 +131,9 @@ const CreateNoticePage = () => {
           alert('로그인이 필요합니다.');
           router.push('/form/login');
         } else if (error.response?.status === 400) {
+          console.error('Validation error:', error.response.data);
           alert(
-            error.response.data?.message ||
+            error.response.data.message ||
               '입력 데이터가 올바르지 않습니다. 다시 확인해주세요.',
           );
         } else {
@@ -178,7 +179,7 @@ const CreateNoticePage = () => {
             />
           </div>
 
-          {/* 본문 (RichTextEditor) */}
+          {/* 본문 */}
           <RichTextEditor
             value={form.content}
             onChange={(html) =>
@@ -186,19 +187,8 @@ const CreateNoticePage = () => {
             }
           />
 
-          {/* 이미지 + 첨부파일 영역 */}
-          <div className="flex gap-6 flex-col md:flex-row">
-            {/* 🔥 왼쪽: 이미지 첨부 (다운로드용) */}
-            <div className="flex-1">
-              <CoverImageUploader
-                image={form.image}
-                onChange={(file) =>
-                  setForm((prev) => ({ ...prev, image: file }))
-                }
-              />
-            </div>
-
-            {/* 오른쪽: 일반 첨부파일 */}
+          {/* 첨부파일 */}
+          <div className="flex flex-col md:flex-row gap-6">
             <div className="flex-1">
               <AttachmentsUploader
                 files={form.attachments}
@@ -209,7 +199,7 @@ const CreateNoticePage = () => {
             </div>
           </div>
 
-          {/* 중요 여부 + 버튼들 */}
+          {/* 중요 공지 + 버튼 */}
           <div className="flex items-center justify-between pt-4">
             <div className="flex items-center">
               <input

@@ -9,7 +9,6 @@ import { noticeService, Notice } from '@/app/services/noticeService';
 import { uploadFileToServer } from '@/app/services/fileUpload';
 
 import RichTextEditor from '../../create/RichTextEditor';
-import CoverImageUploader from '../../create/CoverImageUploader';
 import AttachmentsUploader from '../../create/AttachmentsUploader';
 
 interface ExistingAttachment {
@@ -24,8 +23,7 @@ interface NoticeForm {
   title: string;
   content: string;
   isImportant: boolean;
-  image: File | null;     // 새 “본문 이미지” (이제 첨부파일로 취급)
-  attachments: File[];    // 새 일반 첨부파일
+  attachments: File[]; // 새 첨부파일만
 }
 
 const EditNoticePage = () => {
@@ -37,7 +35,6 @@ const EditNoticePage = () => {
     title: '',
     content: '',
     isImportant: false,
-    image: null,
     attachments: [],
   });
 
@@ -45,13 +42,13 @@ const EditNoticePage = () => {
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 기존 coverImageUrl (옛날 글용, 이제는 단순 표시 + 삭제 플래그만 사용)
-  const [existingCoverImageUrl, setExistingCoverImageUrl] = useState<string | null>(null);
-  const [removeCoverImage, setRemoveCoverImage] = useState(false);
-
   // 기존 첨부파일
-  const [existingAttachments, setExistingAttachments] = useState<ExistingAttachment[]>([]);
-  const [deletedAttachmentIds, setDeletedAttachmentIds] = useState<number[]>([]);
+  const [existingAttachments, setExistingAttachments] = useState<
+    ExistingAttachment[]
+  >([]);
+  const [deletedAttachmentIds, setDeletedAttachmentIds] = useState<number[]>(
+    [],
+  );
 
   // ───────────────────
   // 1) 초기 데이터 로드
@@ -89,14 +86,9 @@ const EditNoticePage = () => {
           title: notice.title,
           content: notice.content,
           isImportant,
-          image: null,
           attachments: [],
         });
 
-        // 예전에 저장된 coverImageUrl 이 있으면 여기서만 보여준다 (상세 페이지에서는 안 씀)
-        setExistingCoverImageUrl((notice as any).coverImageUrl ?? null);
-
-        // 기존 첨부파일
         setExistingAttachments(
           (notice as any).attachments?.map((att: any) => ({
             id: att.id,
@@ -146,7 +138,7 @@ const EditNoticePage = () => {
     setIsSubmitting(true);
 
     try {
-      // 3-1) 아직 남아 있는 기존 첨부파일 → DTO 로 변환
+      // 3-1) 남아 있는 기존 첨부파일 DTO
       const attachmentDtos: {
         id?: number;
         fileName: string;
@@ -161,7 +153,7 @@ const EditNoticePage = () => {
         mimeType: att.mimeType,
       }));
 
-      // 3-2) 새 일반 첨부파일 업로드
+      // 3-2) 새 첨부파일 업로드
       for (const file of form.attachments) {
         const uploaded = await uploadFileToServer(file);
         attachmentDtos.push({
@@ -172,31 +164,13 @@ const EditNoticePage = () => {
         });
       }
 
-      // 3-3) “본문 이미지”도 첨부파일로 업로드 (다운로드용)
-      if (form.image) {
-        const uploaded = await uploadFileToServer(form.image);
-        attachmentDtos.push({
-          fileName: uploaded.fileName,
-          fileUrl: uploaded.key,
-          fileSize: uploaded.fileSize,
-          mimeType: uploaded.mimeType,
-        });
-      }
-
-      // 3-4) coverImageUrl 정리 여부 결정
-      // - removeCoverImage 체크했거나
-      // - 새 본문 이미지(form.image)를 올렸다면 예전 coverImageUrl 은 더 이상 쓸모 없으니 정리
-      const shouldRemoveCover =
-        removeCoverImage || !!form.image || !existingCoverImageUrl;
-
+      // 3-3) 업데이트 호출
       await noticeService.updateNotice(id, {
         title: form.title,
         content: form.content,
         isImportant: form.isImportant,
         attachments: attachmentDtos,
         deleteAttachmentIds: deletedAttachmentIds,
-        removeCoverImage: shouldRemoveCover,
-        // ✅ 더 이상 coverImageUrl 을 직접 보내지 않음
       });
 
       router.push(`/mpspain/mpschamp/${id}`);
@@ -251,7 +225,7 @@ const EditNoticePage = () => {
             />
           </div>
 
-          {/* 본문 (RichTextEditor) – create와 동일 */}
+          {/* 본문 */}
           <RichTextEditor
             value={form.content}
             onChange={(html) =>
@@ -259,66 +233,9 @@ const EditNoticePage = () => {
             }
           />
 
-          {/* 이미지 + 첨부파일 */}
+          {/* 첨부파일 */}
           <div className="flex gap-6 flex-col md:flex-row">
-            {/* 왼쪽: 본문 이미지 (이제 첨부파일용 이미지) */}
             <div className="flex-1 space-y-3">
-              <label className="block text-sm font-semibold text-gray-700 mb-1">
-                본문 이미지
-              </label>
-
-              {existingCoverImageUrl && !form.image && !removeCoverImage ? (
-                <div className="border-2 border-dashed border-gray-200 rounded-xl p-4 flex flex-col items-center gap-3">
-                  <img
-                    src={existingCoverImageUrl}
-                    alt="기존 본문 이미지"
-                    className="max-h-48 object-contain rounded-lg border border-gray-100"
-                  />
-                  <div className="flex gap-3">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setRemoveCoverImage(true);
-                      }}
-                      className="px-3 py-1.5 text-sm rounded-lg border border-red-300 text-red-500 hover:bg-red-50"
-                    >
-                      이미지 삭제
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setExistingCoverImageUrl(null);
-                        setRemoveCoverImage(true); // 새 이미지로 바꿀 것이므로 기존 cover 정리
-                      }}
-                      className="px-3 py-1.5 text-sm rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
-                    >
-                      다른 이미지로 변경
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  {removeCoverImage && existingCoverImageUrl && !form.image && (
-                    <p className="text-xs text-red-500 mb-1">
-                      기존 본문 이미지는 삭제됩니다.
-                    </p>
-                  )}
-                  <CoverImageUploader
-                    image={form.image}
-                    onChange={(file) =>
-                      setForm((prev) => ({ ...prev, image: file }))
-                    }
-                  />
-                </>
-              )}
-            </div>
-
-            {/* 오른쪽: 첨부파일 */}
-            <div className="flex-1 space-y-3">
-              <label className="block text-sm font-semibold text-gray-700 mb-1">
-                첨부파일
-              </label>
-
               {existingAttachments.length > 0 && (
                 <div className="mb-3 border border-gray-200 rounded-xl p-3 bg-gray-50">
                   <p className="text-xs font-semibold text-gray-600 mb-2">
@@ -357,7 +274,7 @@ const EditNoticePage = () => {
             </div>
           </div>
 
-          {/* 중요 공지 체크 + 버튼 */}
+          {/* 중요 공지 + 버튼 */}
           <div className="flex items-center justify-between pt-4">
             <div className="flex items-center">
               <input
