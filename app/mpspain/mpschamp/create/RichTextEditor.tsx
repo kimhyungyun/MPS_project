@@ -171,6 +171,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
         src,
         alt: file.name,
       })
+      .insertContent('<p></p>')
       .run();
   };
 

@@ -69,14 +69,16 @@ const NoticeDetail = () => {
   }
 
   const isAdmin = user?.mb_level >= 8;
-  const isWriter = user?.id === notice.writer_id;
+  const isWriter = user?.id === (notice as any).writer_id;
 
-  // ✅ created_at 우선, 없으면 date fallback
   const createdAtValue =
     (notice as any).created_at ?? (notice as any).date ?? null;
   const createdAtText = createdAtValue
     ? new Date(createdAtValue).toLocaleDateString()
     : '';
+
+  const isImportant =
+    (notice as any).isImportant ?? (notice as any).is_important ?? false;
 
   return (
     <section className="w-full px-4 lg:px-24 py-12 bg-gradient-to-b from-gray-50 to-gray-100 mt-20 pt-20">
@@ -89,7 +91,7 @@ const NoticeDetail = () => {
                 <span className="px-4 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r from-blue-50 to-blue-100 text-blue-600 shadow-sm">
                   공지
                 </span>
-                {notice.isImportant && (
+                {isImportant && (
                   <span className="px-4 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r from-red-50 to-red-100 text-red-600 shadow-sm">
                     중요
                   </span>
@@ -135,7 +137,7 @@ const NoticeDetail = () => {
                   d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
                 />
               </svg>
-              <span>{notice.user?.mb_name || '관리자'}</span>
+              <span>{(notice as any).user?.mb_name || '관리자'}</span>
             </div>
             <div className="flex items-center gap-2">
               <svg
@@ -152,7 +154,7 @@ const NoticeDetail = () => {
                 />
               </svg>
               <div className="flex items-center gap-2">
-                {notice.isImportant && (
+                {isImportant && (
                   <span className="px-2 py-1 text-xs font-medium text-red-600 bg-red-100 rounded">
                     중요
                   </span>
@@ -177,10 +179,11 @@ const NoticeDetail = () => {
               첨부파일
             </h3>
             <div className="space-y-2">
-              {notice.attachments.map((file) => (
+              {notice.attachments.map((file: any) => (
                 <a
                   key={file.id}
-                  href={file.url}
+                  href={file.fileUrl}
+                  download={file.fileName}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 text-blue-600 hover:text-blue-700"
@@ -198,7 +201,7 @@ const NoticeDetail = () => {
                       d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
                     />
                   </svg>
-                  <span>{file.name}</span>
+                  <span>{file.fileName}</span>
                 </a>
               ))}
             </div>
