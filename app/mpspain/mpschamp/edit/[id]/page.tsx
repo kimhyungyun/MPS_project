@@ -16,7 +16,7 @@ interface NoticeForm {
 const EditNotice = () => {
   const router = useRouter();
   const params = useParams();
-  const id = parseInt(params.id as string);
+  const id = parseInt(params.id as string, 10);
 
   const [form, setForm] = useState<NoticeForm>({
     title: '',
@@ -35,7 +35,7 @@ const EditNotice = () => {
     ],
     content: form.content,
     onUpdate: ({ editor }) => {
-      setForm(prev => ({ ...prev, content: editor.getHTML() }));
+      setForm((prev) => ({ ...prev, content: editor.getHTML() }));
     },
     editorProps: {
       attributes: {
@@ -49,25 +49,46 @@ const EditNotice = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const userData = JSON.parse(localStorage.getItem('user') || '{}');
-        setUser(userData);
-
-        // 로그인 안 되어 있으면 로그인 페이지로
-        if (!userData || !userData.id) {
+        // 🔹 로컬스토리지에서 유저 정보 가져오기
+        const raw = localStorage.getItem('user');
+        if (!raw) {
           router.push('/form/login');
           return;
         }
 
+        const parsed = JSON.parse(raw || '{}');
+
+        // mb_id / mb_level 없는 경우도 로그인 안 된 걸로 처리
+        if (!parsed.mb_id || parsed.mb_level == null) {
+          router.push('/form/login');
+          return;
+        }
+
+        const level = Number(parsed.mb_level);
+        if (Number.isNaN(level)) {
+          router.push('/form/login');
+          return;
+        }
+
+        const userData = { ...parsed, mb_level: level };
+        setUser(userData);
+
+        // 🔹 공지 조회
         const notice: Notice = await noticeService.getNotice(id);
 
-        // 권한 체크
-        if (userData.mb_level < 8 && userData.id !== notice.writer_id) {
+        // 🔹 권한 체크: 관리자이거나, 작성자일 때만 수정 가능
+        const isAdmin = userData.mb_level >= 8;
+        const isWriter =
+          userData.mb_id === (notice as any).user?.mb_id ||
+          userData.id === (notice as any).writer_id;
+
+        if (!isAdmin && !isWriter) {
           alert('수정 권한이 없습니다.');
           router.push('/mpspain/mpschamp');
           return;
         }
 
-        // ✅ isImportant 매핑 (snake_case / camelCase 둘 다 대응)
+        // 🔹 isImportant 매핑 (snake_case / camelCase 모두 대응)
         const isImportant =
           (notice as any).isImportant ??
           (notice as any).is_important ??
@@ -143,8 +164,8 @@ const EditNotice = () => {
             <input
               type="text"
               value={form.title}
-              onChange={e =>
-                setForm(prev => ({ ...prev, title: e.target.value }))
+              onChange={(e) =>
+                setForm((prev) => ({ ...prev, title: e.target.value }))
               }
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="제목을 입력하세요"
@@ -165,8 +186,8 @@ const EditNotice = () => {
               <input
                 type="checkbox"
                 checked={form.isImportant}
-                onChange={e =>
-                  setForm(prev => ({
+                onChange={(e) =>
+                  setForm((prev) => ({
                     ...prev,
                     isImportant: e.target.checked,
                   }))
