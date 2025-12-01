@@ -39,20 +39,14 @@ export default function FindIdPage() {
     setLoading(true);
 
     try {
-      // 사용자가 무엇을 입력하든(01012345678, 010-1234-5678, 공백 포함 등)
-      // 1) 숫자만 버전: 문자 발송용
-      // 2) 하이픈 포함 버전: DB 검색용
-      const digitsPhone = normalizePhoneDigits(formData.phone); // 예) 01012345678
-      const dashedPhone = formatPhoneDashed(digitsPhone);       // 예) 010-1234-5678
+      const digitsPhone = normalizePhoneDigits(formData.phone); // 01012345678
+      const dashedPhone = formatPhoneDashed(digitsPhone);       // 010-1234-5678
 
       const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/auth/find-id`,
+        `${process.env.NEXT_PUBLIC_API_URL}/auth/find-id`,
         {
           name: formData.name,
-          // ✅ 백엔드 검색용: DB에 010-1234-5678 이런 형식으로 저장돼 있다고 가정
-          phone: dashedPhone,
-          // ✅ 문자 발송용: 통신사에 넘길 때는 숫자만
-          smsPhone: digitsPhone,
+          phone: dashedPhone, // 백엔드는 이걸로만 검색
         },
         {
           withCredentials: true,
@@ -67,7 +61,8 @@ export default function FindIdPage() {
         if (response.data.maskedUserId) {
           setMaskedUserId(response.data.maskedUserId);
         }
-        setMessage('입력하신 휴대폰 번호로 아이디 정보를 전송했습니다.');
+        // ✅ 이제는 "문자 전송" 아니라, 그냥 아이디를 찾았다고만 표시
+        setMessage('입력하신 정보와 일치하는 아이디입니다.');
       } else {
         setError(response.data.message || '아이디를 찾을 수 없습니다.');
       }
