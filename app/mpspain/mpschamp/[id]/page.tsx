@@ -193,17 +193,6 @@ const NoticeDetail = () => {
           </div>
         </div>
 
-        {/* (옵션) coverImageUrl 이 있으면 상단에 한 번 더 보여주고 싶으면 여기서 렌더링 */}
-        { (notice as any).coverImageUrl && (
-          <div className="mb-8">
-            <img
-              src={(notice as any).coverImageUrl}
-              alt="본문 이미지"
-              className="w-full max-h-[400px] object-contain rounded-xl border border-gray-100"
-            />
-          </div>
-        )}
-
         {/* 본문 */}
         <div className={`${styles.tiptap} prose max-w-none mb-8`}>
           <div dangerouslySetInnerHTML={{ __html: notice.content }} />

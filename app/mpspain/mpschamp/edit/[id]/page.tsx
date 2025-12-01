@@ -6,12 +6,8 @@ import { useParams, useRouter } from 'next/navigation';
 import axios from 'axios';
 
 import { noticeService, Notice } from '@/app/services/noticeService';
+import { uploadFileToServer } from '@/app/services/fileUpload';
 
-import {
-  uploadFileToServer,
-  UploadedFileInfo,
-} from '@/app/services/fileUpload';
-import styles from '../create/CreateNotice.module.css'; // ✅ create랑 같은 css 모듈
 import RichTextEditor from '../../create/RichTextEditor';
 import CoverImageUploader from '../../create/CoverImageUploader';
 import AttachmentsUploader from '../../create/AttachmentsUploader';
@@ -28,8 +24,8 @@ interface NoticeForm {
   title: string;
   content: string;
   isImportant: boolean;
-  image: File | null; // 새 본문 이미지
-  attachments: File[]; // 새 첨부파일
+  image: File | null;     // 새 “본문 이미지” (이제 첨부파일로 취급)
+  attachments: File[];    // 새 일반 첨부파일
 }
 
 const EditNoticePage = () => {
@@ -49,19 +45,13 @@ const EditNoticePage = () => {
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 기존 본문 이미지
-  const [existingCoverImageUrl, setExistingCoverImageUrl] = useState<
-    string | null
-  >(null);
+  // 기존 coverImageUrl (옛날 글용, 이제는 단순 표시 + 삭제 플래그만 사용)
+  const [existingCoverImageUrl, setExistingCoverImageUrl] = useState<string | null>(null);
   const [removeCoverImage, setRemoveCoverImage] = useState(false);
 
   // 기존 첨부파일
-  const [existingAttachments, setExistingAttachments] = useState<
-    ExistingAttachment[]
-  >([]);
-  const [deletedAttachmentIds, setDeletedAttachmentIds] = useState<number[]>(
-    [],
-  );
+  const [existingAttachments, setExistingAttachments] = useState<ExistingAttachment[]>([]);
+  const [deletedAttachmentIds, setDeletedAttachmentIds] = useState<number[]>([]);
 
   // ───────────────────
   // 1) 초기 데이터 로드
@@ -103,10 +93,10 @@ const EditNoticePage = () => {
           attachments: [],
         });
 
-        setExistingCoverImageUrl(
-          (notice as any).coverImageUrl ?? null,
-        );
+        // 예전에 저장된 coverImageUrl 이 있으면 여기서만 보여준다 (상세 페이지에서는 안 씀)
+        setExistingCoverImageUrl((notice as any).coverImageUrl ?? null);
 
+        // 기존 첨부파일
         setExistingAttachments(
           (notice as any).attachments?.map((att: any) => ({
             id: att.id,
@@ -156,35 +146,25 @@ const EditNoticePage = () => {
     setIsSubmitting(true);
 
     try {
-      // 3-1) 본문 이미지(coverImageUrl) 처리
-      let coverImageUrl: string | null | undefined = existingCoverImageUrl;
-
-      if (removeCoverImage && !form.image) {
-        coverImageUrl = null;
-      }
-
-      if (form.image) {
-        const uploadedCover: UploadedFileInfo = await uploadFileToServer(
-          form.image,
-        );
-        const bucket =
-          process.env.NEXT_PUBLIC_S3_BUCKET_NAME || 'mpsnotices';
-        const region =
-          process.env.NEXT_PUBLIC_S3_REGION || 'ap-northeast-2';
-        coverImageUrl = `https://${bucket}.s3.${region}.amazonaws.com/${uploadedCover.key}`;
-      }
-
-      // 3-2) 새 첨부 업로드
-      const newAttachmentDtos: {
+      // 3-1) 아직 남아 있는 기존 첨부파일 → DTO 로 변환
+      const attachmentDtos: {
+        id?: number;
         fileName: string;
         fileUrl: string;
         fileSize?: number;
         mimeType?: string;
-      }[] = [];
+      }[] = existingAttachments.map((att) => ({
+        id: att.id,
+        fileName: att.fileName,
+        fileUrl: att.fileUrl,
+        fileSize: att.fileSize,
+        mimeType: att.mimeType,
+      }));
 
+      // 3-2) 새 일반 첨부파일 업로드
       for (const file of form.attachments) {
         const uploaded = await uploadFileToServer(file);
-        newAttachmentDtos.push({
+        attachmentDtos.push({
           fileName: uploaded.fileName,
           fileUrl: uploaded.key,
           fileSize: uploaded.fileSize,
@@ -192,31 +172,31 @@ const EditNoticePage = () => {
         });
       }
 
-      // 3-3) 남아 있는 기존 첨부 + 새 첨부 합치기
-      const remainingExistingAttachmentDtos = existingAttachments.map(
-        (att) => ({
-          id: att.id,
-          fileName: att.fileName,
-          fileUrl: att.fileUrl,
-          fileSize: att.fileSize,
-          mimeType: att.mimeType,
-        }),
-      );
+      // 3-3) “본문 이미지”도 첨부파일로 업로드 (다운로드용)
+      if (form.image) {
+        const uploaded = await uploadFileToServer(form.image);
+        attachmentDtos.push({
+          fileName: uploaded.fileName,
+          fileUrl: uploaded.key,
+          fileSize: uploaded.fileSize,
+          mimeType: uploaded.mimeType,
+        });
+      }
 
-      const allAttachments = [
-        ...remainingExistingAttachmentDtos,
-        ...newAttachmentDtos,
-      ];
+      // 3-4) coverImageUrl 정리 여부 결정
+      // - removeCoverImage 체크했거나
+      // - 새 본문 이미지(form.image)를 올렸다면 예전 coverImageUrl 은 더 이상 쓸모 없으니 정리
+      const shouldRemoveCover =
+        removeCoverImage || !!form.image || !existingCoverImageUrl;
 
-      // 3-4) 업데이트 호출
       await noticeService.updateNotice(id, {
         title: form.title,
         content: form.content,
         isImportant: form.isImportant,
-        coverImageUrl: coverImageUrl ?? undefined, 
-        attachments: allAttachments,
+        attachments: attachmentDtos,
         deleteAttachmentIds: deletedAttachmentIds,
-        removeCoverImage: removeCoverImage && !form.image,
+        removeCoverImage: shouldRemoveCover,
+        // ✅ 더 이상 coverImageUrl 을 직접 보내지 않음
       });
 
       router.push(`/mpspain/mpschamp/${id}`);
@@ -271,7 +251,7 @@ const EditNoticePage = () => {
             />
           </div>
 
-          {/* 본문 (RichTextEditor) – create랑 같은 컴포넌트 + css */}
+          {/* 본문 (RichTextEditor) – create와 동일 */}
           <RichTextEditor
             value={form.content}
             onChange={(html) =>
@@ -281,7 +261,7 @@ const EditNoticePage = () => {
 
           {/* 이미지 + 첨부파일 */}
           <div className="flex gap-6 flex-col md:flex-row">
-            {/* 본문 이미지 */}
+            {/* 왼쪽: 본문 이미지 (이제 첨부파일용 이미지) */}
             <div className="flex-1 space-y-3">
               <label className="block text-sm font-semibold text-gray-700 mb-1">
                 본문 이미지
@@ -297,14 +277,19 @@ const EditNoticePage = () => {
                   <div className="flex gap-3">
                     <button
                       type="button"
-                      onClick={() => setRemoveCoverImage(true)}
+                      onClick={() => {
+                        setRemoveCoverImage(true);
+                      }}
                       className="px-3 py-1.5 text-sm rounded-lg border border-red-300 text-red-500 hover:bg-red-50"
                     >
                       이미지 삭제
                     </button>
                     <button
                       type="button"
-                      onClick={() => setExistingCoverImageUrl(null)}
+                      onClick={() => {
+                        setExistingCoverImageUrl(null);
+                        setRemoveCoverImage(true); // 새 이미지로 바꿀 것이므로 기존 cover 정리
+                      }}
                       className="px-3 py-1.5 text-sm rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
                     >
                       다른 이미지로 변경
@@ -313,7 +298,7 @@ const EditNoticePage = () => {
                 </div>
               ) : (
                 <>
-                  {removeCoverImage && (
+                  {removeCoverImage && existingCoverImageUrl && !form.image && (
                     <p className="text-xs text-red-500 mb-1">
                       기존 본문 이미지는 삭제됩니다.
                     </p>
@@ -328,7 +313,7 @@ const EditNoticePage = () => {
               )}
             </div>
 
-            {/* 첨부파일 */}
+            {/* 오른쪽: 첨부파일 */}
             <div className="flex-1 space-y-3">
               <label className="block text-sm font-semibold text-gray-700 mb-1">
                 첨부파일

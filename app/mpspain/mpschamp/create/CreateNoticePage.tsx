@@ -1,7 +1,6 @@
-// app/(어딘가)/CreateNoticePage.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 
@@ -15,8 +14,8 @@ interface NoticeForm {
   title: string;
   content: string;
   isImportant: boolean;
-  image: File | null;   // 본문 이미지(커버)
-  attachments: File[];  // 첨부파일들
+  image: File | null;    // 왼쪽 “본문 이미지” 박스
+  attachments: File[];   // 오른쪽 일반 첨부파일
 }
 
 const CreateNoticePage = () => {
@@ -29,14 +28,14 @@ const CreateNoticePage = () => {
     image: null,
     attachments: [],
   });
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [user, setUser] = useState<any>(null);
 
-  // 사용자 체크
+  // 로그인 / 권한 체크
   useEffect(() => {
     try {
       const userData = JSON.parse(localStorage.getItem('user') || '{}');
-      console.log('User data from localStorage:', userData);
 
       if (!userData || !userData.mb_id || !userData.mb_level) {
         alert('사용자 정보를 찾을 수 없습니다. 다시 로그인해주세요.');
@@ -53,11 +52,9 @@ const CreateNoticePage = () => {
       }
 
       setUser(userData);
-    } catch (error) {
-      console.error('Error parsing user data:', error);
-      alert(
-        '사용자 정보를 불러오는 중 오류가 발생했습니다. 다시 로그인해주세요.',
-      );
+    } catch (err) {
+      console.error('Error parsing user data:', err);
+      alert('사용자 정보를 불러오는 중 오류가 발생했습니다. 다시 로그인해주세요.');
       router.push('/form/login');
     }
   }, [router]);
@@ -84,66 +81,58 @@ const CreateNoticePage = () => {
     setIsSubmitting(true);
 
     try {
-      // 1) 본문 이미지(커버) S3 업로드
-      let coverImageUrl: string | undefined;
+      // 🔥 1) 첨부파일 payload 구성
+      type AttachmentReq = {
+        fileName: string;
+        fileUrl: string;      // S3 key
+        fileSize?: number;
+        mimeType?: string;
+      };
 
+      const attachmentsPayload: AttachmentReq[] = [];
+
+      // 1-1) 왼쪽 “본문 이미지”도 첨부파일로 취급 (이미지 다운로드 전용)
       if (form.image) {
-        const uploadedCover = await uploadFileToServer(form.image);
-        const bucket =
-          process.env.NEXT_PUBLIC_S3_BUCKET_NAME || 'mpsnotices';
-        const region =
-          process.env.NEXT_PUBLIC_S3_REGION || 'ap-northeast-2';
-
-        coverImageUrl = `https://${bucket}.s3.${region}.amazonaws.com/${uploadedCover.key}`;
+        const uploaded = await uploadFileToServer(form.image);
+        attachmentsPayload.push({
+          fileName: uploaded.fileName,
+          fileUrl: uploaded.key,
+          fileSize: uploaded.fileSize,
+          mimeType: uploaded.mimeType,
+        });
       }
 
-      // 2) 첨부파일들 S3 업로드
-      let attachmentsPayload:
-        | {
-            fileName: string;
-            fileUrl: string; // S3 key (notices/...)
-            fileSize?: number;
-            mimeType?: string;
-          }[]
-        | undefined;
-
-      if (form.attachments.length > 0) {
-        const uploadedList = await Promise.all(
-          form.attachments.map(async (file) => {
-            const uploaded = await uploadFileToServer(file);
-            return {
-              fileName: uploaded.fileName,
-              fileUrl: uploaded.key,      // DB에는 key만 저장
-              fileSize: uploaded.fileSize,
-              mimeType: uploaded.mimeType,
-            };
-          }),
-        );
-
-        attachmentsPayload = uploadedList;
+      // 1-2) 오른쪽 일반 첨부파일들
+      for (const file of form.attachments) {
+        const uploaded = await uploadFileToServer(file);
+        attachmentsPayload.push({
+          fileName: uploaded.fileName,
+          fileUrl: uploaded.key,
+          fileSize: uploaded.fileSize,
+          mimeType: uploaded.mimeType,
+        });
       }
 
-      // 3) 공지 생성 API 호출
+      // 🔥 2) 공지 생성 API 호출
+      // ✅ 더 이상 coverImageUrl 안 보냄
       await noticeService.createNotice({
         title: form.title,
         content: form.content,
         is_important: form.isImportant,
-        coverImageUrl,
-        attachments: attachmentsPayload,
+        attachments:
+          attachmentsPayload.length > 0 ? attachmentsPayload : undefined,
       });
 
       router.push('/mpspain/mpschamp');
     } catch (error) {
       console.error('Error creating notice:', error);
-
       if (axios.isAxiosError(error)) {
         if (error.response?.status === 401) {
           alert('로그인이 필요합니다.');
           router.push('/form/login');
         } else if (error.response?.status === 400) {
-          console.error('Validation error:', error.response.data);
           alert(
-            (error.response.data as any)?.message ||
+            error.response.data?.message ||
               '입력 데이터가 올바르지 않습니다. 다시 확인해주세요.',
           );
         } else {
@@ -197,9 +186,9 @@ const CreateNoticePage = () => {
             }
           />
 
-          {/* 본문 이미지 + 첨부파일 */}
+          {/* 이미지 + 첨부파일 영역 */}
           <div className="flex gap-6 flex-col md:flex-row">
-            {/* 본문 이미지(커버) */}
+            {/* 🔥 왼쪽: 이미지 첨부 (다운로드용) */}
             <div className="flex-1">
               <CoverImageUploader
                 image={form.image}
@@ -209,7 +198,7 @@ const CreateNoticePage = () => {
               />
             </div>
 
-            {/* 첨부파일 */}
+            {/* 오른쪽: 일반 첨부파일 */}
             <div className="flex-1">
               <AttachmentsUploader
                 files={form.attachments}
@@ -220,7 +209,7 @@ const CreateNoticePage = () => {
             </div>
           </div>
 
-          {/* 버튼 영역 */}
+          {/* 중요 여부 + 버튼들 */}
           <div className="flex items-center justify-between pt-4">
             <div className="flex items-center">
               <input
