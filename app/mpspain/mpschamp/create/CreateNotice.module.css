@@ -1,4 +1,4 @@
-/* 리스트 */
+/* --- 기본 텍스트 스타일 --- */
 .tiptap ul,
 .tiptap ol {
   padding-left: 1.25rem;
@@ -13,7 +13,6 @@
   list-style-type: decimal;
 }
 
-/* 인용구 */
 .tiptap blockquote {
   border-left: 3px solid #e5e7eb;
   padding-left: 0.75rem;
@@ -21,7 +20,6 @@
   margin: 0.5rem 0;
 }
 
-/* 인라인 코드 */
 .tiptap code {
   background-color: #f3f4f6;
   padding: 0.15rem 0.3rem;
@@ -29,7 +27,6 @@
   font-size: 0.9em;
 }
 
-/* 코드 블록 */
 .tiptap pre {
   background-color: #111827;
   color: #e5e7eb;
@@ -39,44 +36,36 @@
   font-size: 0.9em;
 }
 
-/* 표 전체 */
+/* --- 표 스타일 (표 크기 자연스럽게 + 내가 조절한 크기 유지) --- */
 .tiptap table {
   border-collapse: collapse;
-  margin: 0.25rem 0;
-  width: 100%;              /* ✅ 전체 폭 사용 */
-  table-layout: fixed;      /* ✅ 셀 폭 균등 분배 */
+  margin: 0.5rem 0;
   border: 2px solid #d1d5db;
   max-width: 100%;
+  width: auto;
 }
 
-/* 셀 */
+/* 셀 — 한글 한 글자씩 줄바꿈 문제 방지 */
 .tiptap th,
 .tiptap td {
   border: 2px solid #d1d5db !important;
   padding: 4px 6px;
   text-align: center;
   background-color: #ffffff;
-  white-space: nowrap;      /* ✅ 한 글자씩 줄바꿈되는 현상 방지 */
+  vertical-align: middle;
+  white-space: nowrap;
 }
 
-/* 셀 안의 p 태그는 다시 normal 줄바꿈 허용 */
 .tiptap th p,
 .tiptap td p {
+  margin: 0;
   white-space: normal;
 }
 
-/* 이미지: 에디터에서 지정한 width 그대로, 너무 크면 컨테이너까지만 */
+/* --- 이미지 자동 크기 문제 방지 --- */
 .tiptap img {
-  display: block;
-  max-width: 100%;          /* 컨테이너 넘지 않게 */
-  height: auto;             /* 비율 유지 */
-  margin: 0.5rem auto;
-}
-
-/* Tailwind Typography(prose)의 기본 이미지 스타일 덮어쓰기 */
-.prose img {
   max-width: 100%;
   height: auto;
-  margin-top: 0.5rem;
-  margin-bottom: 0.5rem;
+  display: block;
+  margin: 0.5rem auto;
 }

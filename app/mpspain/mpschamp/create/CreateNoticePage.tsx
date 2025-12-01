@@ -9,6 +9,7 @@ import axios from 'axios';
 import RichTextEditor from './RichTextEditor';
 import CoverImageUploader from './CoverImageUploader';
 import AttachmentsUploader from './AttachmentsUploader';
+import { uploadFileToServer } from '@/app/services/fileUpload';
 
 interface NoticeForm {
   title: string;
@@ -82,21 +83,52 @@ const CreateNoticePage = () => {
     setIsSubmitting(true);
 
     try {
-      // ⚠️ 지금은 S3 업로드 안 하고, "가짜 URL"로 메타데이터만 저장하는 버전
-      const coverImageUrl = form.image
-        ? `/uploads/cover/${encodeURIComponent(form.image.name)}`
-        : undefined;
+      // 1) 커버(본문 이미지) S3 업로드
+      let coverImageUrl: string | undefined = undefined;
 
-      const attachmentsPayload =
-        form.attachments.length > 0
-          ? form.attachments.map((file) => ({
-              fileName: file.name,
-              fileUrl: `/uploads/files/${encodeURIComponent(file.name)}`,
-              fileSize: file.size,
-              mimeType: file.type,
-            }))
-          : undefined;
+      if (form.image) {
+        const uploadedCover = await uploadFileToServer(form.image);
+        const bucket =
+          process.env.NEXT_PUBLIC_S3_BUCKET_NAME || 'mpsnotices';
+        const region =
+          process.env.NEXT_PUBLIC_S3_REGION || 'ap-northeast-2';
 
+        coverImageUrl = `https://${bucket}.s3.${region}.amazonaws.com/${uploadedCover.key}`;
+      }
+
+      // 2) 첨부파일 S3 업로드
+      let attachmentsPayload:
+        | {
+            fileName: string;
+            fileUrl: string; // S3 key
+            fileSize?: number;
+            mimeType?: string;
+          }[]
+        | undefined = undefined;
+
+      if (form.attachments.length > 0) {
+        const results: {
+          fileName: string;
+          fileUrl: string;
+          fileSize?: number;
+          mimeType?: string;
+        }[] = [];
+
+        for (const file of form.attachments) {
+          const uploaded = await uploadFileToServer(file);
+
+          results.push({
+            fileName: uploaded.fileName,
+            fileUrl: uploaded.key, // DB에는 key만 저장
+            fileSize: uploaded.fileSize,
+            mimeType: uploaded.mimeType,
+          });
+        }
+
+        attachmentsPayload = results;
+      }
+
+      // 3) 공지 생성 API 호출
       await noticeService.createNotice({
         title: form.title,
         content: form.content,
@@ -161,7 +193,7 @@ const CreateNoticePage = () => {
             />
           </div>
 
-          {/* 본문 (RichTextEditor 컴포넌트) */}
+          {/* 본문 (RichTextEditor) */}
           <RichTextEditor
             value={form.content}
             onChange={(html) =>
@@ -171,7 +203,7 @@ const CreateNoticePage = () => {
 
           {/* 이미지 + 첨부파일 영역 */}
           <div className="flex gap-6 flex-col md:flex-row">
-            {/* 본문 이미지 */}
+            {/* 본문 이미지 (커버) */}
             <div className="flex-1">
               <CoverImageUploader
                 image={form.image}

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { noticeService, Notice } from '@/app/services/noticeService';
 import styles from '../create/CreateNotice.module.css';
+import { getPresignedDownloadUrl } from '@/app/services/fileUpload';
 
 const NoticeDetail = () => {
   const router = useRouter();
@@ -53,6 +54,25 @@ const NoticeDetail = () => {
       alert('공지사항 삭제 중 오류가 발생했습니다.');
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleDownload = async (e: React.MouseEvent, file: any) => {
+    e.preventDefault();
+
+    try {
+      // DB에는 file.fileUrl 에 S3 key 가 저장되어 있다고 가정
+      const url = await getPresignedDownloadUrl(file.fileUrl);
+
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file.fileName || 'download';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (error) {
+      console.error('파일 다운로드 실패:', error);
+      alert('파일 다운로드 중 오류가 발생했습니다.');
     }
   };
 
@@ -182,10 +202,8 @@ const NoticeDetail = () => {
               {notice.attachments.map((file: any) => (
                 <a
                   key={file.id}
-                  href={file.fileUrl}
-                  download={file.fileName}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href="#"
+                  onClick={(e) => handleDownload(e, file)}
                   className="flex items-center gap-2 text-blue-600 hover:text-blue-700"
                 >
                   <svg

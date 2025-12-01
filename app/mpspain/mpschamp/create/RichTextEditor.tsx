@@ -21,6 +21,7 @@ import FontSize from './extensions/fontSize';
 import ResizeImage from 'tiptap-extension-resize-image';
 
 import styles from './CreateNotice.module.css';
+import { uploadFileToServer } from '@/app/services/fileUpload';
 
 interface RichTextEditorProps {
   value: string;
@@ -159,17 +160,28 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
     });
   };
 
-  // 이미지 삽입 (본문)
-  const insertEditorImage = (file: File) => {
+  // 이미지 삽입 (본문) – S3 업로드 후 URL 삽입
+  const insertEditorImage = async (file: File) => {
     if (!editor) return;
-    const src = URL.createObjectURL(file);
 
+    // 1) S3 업로드
+    const uploaded = await uploadFileToServer(file); // { key, fileName, ... }
+
+    // 2) S3 공개 URL 만들기
+    const bucket =
+      process.env.NEXT_PUBLIC_S3_BUCKET_NAME || 'mpsnotices';
+    const region =
+      process.env.NEXT_PUBLIC_S3_REGION || 'ap-northeast-2';
+
+    const s3Url = `https://${bucket}.s3.${region}.amazonaws.com/${uploaded.key}`;
+
+    // 3) 에디터에 삽입
     editor
       .chain()
       .focus()
       .setImage({
-        src,
-        alt: file.name,
+        src: s3Url,
+        alt: uploaded.fileName,
       })
       .insertContent('<p></p>')
       .run();
@@ -216,8 +228,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
             onChange={(e) => {
               const value = e.target.value;
               if (!value) {
-                // 전체 textStyle 날리면 fontSize도 날라갈 수 있어서
-                // FontSize Extension이 setFontSize만 쓰는 구조면 이걸로도 ok
                 editor.chain().focus().unsetMark('textStyle').run();
               } else {
                 editor.chain().focus().setFontFamily(value).run();
@@ -478,11 +488,14 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
             type="file"
             accept="image/*"
             className="hidden"
-            onChange={(e) => {
+            onChange={async (e) => {
               const file = e.target.files?.[0];
               if (!file) return;
-              insertEditorImage(file);
-              e.target.value = '';
+              try {
+                await insertEditorImage(file);
+              } finally {
+                e.target.value = '';
+              }
             }}
           />
 
@@ -549,7 +562,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
           <button
             type="button"
             onClick={() => editor.chain().focus().redo().run()}
-            className="px-2 py-1 rounded hover:bg-gray-200"
+          className="px-2 py-1 rounded hover:bg-gray-200"
           >
             ⟳
           </button>
