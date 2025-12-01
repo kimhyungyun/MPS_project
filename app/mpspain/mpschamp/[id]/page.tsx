@@ -1,3 +1,4 @@
+// app/mpspain/mpschamp/[id]/NoticeDetail.tsx (경로는 네 프로젝트 맞게 유지)
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -40,12 +41,9 @@ const NoticeDetail = () => {
   };
 
   const handleDelete = async () => {
-    if (!window.confirm('정말로 이 공지를 삭제하시겠습니까?')) {
-      return;
-    }
+    if (!window.confirm('정말로 이 공지를 삭제하시겠습니까?')) return;
 
     setIsDeleting(true);
-
     try {
       await noticeService.deleteNotice(id);
       router.push('/mpspain/mpschamp');
@@ -57,11 +55,11 @@ const NoticeDetail = () => {
     }
   };
 
+  // 🔥 첨부파일 다운로드 (항상 다운로드 창 띄우기)
   const handleDownload = async (e: React.MouseEvent, file: any) => {
     e.preventDefault();
 
     try {
-      // DB에는 file.fileUrl 에 S3 key 가 저장되어 있다고 가정
       const url = await getPresignedDownloadUrl(file.fileUrl);
 
       const a = document.createElement('a');
@@ -74,6 +72,14 @@ const NoticeDetail = () => {
       console.error('파일 다운로드 실패:', error);
       alert('파일 다운로드 중 오류가 발생했습니다.');
     }
+  };
+
+  const getFileIcon = (mimeType?: string) => {
+    if (!mimeType) return '📎';
+    if (mimeType.startsWith('image/')) return '🖼️';
+    if (mimeType === 'application/pdf') return '📄';
+    if (mimeType.startsWith('video/')) return '🎬';
+    return '📎';
   };
 
   if (loading) {
@@ -187,6 +193,17 @@ const NoticeDetail = () => {
           </div>
         </div>
 
+        {/* (옵션) coverImageUrl 이 있으면 상단에 한 번 더 보여주고 싶으면 여기서 렌더링 */}
+        { (notice as any).coverImageUrl && (
+          <div className="mb-8">
+            <img
+              src={(notice as any).coverImageUrl}
+              alt="본문 이미지"
+              className="w-full max-h-[400px] object-contain rounded-xl border border-gray-100"
+            />
+          </div>
+        )}
+
         {/* 본문 */}
         <div className={`${styles.tiptap} prose max-w-none mb-8`}>
           <div dangerouslySetInnerHTML={{ __html: notice.content }} />
@@ -204,22 +221,10 @@ const NoticeDetail = () => {
                   key={file.id}
                   href="#"
                   onClick={(e) => handleDownload(e, file)}
-                  className="flex items-center gap-2 text-blue-600 hover:text-blue-700"
+                  className="flex items-center gap-2 text-blue-600 hover:text-blue-700 text-sm"
                 >
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
-                    />
-                  </svg>
-                  <span>{file.fileName}</span>
+                  <span>{getFileIcon(file.mimeType)}</span>
+                  <span className="break-all">{file.fileName}</span>
                 </a>
               ))}
             </div>
