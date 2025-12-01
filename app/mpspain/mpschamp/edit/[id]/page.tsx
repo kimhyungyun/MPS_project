@@ -39,7 +39,8 @@ const EditNotice = () => {
     },
     editorProps: {
       attributes: {
-        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none',
+        class:
+          'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none',
       },
     },
     immediatelyRender: false,
@@ -51,24 +52,31 @@ const EditNotice = () => {
         const userData = JSON.parse(localStorage.getItem('user') || '{}');
         setUser(userData);
 
-        if (!userData) {
+        // 로그인 안 되어 있으면 로그인 페이지로
+        if (!userData || !userData.id) {
           router.push('/form/login');
           return;
         }
 
-        const notice = await noticeService.getNotice(id);
-        
-        // Check if user has permission to edit
+        const notice: Notice = await noticeService.getNotice(id);
+
+        // 권한 체크
         if (userData.mb_level < 8 && userData.id !== notice.writer_id) {
           alert('수정 권한이 없습니다.');
           router.push('/mpspain/mpschamp');
           return;
         }
 
+        // ✅ isImportant 매핑 (snake_case / camelCase 둘 다 대응)
+        const isImportant =
+          (notice as any).isImportant ??
+          (notice as any).is_important ??
+          false;
+
         setForm({
           title: notice.title,
           content: notice.content,
-          isImportant: notice.is_important,
+          isImportant,
         });
 
         if (editor) {
@@ -87,7 +95,7 @@ const EditNotice = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!form.title.trim()) {
       alert('제목을 입력해주세요.');
       return;
@@ -117,7 +125,11 @@ const EditNotice = () => {
   };
 
   if (loading) {
-    return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        Loading...
+      </div>
+    );
   }
 
   return (
@@ -131,7 +143,9 @@ const EditNotice = () => {
             <input
               type="text"
               value={form.title}
-              onChange={(e) => setForm(prev => ({ ...prev, title: e.target.value }))}
+              onChange={e =>
+                setForm(prev => ({ ...prev, title: e.target.value }))
+              }
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="제목을 입력하세요"
             />
@@ -151,10 +165,17 @@ const EditNotice = () => {
               <input
                 type="checkbox"
                 checked={form.isImportant}
-                onChange={(e) => setForm(prev => ({ ...prev, isImportant: e.target.checked }))}
+                onChange={e =>
+                  setForm(prev => ({
+                    ...prev,
+                    isImportant: e.target.checked,
+                  }))
+                }
                 className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
               />
-              <span className="text-sm font-medium text-gray-700">중요 공지로 설정</span>
+              <span className="text-sm font-medium text-gray-700">
+                중요 공지로 설정
+              </span>
             </label>
           </div>
 
@@ -180,4 +201,4 @@ const EditNotice = () => {
   );
 };
 
-export default EditNotice; 
+export default EditNotice;
