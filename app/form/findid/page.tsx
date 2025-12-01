@@ -14,6 +14,15 @@ export default function FindIdPage() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
+  // 숫자만 추출
+  const normalizePhoneDigits = (phone: string) => phone.replace(/\D/g, '');
+
+  // 01012345678 -> 010-1234-5678
+  const formatPhoneDashed = (digits: string) => {
+    if (digits.length < 10) return digits;
+    return digits.replace(/(\d{3})(\d{3,4})(\d{4})/, '$1-$2-$3');
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -30,9 +39,21 @@ export default function FindIdPage() {
     setLoading(true);
 
     try {
+      // 사용자가 무엇을 입력하든(01012345678, 010-1234-5678, 공백 포함 등)
+      // 1) 숫자만 버전: 문자 발송용
+      // 2) 하이픈 포함 버전: DB 검색용
+      const digitsPhone = normalizePhoneDigits(formData.phone); // 예) 01012345678
+      const dashedPhone = formatPhoneDashed(digitsPhone);       // 예) 010-1234-5678
+
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/api/auth/find-id`,
-        formData,
+        {
+          name: formData.name,
+          // ✅ 백엔드 검색용: DB에 010-1234-5678 이런 형식으로 저장돼 있다고 가정
+          phone: dashedPhone,
+          // ✅ 문자 발송용: 통신사에 넘길 때는 숫자만
+          smsPhone: digitsPhone,
+        },
         {
           withCredentials: true,
           validateStatus: () => true,
@@ -43,7 +64,6 @@ export default function FindIdPage() {
       );
 
       if (response.data.success) {
-        // 백엔드에서 maskedUserId 리턴해준다고 가정
         if (response.data.maskedUserId) {
           setMaskedUserId(response.data.maskedUserId);
         }
@@ -85,7 +105,8 @@ export default function FindIdPage() {
 
         {maskedUserId && (
           <div className="mb-4 p-3 bg-slate-50 text-slate-800 rounded-lg text-sm">
-            회원님의 아이디: <span className="font-semibold">{maskedUserId}</span>
+            회원님의 아이디:{' '}
+            <span className="font-semibold">{maskedUserId}</span>
           </div>
         )}
 
@@ -124,7 +145,7 @@ export default function FindIdPage() {
               value={formData.phone}
               onChange={handleChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="예: 01012341234"
+              placeholder="예: 01012345678 또는 010-1234-5678"
             />
           </div>
 
