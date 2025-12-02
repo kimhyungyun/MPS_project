@@ -1,7 +1,7 @@
 // app/services/fileUpload.ts
 
 const API_BASE_URL =
-  (process.env.NEXT_PUBLIC_API_URL || 'https://api.mps-admin.com') + '/api';
+  (process.env.NEXT_PUBLIC_API_URL || 'https://api.mpspain.co.kr') + '/api';
 
 export interface UploadedFileInfo {
   key: string;
