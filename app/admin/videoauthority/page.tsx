@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface Member {
-  mb_no: number;      // 🔹 권한 API에 넘길 PK
+  mb_no: number; // 🔹 권한 API에 넘길 PK
   mb_id: string;
   mb_name: string;
   mb_hp: string;
@@ -28,17 +28,26 @@ interface VideoAuthority {
 const CLASS_GROUP_LABELS: Record<ClassGroup, string> = {
   A: 'A반',
   B: 'B반',
-  S: 'S (패키지 C/D/E)',
+  S: 'S (패키지 C/D/E)', // UI에서는 S 안 쓰지만 타입 호환을 위해 남겨둠
 };
 
 const VIDEO_TYPE_LABELS: Record<LectureType, string> = {
-  single: '단일 강의',
-  packageA: '패키지 A (A반)',
-  packageB: '패키지 B (B반)',
-  packageC: '패키지 C (S-1)',
-  packageD: '패키지 D (S-2)',
-  packageE: '패키지 E (S-3)',
+  single: '권한 없음',
+  packageA: '패키지 A',
+  packageB: '패키지 B',
+  packageC: '패키지 C',
+  packageD: '패키지 D',
+  packageE: '패키지 E',
 };
+
+// 패키지 타입만 분리
+const PACKAGE_TYPES: LectureType[] = [
+  'packageA',
+  'packageB',
+  'packageC',
+  'packageD',
+  'packageE',
+];
 
 export default function VideoAuthorityPage() {
   const router = useRouter();
@@ -63,6 +72,9 @@ export default function VideoAuthorityPage() {
   const [selectedVideoTypes, setSelectedVideoTypes] = useState<LectureType[]>([]);
   const [authorityMessage, setAuthorityMessage] = useState<string | null>(null);
 
+  // 권한 패널 Ref (자동 스크롤용)
+  const authorityPanelRef = useRef<HTMLDivElement | null>(null);
+
   const pageSize = 10;
   const pageGroupSize = 10;
   const totalPages = Math.ceil(totalMembers / pageSize);
@@ -70,11 +82,7 @@ export default function VideoAuthorityPage() {
   const startPage = (currentPageGroup - 1) * pageGroupSize + 1;
   const endPage = Math.min(startPage + pageGroupSize - 1, totalPages);
 
-  const sortMembers = (
-    list: Member[],
-    key: SortKey | null,
-    order: SortOrder,
-  ) => {
+  const sortMembers = (list: Member[], key: SortKey | null, order: SortOrder) => {
     if (!key) return list;
 
     const sorted = [...list].sort((a, b) => {
@@ -216,6 +224,14 @@ export default function VideoAuthorityPage() {
     setSelectedClassGroups([]);
     setSelectedVideoTypes([]);
 
+    // 선택 시 권한 패널로 스크롤
+    if (authorityPanelRef.current) {
+      authorityPanelRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    }
+
     if (!member.mb_no) return;
 
     setAuthorityLoading(true);
@@ -264,9 +280,25 @@ export default function VideoAuthorityPage() {
   };
 
   const toggleVideoType = (vt: LectureType) => {
-    setSelectedVideoTypes((prev) =>
-      prev.includes(vt) ? prev.filter((v) => v !== vt) : [...prev, vt],
-    );
+    setSelectedVideoTypes((prev) => {
+      if (vt === 'single') {
+        // 권한 없음 클릭 시: 다른 패키지 모두 해제
+        const isSelected = prev.includes('single');
+        if (isSelected) {
+          // 권한 없음 해제
+          return prev.filter((v) => v !== 'single');
+        }
+        // 권한 없음 선택 시, 나머지 패키지 전부 제거
+        return ['single'];
+      }
+
+      // 패키지 선택 시: 권한 없음 해제
+      const withoutSingle = prev.filter((v) => v !== 'single');
+      if (withoutSingle.includes(vt)) {
+        return withoutSingle.filter((v) => v !== vt);
+      }
+      return [...withoutSingle, vt];
+    });
   };
 
   const handleSaveAuthority = async () => {
@@ -379,16 +411,14 @@ export default function VideoAuthorityPage() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  {['번호', '아이디', '이름', '휴대폰', '학교', '권한'].map(
-                    (head) => (
-                      <th
-                        key={head}
-                        className="px-6 py-3 text-center text-sm font-semibold text-gray-600 tracking-wider"
-                      >
-                        {head}
-                      </th>
-                    ),
-                  )}
+                  {['번호', '아이디', '이름', '휴대폰', '학교', '권한'].map((head) => (
+                    <th
+                      key={head}
+                      className="px-6 py-3 text-center text-sm font-semibold text-gray-600 tracking-wider"
+                    >
+                      {head}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -498,7 +528,10 @@ export default function VideoAuthorityPage() {
         )}
 
         {/* 🔹 선택한 회원 권한 관리 패널 */}
-        <div className="bg-white shadow rounded-lg p-6">
+        <div
+          ref={authorityPanelRef}
+          className="bg-white shadow rounded-lg p-6"
+        >
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
             {selectedMember
               ? `선택한 회원: ${selectedMember.mb_name} (${selectedMember.mb_id})`
@@ -517,13 +550,13 @@ export default function VideoAuthorityPage() {
                 <p className="text-sm text-gray-500">권한 정보를 불러오는 중...</p>
               ) : (
                 <div className="space-y-6">
-                  {/* 반 권한 */}
+                  {/* 캠프강의 권한 */}
                   <div>
                     <h3 className="text-sm font-medium text-gray-800 mb-2">
-                      반 권한
+                      캠프강의 권한
                     </h3>
                     <div className="flex gap-4">
-                      {(['A', 'B', 'S'] as ClassGroup[]).map((cg) => (
+                      {(['A', 'B'] as ClassGroup[]).map((cg) => (
                         <label
                           key={cg}
                           className="inline-flex items-center gap-2 text-sm"
@@ -545,17 +578,23 @@ export default function VideoAuthorityPage() {
                     <h3 className="text-sm font-medium text-gray-800 mb-2">
                       패키지 권한
                     </h3>
+
+                    {/* 권한 없음 */}
+                    <div className="mb-3">
+                      <label className="inline-flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={selectedVideoTypes.includes('single')}
+                          onChange={() => toggleVideoType('single')}
+                          className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <span>{VIDEO_TYPE_LABELS.single}</span>
+                      </label>
+                    </div>
+
+                    {/* 실제 패키지들 */}
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                      {(
-                        [
-                          'single',
-                          'packageA',
-                          'packageB',
-                          'packageC',
-                          'packageD',
-                          'packageE',
-                        ] as LectureType[]
-                      ).map((vt) => (
+                      {PACKAGE_TYPES.map((vt) => (
                         <label
                           key={vt}
                           className="inline-flex items-center gap-2 text-sm"

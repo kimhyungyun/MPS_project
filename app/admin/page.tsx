@@ -177,7 +177,7 @@ export default function AdminPage() {
             </button>
 
               <button
-                onClick={() => router.push('/admin/lauthority')}
+                onClick={() => router.push('/admin/authority')}
                 className="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow"
               >
                 <h3 className="text-lg font-medium text-gray-900">기기 관리</h3>
