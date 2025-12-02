@@ -1,16 +1,7 @@
 // app/services/fileUpload.ts
 
-// .env 에는 이렇게 들어있다고 가정
-// NEXT_PUBLIC_API_URL=https://api.mpspain.co.kr
-// NEXT_PUBLIC_CLOUDFRONT_DOMAIN=media.mpspain.co.kr
-// NEXT_PUBLIC_S3_BUCKET_NAME=mpsnotices
-// NEXT_PUBLIC_S3_REGION=ap-northeast-2
-
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'https://api.mpspain.co.kr';
-
-// 🔥 Nest globalPrefix("api") 때문에 여기까지 포함
-const API_PREFIX = `${API_BASE_URL}/api`;
+  (process.env.NEXT_PUBLIC_API_URL || 'https://api.mpspain.co.kr') + '/api';
 
 export interface UploadedFileInfo {
   id?: number;
@@ -20,15 +11,15 @@ export interface UploadedFileInfo {
   mimeType?: string;
 }
 
-// 공통 토큰 헬퍼 (로그인 시 localStorage.setItem('token', ...) 기준)
-function getToken(): string | null {
+function getToken() {
   if (typeof window === 'undefined') return null;
+  // 백엔드에서 jwt 쓰는 키가 'token' 이라서 이걸 기준으로 맞춤
   return localStorage.getItem('token');
 }
 
 /**
- * 📌 공지 첨부파일 / 자료실 파일 업로드
- * → 백엔드: POST /api/files/upload  (dataroom 버킷 / File 테이블 기록)
+ * 📌 공지 첨부파일 / 자료실 파일 공용 업로드
+ * → POST /api/files/upload  (자료실용 버킷 / DB 저장)
  */
 export async function uploadFileToServer(
   file: File,
@@ -38,7 +29,7 @@ export async function uploadFileToServer(
 
   const token = getToken();
 
-  const res = await fetch(`${API_PREFIX}/files/upload`, {
+  const res = await fetch(`${API_BASE_URL}/files/upload`, {
     method: 'POST',
     body: formData,
     headers: {
@@ -79,9 +70,8 @@ export async function uploadFileToServer(
 }
 
 /**
- * 📌 공지 에디터 "본문 이미지" 업로드
- * → 백엔드: POST /api/files/notice-image  (mpsnotices 버킷, DB 기록 X)
- *    반환: { success: true, data: { key, fileName, fileSize, mimeType } }
+ * 📌 공지 에디터 이미지 업로드 전용
+ * → POST /api/files/notice-image  (mpsnotices 버킷)
  */
 export async function uploadNoticeImageToServer(
   file: File,
@@ -91,7 +81,7 @@ export async function uploadNoticeImageToServer(
 
   const token = getToken();
 
-  const res = await fetch(`${API_PREFIX}/files/notice-image`, {
+  const res = await fetch(`${API_BASE_URL}/files/notice-image`, {
     method: 'POST',
     body: formData,
     headers: {
@@ -107,13 +97,20 @@ export async function uploadNoticeImageToServer(
   const json = await res.json();
   const data = json.data ?? json;
 
-  if (!data.key) {
-    console.error('No S3 object key found in notice-image result:', data);
-    throw new Error('공지 이미지 업로드 결과에 key가 없습니다.');
+  const key =
+    data.key ||
+    data.s3_key ||
+    data.fileUrl ||
+    data.file_key ||
+    data.path;
+
+  if (!key) {
+    console.error('No S3 object key found in notice image upload result:', data);
+    throw new Error('공지 이미지 업로드 결과에 S3 key가 없습니다.');
   }
 
   return {
-    key: data.key,
+    key,
     fileName: data.fileName || file.name,
     fileSize: data.fileSize ?? file.size,
     mimeType: data.mimeType || file.type,
@@ -121,15 +118,15 @@ export async function uploadNoticeImageToServer(
 }
 
 /**
- * 📌 프리사인드 다운로드 URL (자료실/첨부 다운로드용)
- * → 백엔드: GET /api/files/presigned?key=...
+ * 📌 프리사인드 다운로드 URL
+ * → GET /api/files/presigned?key=...
  */
 export async function getPresignedDownloadUrl(
   key: string,
 ): Promise<string> {
   const token = getToken();
 
-  const url = new URL(`${API_PREFIX}/files/presigned`);
+  const url = new URL(`${API_BASE_URL}/files/presigned`);
   url.searchParams.set('key', key);
 
   const res = await fetch(url.toString(), {
