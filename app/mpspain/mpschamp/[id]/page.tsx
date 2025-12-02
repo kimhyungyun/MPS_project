@@ -7,10 +7,9 @@ import { noticeService, Notice } from '@/app/services/noticeService';
 import styles from '../create/CreateNotice.module.css';
 import { getPresignedDownloadUrl } from '@/app/services/fileUpload';
 
-// 🔥 S3/CloudFront 기본 URL
 // 1순위: NEXT_PUBLIC_FILE_BASE_URL
 // 2순위: NEXT_PUBLIC_CLOUDFRONT_DOMAIN
-// 3순위: 하드코딩 기본값
+// 3순위: 기본값
 const RAW_BASE_URL =
   process.env.NEXT_PUBLIC_FILE_BASE_URL ||
   process.env.NEXT_PUBLIC_CLOUDFRONT_DOMAIN ||
@@ -20,15 +19,29 @@ const IMAGE_BASE_URL = RAW_BASE_URL.startsWith('http')
   ? RAW_BASE_URL
   : `https://${RAW_BASE_URL}`;
 
-// 🔧 notice.content 안의 <img src="..."> 경로를 절대경로로 보정
+// 🔧 notice.content 안의 모든 <img src="..."> / src='...' 보정
 const fixImageSrcInHtml = (html: string) => {
   if (!html || !IMAGE_BASE_URL) return html;
 
-  // http/https/data:/ 또는 / 로 시작하지 않는 src 만 prefix 붙임
-  // <img ... src="some/key.png"> → <img ... src="https://도메인/some/key.png">
   return html.replace(
-    /<img([^>]+)src="(?!https?:\/\/|data:|\/)([^"]+)"/g,
-    `<img$1src="${IMAGE_BASE_URL}/$2"`,
+    /<img[^>]*src=['"]([^'"]+)['"][^>]*>/gi,
+    (tag, src: string) => {
+      const trimmed = src.trim();
+
+      // 이미 절대 URL(https/http) 이거나 data: 이면 건드리지 않음
+      if (
+        /^https?:\/\//i.test(trimmed) ||
+        /^data:/i.test(trimmed)
+      ) {
+        return tag;
+      }
+
+      // 앞에 / 붙어있으면 제거 ( /notices/… → notices/… )
+      let path = trimmed.replace(/^\/+/, '');
+
+      const newSrc = `${IMAGE_BASE_URL}/${path}`;
+      return tag.replace(src, newSrc);
+    },
   );
 };
 
@@ -131,7 +144,7 @@ const NoticeDetail = () => {
   const isImportant =
     (notice as any).isImportant ?? (notice as any).is_important ?? false;
 
-  // 🔥 이미지 src 보정된 HTML
+  // 🔥 여기서 이미지 src 보정
   const contentHtml = fixImageSrcInHtml(notice.content || '');
 
   return (
