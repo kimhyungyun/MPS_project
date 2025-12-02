@@ -1,36 +1,78 @@
 // app/services/fileUpload.ts
 
+// .env 에서 NEXT_PUBLIC_API_URL = https://api.mpspain.co.kr 로 설정
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || 'https://api.mpspain.co.kr';
 
 export interface UploadedFileInfo {
   id?: number;
-  key: string; // S3 object key
+  key: string;        // S3 object key
   fileName: string;
   fileSize?: number;
   mimeType?: string;
 }
 
+/** 공통 인증 헤더 */
+function getAuthHeader(): Record<string, string> {
+  if (typeof window === 'undefined') return {};
+  const token = localStorage.getItem('token'); // 🔥 기존과 동일하게 'token' 사용
+  if (!token) return {};
+  return { Authorization: `Bearer ${token}` };
+}
+
+/** 업로드 응답(normalize) */
+function normalizeUploadData(data: any, file: File): UploadedFileInfo {
+  const key: string =
+    data.key ||
+    data.s3_key ||
+    data.fileUrl ||
+    data.file_url ||
+    data.file_key ||
+    data.path ||
+    '';
+
+  if (!key) {
+    console.error('No S3 object key found in upload result:', data);
+    throw new Error('업로드 결과에 S3 key가 없습니다.');
+  }
+
+  let size: number | undefined;
+  if (typeof data.size === 'number') {
+    size = data.size;
+  } else if (typeof data.size === 'string') {
+    const parsed = parseInt(data.size, 10);
+    if (!Number.isNaN(parsed)) size = parsed;
+  }
+
+  return {
+    id: data.id,
+    key,
+    fileName:
+      data.name ||
+      data.fileName ||
+      data.originalName ||
+      file.name,
+    fileSize: size ?? file.size,
+    mimeType: data.mimeType || data.type || file.type,
+  };
+}
+
 /**
- * 공지 첨부파일 / 자료실 파일 업로드
- * → 백엔드: POST /api/files/upload
+ * 📁 자료실 / 일반 첨부파일 업로드
+ *   POST /api/files/upload
  */
 export async function uploadFileToServer(
   file: File,
 ): Promise<UploadedFileInfo> {
   const formData = new FormData();
-  formData.append('file', file);
+  const encodedName = encodeURIComponent(file.name);
+  formData.append('file', file, encodedName);
 
-  const token =
-    typeof window !== 'undefined'
-      ? localStorage.getItem('accessToken')
-      : null;
-
-  const res = await fetch(`${API_BASE_URL}/files/upload`, {
+  const res = await fetch(`${API_BASE_URL}/api/files/upload`, {
     method: 'POST',
     body: formData,
     headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...getAuthHeader(),
     },
   });
 
@@ -40,64 +82,57 @@ export async function uploadFileToServer(
   }
 
   const json = await res.json();
-
   const data = json.data ?? json;
 
-  const key =
-    data.s3_key ||
-    data.key ||
-    data.fileUrl ||
-    data.file_key ||
-    data.path;
-
-  if (!key) {
-    console.error('No S3 object key found in upload result:', data);
-    throw new Error('업로드 결과에 S3 key가 없습니다.');
-  }
-
-  return {
-    id: data.id,
-    key,
-    fileName: data.name || data.fileName || file.name,
-    fileSize:
-      typeof data.size === 'string'
-        ? Number(data.size)
-        : data.size ?? file.size,
-    mimeType: data.type || data.mimeType || file.type,
-  };
+  return normalizeUploadData(data, file);
 }
 
 /**
- * 공지 에디터 본문 이미지 업로드
- * - 일단 동일한 /files/upload 엔드포인트를 쓰되,
- *   프론트에서 CloudFront / 버킷 도메인으로 src 구성
+ * 🖼 공지 에디터 본문 이미지 업로드
+ *   POST /api/files/notice-image
+ *   (mpsnotices 버킷 사용)
  */
 export async function uploadNoticeImageToServer(
   file: File,
 ): Promise<UploadedFileInfo> {
-  // 지금은 로직 동일하게 사용
-  return uploadFileToServer(file);
+  const formData = new FormData();
+  const encodedName = encodeURIComponent(file.name);
+  formData.append('file', file, encodedName);
+
+  const res = await fetch(`${API_BASE_URL}/api/files/notice-image`, {
+    method: 'POST',
+    body: formData,
+    headers: {
+      ...getAuthHeader(),
+    },
+  });
+
+  if (!res.ok) {
+    console.error('uploadNoticeImageToServer error:', await res.text());
+    throw new Error('이미지 업로드에 실패했습니다.');
+  }
+
+  const json = await res.json();
+  const data = json.data ?? json;
+
+  return normalizeUploadData(data, file);
 }
 
 /**
- * 프리사인드 다운로드 URL 가져오기
- * → 백엔드: GET /api/files/presigned?key=...
+ * 🔗 프리사인드 다운로드 URL
+ *   GET /api/files/presigned?key=...
  */
 export async function getPresignedDownloadUrl(
   key: string,
 ): Promise<string> {
-  const token =
-    typeof window !== 'undefined'
-      ? localStorage.getItem('accessToken')
-      : null;
-
-  const url = new URL(`${API_BASE_URL}/files/presigned`);
+  const url = new URL(`${API_BASE_URL}/api/files/presigned`);
   url.searchParams.set('key', key);
 
   const res = await fetch(url.toString(), {
+    method: 'GET',
     headers: {
+      ...getAuthHeader(),
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   });
 
