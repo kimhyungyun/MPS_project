@@ -168,7 +168,7 @@ const EditNoticePage = () => {
       await noticeService.updateNotice(id, {
         title: form.title,
         content: form.content,
-        isImportant: form.isImportant,
+        is_important: form.isImportant,
         attachments: attachmentDtos,
         deleteAttachmentIds: deletedAttachmentIds,
       });
