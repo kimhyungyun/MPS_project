@@ -11,6 +11,7 @@ export const SCHOOL_LIST = [
   '상지대학교',
   '우석대학교',
   '원광대학교',
+  '한의사'
 ] as const;
 
 export type School = (typeof SCHOOL_LIST)[number];
