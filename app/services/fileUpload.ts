@@ -1,125 +1,75 @@
-// app/services/fileUpload.ts
+import axios from 'axios';
 
-const API_BASE_URL =
-  (process.env.NEXT_PUBLIC_API_URL || 'https://api.mpspain.co.kr') + '/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-export interface UploadedFileInfo {
-  key: string;        // S3 object key (예: "dataroom/....png")
-  fileName: string;   // 원본 파일명
-  fileSize?: number;
-  mimeType?: string;
-}
-
-// ✅ 항상 Record<string, string> 리턴
-function getAuthHeader(): Record<string, string> {
-  if (typeof window === 'undefined') return {};
-  const token = localStorage.getItem('token');
-  if (!token) return {};
-  return { Authorization: `Bearer ${token}` };
-}
-
-/**
- * S3 업로드 (공지 첨부, 커버, 본문 이미지 공통)
- * 백엔드: POST /api/files/upload
- */
-export async function uploadFileToServer(file: File): Promise<UploadedFileInfo> {
+// 🔥 자료실(Dataroom) 업로드용
+export const uploadDataroomFileToServer = async (file: File) => {
   const formData = new FormData();
-  // 파일명 인코딩해서 보내기 (한글 깨짐 방지)
-  const encodedName = encodeURIComponent(file.name);
-  formData.append('file', file, encodedName);
+  formData.append('file', file);
 
-  const res = await fetch(`${API_BASE_URL}/files/upload`, {
-    method: 'POST',
-    body: formData,
-    credentials: 'include',
-    headers: {
-      ...getAuthHeader(),
-    },
-  });
-
-  if (!res.ok) {
-    const text = await res.text();
-    console.error('upload error:', text);
-    throw new Error('파일 업로드 실패');
-  }
-
-  const json = await res.json();
-  if (!json.success || !json.data) {
-    console.error('upload invalid response:', json);
-    throw new Error('파일 업로드 응답이 올바르지 않습니다.');
-  }
-
-  const result = json.data as any;
-
-  // 🔥 백엔드가 주는 여러 키 지원 (key / s3_key / fileUrl ...)
-  const key: string =
-    result.key ||
-    result.s3_key ||
-    result.fileUrl ||
-    result.file_url ||
-    '';
-
-  if (!key) {
-    console.error('No S3 object key found in upload result:', result);
-    throw new Error('이미지 업로드 결과에 파일 경로가 없습니다.');
-  }
-
-  const fileName: string =
-    result.fileName ||
-    result.originalName ||
-    result.name ||
-    file.name;
-
-  let fileSize: number | undefined;
-  if (typeof result.size === 'number') {
-    fileSize = result.size;
-  } else if (typeof result.size === 'string') {
-    const parsed = parseInt(result.size, 10);
-    fileSize = isNaN(parsed) ? undefined : parsed;
-  }
-
-  const mimeType: string | undefined =
-    result.mimeType ||
-    result.type ||
-    file.type;
-
-  const normalized: UploadedFileInfo = {
-    key,
-    fileName,
-    fileSize,
-    mimeType,
-  };
-
-  return normalized;
-}
-
-/**
- * 다운로드용 presigned URL 요청
- * 백엔드: GET /api/files/presigned?key=...
- */
-export async function getPresignedDownloadUrl(key: string): Promise<string> {
-  const res = await fetch(
-    `${API_BASE_URL}/files/presigned?key=${encodeURIComponent(key)}`,
+  const res = await axios.post(
+    `${API_URL}/api/files/upload`,
+    formData,
     {
-      method: 'GET',
-      credentials: 'include',
+      withCredentials: true,
       headers: {
-        ...getAuthHeader(),
+        'Content-Type': 'multipart/form-data',
       },
     },
   );
 
-  if (!res.ok) {
-    const text = await res.text();
-    console.error('presigned error:', text);
-    throw new Error('다운로드 URL 생성 실패');
+  if (!res.data?.success) {
+    throw new Error(res.data?.message || '자료실 파일 업로드 실패');
   }
 
-  const json = await res.json();
-  if (!json.success || !json.data || !json.data.url) {
-    console.error('presigned invalid response:', json);
-    throw new Error('다운로드 URL 응답이 올바르지 않습니다.');
+  return res.data.data as {
+    id: number;
+    name: string;
+    type: string;
+    size: string;
+    upload_date: string;
+    s3_key: string;
+  };
+};
+
+// 🔥 공지사항 에디터 이미지 업로드용
+export const uploadNoticeImageToServer = async (file: File) => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const res = await axios.post(
+    `${API_URL}/api/files/notice-image`,
+    formData,
+    {
+      withCredentials: true,
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    },
+  );
+
+  if (!res.data?.success) {
+    throw new Error(res.data?.message || '공지 이미지 업로드 실패');
   }
 
-  return json.data.url as string;
-}
+  return res.data.data as {
+    key: string;
+    fileName: string;
+    fileSize: number;
+    mimeType: string;
+  };
+};
+
+// 🔥 (자료실/공지 첨부 다운로드용) 프리사인드 URL
+export const getPresignedDownloadUrl = async (key: string) => {
+  const res = await axios.get(`${API_URL}/api/files/presigned`, {
+    params: { key },
+    withCredentials: true,
+  });
+
+  if (!res.data?.success) {
+    throw new Error(res.data?.message || '다운로드 URL 발급 실패');
+  }
+
+  return res.data.data.url as string;
+};

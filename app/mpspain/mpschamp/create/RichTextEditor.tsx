@@ -22,7 +22,7 @@ import ResizeImage from 'tiptap-extension-resize-image';
 
 import FontSize from './extensions/fontSize';
 import styles from './CreateNotice.module.css';
-import { uploadFileToServer } from '@/app/services/fileUpload';
+import { uploadNoticeImageToServer } from '@/app/services/fileUpload';
 
 interface RichTextEditorProps {
   value: string;
@@ -55,6 +55,14 @@ const fontSizes = [
   { label: '40pt', value: '40px' },
   { label: '52pt', value: '52px' },
 ];
+
+// 🔥 공지 이미지용 기본 도메인 / 버킷 설정
+const CLOUDFRONT_DOMAIN =
+  process.env.NEXT_PUBLIC_CLOUDFRONT_DOMAIN || 'media.mpspain.co.kr';
+const S3_BUCKET =
+  process.env.NEXT_PUBLIC_S3_BUCKET_NAME || 'mpsnotices';
+const S3_REGION =
+  process.env.NEXT_PUBLIC_S3_REGION || 'ap-northeast-2';
 
 const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
   const [isTablePickerOpen, setIsTablePickerOpen] = useState(false);
@@ -144,55 +152,31 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
     });
   };
 
-  // 🔥 이미지 업로드 + 에디터 삽입 (S3/CloudFront URL 사용)
+  // 🔥 공지사항 에디터 이미지 업로드 + 삽입
   const insertEditorImage = async (file: File) => {
     if (!editor) return;
 
     try {
-      const uploaded: any = await uploadFileToServer(file);
-      console.log('editor upload result:', uploaded);
+      const uploaded = await uploadNoticeImageToServer(file);
+      const key = uploaded.key;
 
-      // 파일 key 후보들 중에서 하나 골라서 사용 (undefined 방어)
-      let objectKey: string | undefined =
-        uploaded?.key ||
-        uploaded?.fileUrl ||
-        uploaded?.path ||
-        uploaded?.url;
-
-      if (!objectKey) {
+      if (!key) {
         console.error('No S3 object key found in upload result:', uploaded);
-        alert('이미지 업로드 결과에 파일 경로가 없습니다.');
+        alert('업로드 결과에 key가 없습니다.');
         return;
       }
 
-      // 앞에 / 붙어 있으면 제거
-      objectKey = objectKey.replace(/^\/+/, '');
+      const baseUrl = CLOUDFRONT_DOMAIN
+        ? `https://${CLOUDFRONT_DOMAIN}`
+        : `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com`;
 
-      // 도메인 결정 (CloudFront 우선)
-      const rawBaseUrl =
-        process.env.NEXT_PUBLIC_FILE_BASE_URL ||
-        process.env.NEXT_PUBLIC_CLOUDFRONT_DOMAIN ||
-        '';
-
-      let baseUrl = rawBaseUrl;
-      if (!baseUrl) {
-        // env 가 아예 없으면 S3 도메인으로 fallback
-        const bucket =
-          process.env.NEXT_PUBLIC_S3_BUCKET_NAME || 'mpsnotices';
-        const region =
-          process.env.NEXT_PUBLIC_S3_REGION || 'ap-northeast-2';
-        baseUrl = `https://${bucket}.s3.${region}.amazonaws.com`;
-      } else if (!baseUrl.startsWith('http')) {
-        baseUrl = `https://${baseUrl}`;
-      }
-
-      const src = `${baseUrl}/${objectKey}`;
+      const imageUrl = `${baseUrl}/${key}`;
 
       editor
         .chain()
         .focus()
         .setImage({
-          src,
+          src: imageUrl,
           alt: uploaded.fileName || file.name,
         })
         .run();
