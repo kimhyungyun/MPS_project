@@ -21,10 +21,11 @@ type SignupFormData = {
   mb_hp: string;
   mb_sex: string;
   mb_birth: string;
-  mb_zip1: string;      // ✅ 우편번호 추가
+  mb_zip1: string; // ✅ 우편번호
   mb_addr1: string;
   mb_addr2: string;
   mb_school: School | ''; // 선택 전에는 '' 허용
+  agreePrivacy: boolean; // ✅ 개인정보 수집·이용 동의 (필수)
 };
 
 export default function SignupForm() {
@@ -41,6 +42,7 @@ export default function SignupForm() {
     mb_addr1: '',
     mb_addr2: '',
     mb_school: '',
+    agreePrivacy: false, // ✅ 기본값: 동의 안 함
   });
 
   const [error, setError] = useState('');
@@ -132,8 +134,8 @@ export default function SignupForm() {
         setFormData((prev) => ({
           ...prev,
           mb_zip1: data.zonecode, // 5자리 우편번호
-          mb_addr1: addr,         // 기본 주소
-          mb_addr2: '',           // 상세주소는 직접 입력
+          mb_addr1: addr, // 기본 주소
+          mb_addr2: '', // 상세주소는 직접 입력
         }));
       },
     }).open();
@@ -205,6 +207,12 @@ export default function SignupForm() {
     //   setError('주소를 입력해주세요.');
     //   return false;
     // }
+
+    // ✅ 개인정보 수집 · 이용 동의 필수
+    if (!formData.agreePrivacy) {
+      setError('개인정보 수집 · 이용 동의(필수)에 체크해주세요.');
+      return false;
+    }
 
     return true;
   };
@@ -353,7 +361,10 @@ export default function SignupForm() {
           <form className="space-y-6" onSubmit={handleSubmit}>
             {/* 아이디 + 중복확인 */}
             <div>
-              <label htmlFor="mb_id" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="mb_id"
+                className="block text-sm font-medium text-gray-700"
+              >
                 아이디 *
               </label>
               <div className="mt-1 flex gap-2">
@@ -414,7 +425,10 @@ export default function SignupForm() {
 
             {/* 이름 */}
             <div>
-              <label htmlFor="mb_name" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="mb_name"
+                className="block text-sm font-medium text-gray-700"
+              >
                 이름 *
               </label>
               <div className="mt-1">
@@ -433,7 +447,10 @@ export default function SignupForm() {
 
             {/* 닉네임 + 중복확인 */}
             <div>
-              <label htmlFor="mb_nick" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="mb_nick"
+                className="block text-sm font-medium text-gray-700"
+              >
                 닉네임 *
               </label>
               <div className="mt-1 flex gap-2">
@@ -468,7 +485,10 @@ export default function SignupForm() {
 
             {/* 이메일 */}
             <div>
-              <label htmlFor="mb_email" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="mb_email"
+                className="block text-sm font-medium text-gray-700"
+              >
                 이메일 *
               </label>
               <div className="mt-1">
@@ -487,7 +507,10 @@ export default function SignupForm() {
 
             {/* 휴대폰 */}
             <div>
-              <label htmlFor="mb_hp" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="mb_hp"
+                className="block text-sm font-medium text-gray-700"
+              >
                 휴대폰 번호 *
               </label>
               <div className="mt-1">
@@ -507,7 +530,10 @@ export default function SignupForm() {
 
             {/* 성별 */}
             <div>
-              <label htmlFor="mb_sex" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="mb_sex"
+                className="block text-sm font-medium text-gray-700"
+              >
                 성별
               </label>
               <div className="mt-1">
@@ -554,7 +580,10 @@ export default function SignupForm() {
 
             {/* 생년월일 */}
             <div>
-              <label htmlFor="mb_birth" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="mb_birth"
+                className="block text-sm font-medium text-gray-700"
+              >
                 생년월일
               </label>
               <div className="mt-1">
@@ -570,9 +599,12 @@ export default function SignupForm() {
               </div>
             </div>
 
-            {/* ✅ 우편번호 + 검색 버튼 */}
+            {/* 우편번호 + 검색 버튼 */}
             <div>
-              <label htmlFor="mb_zip1" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="mb_zip1"
+                className="block text-sm font-medium text-gray-700"
+              >
                 우편번호
               </label>
               <div className="mt-1 flex gap-2">
@@ -598,7 +630,10 @@ export default function SignupForm() {
 
             {/* 기본주소 */}
             <div>
-              <label htmlFor="mb_addr1" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="mb_addr1"
+                className="block text-sm font-medium text-gray-700"
+              >
                 기본주소
               </label>
               <div className="mt-1">
@@ -617,7 +652,10 @@ export default function SignupForm() {
 
             {/* 상세주소 */}
             <div>
-              <label htmlFor="mb_addr2" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="mb_addr2"
+                className="block text-sm font-medium text-gray-700"
+              >
                 상세주소
               </label>
               <div className="mt-1">
@@ -633,11 +671,42 @@ export default function SignupForm() {
               </div>
             </div>
 
+            {/* ✅ 개인정보 수집 · 이용 동의 (필수) */}
+            <div className="border-t pt-4">
+              <div className="flex items-start gap-2">
+                <input
+                  id="agreePrivacy"
+                  name="agreePrivacy"
+                  type="checkbox"
+                  checked={formData.agreePrivacy}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      agreePrivacy: e.target.checked,
+                    }))
+                  }
+                  className="mt-1 h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                />
+                <div>
+                  <label
+                    htmlFor="agreePrivacy"
+                    className="text-sm font-medium text-gray-700"
+                  >
+                    개인정보 수집 · 이용 동의 (필수)
+                  </label>
+                  <p className="mt-1 text-xs text-gray-500">
+                    서비스 이용을 위해 필요한 최소한의 개인정보를 수집 · 이용합니다.
+                  </p>
+                  {/* 실제 약관 전문은 여기 넣거나, 모달/새 창으로 열어도 됨 */}
+                </div>
+              </div>
+            </div>
+
             {/* 제출 버튼 */}
             <div>
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={isLoading || !formData.agreePrivacy} // ✅ 동의 안 하면 비활성화
                 className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? '처리중...' : '가입하기'}
