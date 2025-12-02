@@ -496,9 +496,9 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
                     : '표 크기 선택'}
                 </div>
                 <div className="grid grid-cols-8 gap-0.5 w-[168px]">
-                  {Array.from({ length: 64 }).map((_, index) => {
-                    const row = Math.floor(index / 8) + 1;
-                    const col = (index % 8) + 1;
+                  {Array.from({ length: 18 * 18 }).map((_, index) => {
+                    const row = Math.floor(index / 18) + 1;
+                    const col = (index % 18) + 1;
                     const active =
                       tableHoverSize.rows >= row &&
                       tableHoverSize.cols >= col;

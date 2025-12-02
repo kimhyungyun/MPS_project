@@ -144,7 +144,10 @@ const MpsChamp = () => {
           <div className="col-span-1 text-center text-sm font-semibold text-gray-600">
             번호
           </div>
-          <div className="col-span-7 text-center text-sm font-semibold text-gray-600">
+          <div className="col-span-1 text-center text-sm font-semibold text-gray-600">
+            중요
+          </div>
+          <div className="col-span-6 text-center text-sm font-semibold text-gray-600">
             제목
           </div>
           <div className="col-span-2 text-center text-sm font-semibold text-gray-600">
@@ -167,16 +170,23 @@ const MpsChamp = () => {
                 onClick={() => handleNoticeClick(item.id)}
                 className="grid grid-cols-12 gap-4 py-3 hover:bg-gray-50 transition cursor-pointer border-b border-gray-100"
               >
+                {/* 번호 */}
                 <div className="col-span-1 text-center text-sm text-gray-600">
                   {sortedNotices.length - index}
                 </div>
-                <div className="col-span-7 text-left">
+
+                {/* 중요 */}
+                <div className="col-span-1 flex items-center justify-center">
+                  {item.isImportant && (
+                    <span className="px-2 py-1 text-xs font-medium text-red-600 bg-red-100 rounded">
+                      중요
+                    </span>
+                  )}
+                </div>
+
+                {/* 제목 + 첨부 아이콘 */}
+                <div className="col-span-6 text-left">
                   <div className="flex items-center gap-2">
-                    {item.isImportant && (
-                      <span className="px-2 py-1 text-xs font-medium text-red-600 bg-red-100 rounded">
-                        중요
-                      </span>
-                    )}
                     <span className="text-gray-800">{item.title}</span>
                     {item.attachments && item.attachments.length > 0 && (
                       <svg
@@ -195,11 +205,15 @@ const MpsChamp = () => {
                     )}
                   </div>
                 </div>
+
+                {/* 작성일 */}
                 <div className="col-span-2 text-center text-sm text-gray-500">
                   {formatDate(
-                    (item as any).created_at ?? (item as any).date
+                    (item as any).created_at ?? (item as any).date,
                   )}
                 </div>
+
+                {/* 작성자 */}
                 <div className="col-span-2 text-center text-sm text-gray-500">
                   {item.user?.mb_name || '관리자'}
                 </div>
