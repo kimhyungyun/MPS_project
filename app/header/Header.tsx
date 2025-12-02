@@ -98,7 +98,8 @@ const Header = () => {
           </div>
           <ul className="flex flex-row gap-45 font-pretendard text-xl">
             <li><Link href="/mpspain/introduction">연구회 소개</Link></li>
-            <li><Link href="/mpspain/mpschamp">MPS 회원 광장</Link></li>
+            {/* <li><Link href="/mpspain/mpschamp">MPS 회원 광장</Link></li> */}
+            <li>MPS 회원 광장</li>
             <li><Link href="/mpspain/mpslecture">MPS 강좌</Link></li>
           </ul>
           <div className="flex items-center gap-4 w-48 justify-end">

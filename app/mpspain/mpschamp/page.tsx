@@ -82,9 +82,15 @@ const MpsChamp = () => {
 
   // 중요 + 작성일(created_at) 순 정렬
   const sortedNotices = [...notices].sort((a, b) => {
+    // 🔥 isImportant / is_important 둘 다 대응
+    const aImportant =
+      (a as any).isImportant ?? (a as any).is_important ?? false;
+    const bImportant =
+      (b as any).isImportant ?? (b as any).is_important ?? false;
+
     // 중요 먼저
-    if (a.isImportant !== b.isImportant) {
-      return Number(b.isImportant) - Number(a.isImportant);
+    if (aImportant !== bImportant) {
+      return Number(bImportant) - Number(aImportant);
     }
 
     // 그 다음 최신 작성일 순
@@ -164,61 +170,69 @@ const MpsChamp = () => {
           </p>
         ) : (
           <div className="space-y-2">
-            {sortedNotices.map((item, index) => (
-              <div
-                key={item.id}
-                onClick={() => handleNoticeClick(item.id)}
-                className="grid grid-cols-12 gap-4 py-3 hover:bg-gray-50 transition cursor-pointer border-b border-gray-100"
-              >
-                {/* 번호 */}
-                <div className="col-span-1 text-center text-sm text-gray-600">
-                  {sortedNotices.length - index}
-                </div>
+            {sortedNotices.map((item, index) => {
+              // 🔥 디테일 페이지와 동일하게 중요 여부 계산
+              const isImportant =
+                (item as any).isImportant ??
+                (item as any).is_important ??
+                false;
 
-                {/* 중요 */}
-                <div className="col-span-1 flex items-center justify-center">
-                  {item.isImportant && (
-                    <span className="px-2 py-1 text-xs font-medium text-red-600 bg-red-100 rounded">
-                      중요
-                    </span>
-                  )}
-                </div>
+              return (
+                <div
+                  key={item.id}
+                  onClick={() => handleNoticeClick(item.id)}
+                  className="grid grid-cols-12 gap-4 py-3 hover:bg-gray-50 transition cursor-pointer border-b border-gray-100"
+                >
+                  {/* 번호 */}
+                  <div className="col-span-1 text-center text-sm text-gray-600">
+                    {sortedNotices.length - index}
+                  </div>
 
-                {/* 제목 + 첨부 아이콘 */}
-                <div className="col-span-6 text-left">
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-800">{item.title}</span>
-                    {item.attachments && item.attachments.length > 0 && (
-                      <svg
-                        className="w-4 h-4 text-gray-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
-                        />
-                      </svg>
+                  {/* 중요 */}
+                  <div className="col-span-1 flex items-center justify-center">
+                    {isImportant && (
+                      <span className="px-2 py-1 text-xs font-medium text-red-600 bg-red-100 rounded">
+                        중요
+                      </span>
                     )}
                   </div>
-                </div>
 
-                {/* 작성일 */}
-                <div className="col-span-2 text-center text-sm text-gray-500">
-                  {formatDate(
-                    (item as any).created_at ?? (item as any).date,
-                  )}
-                </div>
+                  {/* 제목 + 첨부 아이콘 */}
+                  <div className="col-span-6 text-left">
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-800">{item.title}</span>
+                      {item.attachments && item.attachments.length > 0 && (
+                        <svg
+                          className="w-4 h-4 text-gray-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
+                          />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
 
-                {/* 작성자 */}
-                <div className="col-span-2 text-center text-sm text-gray-500">
-                  {item.user?.mb_name || '관리자'}
+                  {/* 작성일 */}
+                  <div className="col-span-2 text-center text-sm text-gray-500">
+                    {formatDate(
+                      (item as any).created_at ?? (item as any).date,
+                    )}
+                  </div>
+
+                  {/* 작성자 */}
+                  <div className="col-span-2 text-center text-sm text-gray-500">
+                    {item.user?.mb_name || '관리자'}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

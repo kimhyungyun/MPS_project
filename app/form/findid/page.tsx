@@ -7,21 +7,13 @@ import axios from 'axios';
 export default function FindIdPage() {
   const [formData, setFormData] = useState({
     name: '',
-    phone: '',
+    email: '',
   });
+
   const [loading, setLoading] = useState(false);
   const [maskedUserId, setMaskedUserId] = useState<string | null>(null);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-
-  // 숫자만 추출
-  const normalizePhoneDigits = (phone: string) => phone.replace(/\D/g, '');
-
-  // 01012345678 -> 010-1234-5678
-  const formatPhoneDashed = (digits: string) => {
-    if (digits.length < 10) return digits;
-    return digits.replace(/(\d{3})(\d{3,4})(\d{4})/, '$1-$2-$3');
-  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -39,14 +31,12 @@ export default function FindIdPage() {
     setLoading(true);
 
     try {
-      const digitsPhone = normalizePhoneDigits(formData.phone); // 01012345678
-      const dashedPhone = formatPhoneDashed(digitsPhone);       // 010-1234-5678
-
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/api/auth/find-id`,
         {
+          // 🔥 백엔드가 검색할 정보
           name: formData.name,
-          phone: dashedPhone, // 백엔드는 이걸로만 검색
+          email: formData.email,
         },
         {
           withCredentials: true,
@@ -61,7 +51,6 @@ export default function FindIdPage() {
         if (response.data.maskedUserId) {
           setMaskedUserId(response.data.maskedUserId);
         }
-        // ✅ 이제는 "문자 전송" 아니라, 그냥 아이디를 찾았다고만 표시
         setMessage('입력하신 정보와 일치하는 아이디입니다.');
       } else {
         setError(response.data.message || '아이디를 찾을 수 없습니다.');
@@ -82,7 +71,7 @@ export default function FindIdPage() {
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold text-slate-800 mb-2">아이디 찾기</h2>
           <p className="text-slate-600 text-sm">
-            가입 시 등록한 이름과 휴대폰 번호를 입력해주세요.
+            가입 시 등록한 이름과 이메일을 입력해주세요.
           </p>
         </div>
 
@@ -106,6 +95,7 @@ export default function FindIdPage() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* 이름 */}
           <div>
             <label
               htmlFor="name"
@@ -125,22 +115,23 @@ export default function FindIdPage() {
             />
           </div>
 
+          {/* 이메일 */}
           <div>
             <label
-              htmlFor="phone"
+              htmlFor="email"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
-              휴대폰 번호
+              이메일
             </label>
             <input
-              id="phone"
-              name="phone"
-              type="tel"
+              id="email"
+              name="email"
+              type="email"
               required
-              value={formData.phone}
+              value={formData.email}
               onChange={handleChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="예: 01012345678 또는 010-1234-5678"
+              placeholder="예: example@example.com"
             />
           </div>
 

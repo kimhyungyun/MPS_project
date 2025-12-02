@@ -495,33 +495,32 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
                     ? `${tableHoverSize.rows} × ${tableHoverSize.cols}`
                     : '표 크기 선택'}
                 </div>
-                <div className="grid grid-cols-8 gap-0.5 w-[168px]">
-                  {Array.from({ length: 18 * 18 }).map((_, index) => {
-                    const row = Math.floor(index / 18) + 1;
-                    const col = (index % 18) + 1;
-                    const active =
-                      tableHoverSize.rows >= row &&
-                      tableHoverSize.cols >= col;
+                  <div className="grid grid-cols-[repeat(18,1fr)] gap-0.5 w-[360px]">
+                    {Array.from({ length: 18 * 18 }).map((_, index) => {
+                      const row = Math.floor(index / 18) + 1;
+                      const col = (index % 18) + 1;
+                      const active =
+                        tableHoverSize.rows >= row &&
+                        tableHoverSize.cols >= col;
 
-                    return (
-                      <div
-                        key={index}
-                        onMouseEnter={() =>
-                          setTableHoverSize({ rows: row, cols: col })
-                        }
-                        onClick={() => {
-                          insertTable(row, col);
-                          setIsTablePickerOpen(false);
-                        }}
-                        className={`h-5 w-5 border rounded-sm cursor-pointer ${
-                          active
-                            ? 'bg-blue-500 border-blue-500'
-                            : 'bg-white border-gray-300 hover:bg-gray-100'
-                        }`}
-                      />
-                    );
-                  })}
-                </div>
+                      return (
+                        <div
+                          key={index}
+                          onMouseEnter={() => setTableHoverSize({ rows: row, cols: col })}
+                          onClick={() => {
+                            insertTable(row, col);
+                            setIsTablePickerOpen(false);
+                          }}
+                          className={`h-5 w-5 border rounded-sm cursor-pointer ${
+                            active
+                              ? 'bg-blue-500 border-blue-500'
+                              : 'bg-white border-gray-300 hover:bg-gray-100'
+                          }`}
+                        />
+                      );
+                    })}
+                  </div>
+
               </div>
             )}
           </div>
