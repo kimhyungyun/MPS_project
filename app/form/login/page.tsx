@@ -45,7 +45,7 @@ export default function LoginForm() {
         if (needProfileUpdate) {
           console.log('Login - Redirecting to complete profile page');
           setTimeout(() => {
-            window.location.href = '/member/complete-profile';
+            window.location.href = '../from/reprofile';
           }, 100);
           return;
         }
