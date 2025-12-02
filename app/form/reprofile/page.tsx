@@ -1,12 +1,32 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
+import { School, SCHOOL_LIST } from '@/types/school';
+
+// window.daum 타입 보완
+declare global {
+  interface Window {
+    daum: any;
+  }
+}
+
+type CompleteProfileFormData = {
+  mb_hp: string;
+  mb_school: School | '';
+  mb_sex: string;
+  mb_birth: string;
+  mb_zip1: string;
+  mb_addr1: string;
+  mb_addr2: string;
+  agreePrivacy: boolean;
+};
 
 export default function CompleteProfilePage() {
   const router = useRouter();
-  const [formData, setFormData] = useState({
+
+  const [formData, setFormData] = useState<CompleteProfileFormData>({
     mb_hp: '',
     mb_school: '',
     mb_sex: '',
@@ -16,15 +36,77 @@ export default function CompleteProfilePage() {
     mb_addr2: '',
     agreePrivacy: false,
   });
+
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  // ✅ 카카오 우편번호 스크립트 로드
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const script = document.createElement('script');
+    script.src = '//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
+    script.async = true;
+    document.body.appendChild(script);
+
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
+
+  // ✅ 휴대폰 번호 포맷
+  const formatPhoneNumber = (value: string) => {
+    const numbers = value.replace(/[^\d]/g, '');
+    if (numbers.length > 11) return value;
+    if (numbers.length <= 3) return numbers;
+    if (numbers.length <= 7) return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
+    return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7)}`;
+  };
+
+  // ✅ 우편번호 검색 팝업
+  const handlePostcodeSearch = () => {
+    if (!window.daum || !window.daum.Postcode) {
+      alert('우편번호 서비스를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
+      return;
+    }
+
+    new window.daum.Postcode({
+      oncomplete: function (data: any) {
+        let addr = '';
+
+        if (data.userSelectedType === 'R') {
+          addr = data.roadAddress; // 도로명 주소
+        } else {
+          addr = data.jibunAddress; // 지번 주소
+        }
+
+        setFormData((prev) => ({
+          ...prev,
+          mb_zip1: data.zonecode, // 5자리 우편번호
+          mb_addr1: addr, // 기본 주소
+          mb_addr2: '', // 상세주소는 직접 입력
+        }));
+      },
+    }).open();
+  };
+
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value, type, checked } = e.target as any;
 
-    if (type === 'checkbox') {
+    if (name === 'mb_hp') {
+      const formattedValue = formatPhoneNumber(value);
+      setFormData((prev) => ({
+        ...prev,
+        mb_hp: formattedValue,
+      }));
+    } else if (name === 'mb_school') {
+      setFormData((prev) => ({
+        ...prev,
+        mb_school: value as School | '',
+      }));
+    } else if (type === 'checkbox') {
       setFormData((prev) => ({
         ...prev,
         [name]: checked,
@@ -62,8 +144,9 @@ export default function CompleteProfilePage() {
         return;
       }
 
-      const res = await axios.patch(
-        `${apiUrl}/api/user/complete-profile`,
+      // 🔥 여기 수정: PUT + /api/users/complete-profile
+      const res = await axios.put(
+        `${apiUrl}/api/users/complete-profile`,
         formData,
         {
           headers: {
@@ -82,10 +165,18 @@ export default function CompleteProfilePage() {
       }
     } catch (err: any) {
       console.error(err);
-      setError(
-        err.response?.data?.message ||
-          '저장 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
-      );
+
+      if (err.response?.status === 404) {
+        setError(
+          '백엔드에 PUT /api/users/complete-profile 엔드포인트가 없거나 prefix가 다릅니다. ' +
+            'NestJS Controller 경로(@Controller(\'users\'))와 global prefix(app.setGlobalPrefix)를 확인하세요.',
+        );
+      } else {
+        setError(
+          err.response?.data?.message ||
+            '저장 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
+        );
+      }
     } finally {
       setIsLoading(false);
     }
@@ -122,12 +213,13 @@ export default function CompleteProfilePage() {
               type="tel"
               value={formData.mb_hp}
               onChange={handleChange}
+              maxLength={13}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
               placeholder="010-0000-0000"
             />
           </div>
 
-          {/* 학교 */}
+          {/* 학교 선택 (회원가입과 동일) */}
           <div>
             <label
               htmlFor="mb_school"
@@ -135,15 +227,20 @@ export default function CompleteProfilePage() {
             >
               학교
             </label>
-            <input
+            <select
               id="mb_school"
               name="mb_school"
-              type="text"
               value={formData.mb_school}
               onChange={handleChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-              placeholder="학교명을 입력하세요"
-            />
+            >
+              <option value="">학교를 선택하세요</option>
+              {SCHOOL_LIST.map((school) => (
+                <option key={school} value={school}>
+                  {school}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* 성별 */}
@@ -186,25 +283,38 @@ export default function CompleteProfilePage() {
             />
           </div>
 
-          {/* 주소 */}
+          {/* 주소 + 우편번호 검색 */}
           <div className="grid grid-cols-3 gap-2">
-            <div className="col-span-1">
+            {/* 우편번호 + 검색 */}
+            <div className="col-span-3">
               <label
                 htmlFor="mb_zip1"
                 className="block text-sm font-medium text-gray-700 mb-1"
               >
                 우편번호
               </label>
-              <input
-                id="mb_zip1"
-                name="mb_zip1"
-                type="text"
-                value={formData.mb_zip1}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                placeholder="우편번호"
-              />
+              <div className="flex gap-2">
+                <input
+                  id="mb_zip1"
+                  name="mb_zip1"
+                  type="text"
+                  value={formData.mb_zip1}
+                  onChange={handleChange}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  placeholder="우편번호"
+                  readOnly
+                />
+                <button
+                  type="button"
+                  onClick={handlePostcodeSearch}
+                  className="px-3 py-2 text-sm font-medium border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50"
+                >
+                  우편번호 검색
+                </button>
+              </div>
             </div>
+
+            {/* 기본주소 */}
             <div className="col-span-3">
               <label
                 htmlFor="mb_addr1"
@@ -220,8 +330,11 @@ export default function CompleteProfilePage() {
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                 placeholder="기본주소를 입력하세요"
+                readOnly
               />
             </div>
+
+            {/* 상세주소 */}
             <div className="col-span-3">
               <label
                 htmlFor="mb_addr2"
@@ -266,6 +379,7 @@ export default function CompleteProfilePage() {
             </div>
           </div>
 
+          {/* 제출 버튼 */}
           <button
             type="submit"
             disabled={isLoading || !formData.agreePrivacy}
