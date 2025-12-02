@@ -29,10 +29,7 @@ const fixImageSrcInHtml = (html: string) => {
       const trimmed = src.trim();
 
       // 이미 절대 URL(https/http) 이거나 data: 이면 건드리지 않음
-      if (
-        /^https?:\/\//i.test(trimmed) ||
-        /^data:/i.test(trimmed)
-      ) {
+      if (/^https?:\/\//i.test(trimmed) || /^data:/i.test(trimmed)) {
         return tag;
       }
 
@@ -94,10 +91,11 @@ const NoticeDetail = () => {
   };
 
   // 첨부파일 다운로드
-  const handleDownload = async (e: React.MouseEvent, file: any) => {
+  const handleDownload = async (e: React.MouseEvent, file: { fileUrl: string; fileName: string }) => {
     e.preventDefault();
 
     try {
+      // file.fileUrl 에는 S3 key 가 들어있다고 가정
       const url = await getPresignedDownloadUrl(file.fileUrl);
 
       const a = document.createElement('a');
@@ -112,7 +110,7 @@ const NoticeDetail = () => {
     }
   };
 
-  const getFileIcon = (mimeType?: string) => {
+  const getFileIcon = (mimeType?: string | null) => {
     if (!mimeType) return '📎';
     if (mimeType.startsWith('image/')) return '🖼️';
     if (mimeType === 'application/pdf') return '📄';
@@ -133,16 +131,14 @@ const NoticeDetail = () => {
   }
 
   const isAdmin = user?.mb_level >= 8;
-  const isWriter = user?.id === (notice as any).writer_id;
+  // 로그인 정보 구조에 따라 여기 비교 필드만 맞춰주면 됨 (예: user.mb_no vs user.id)
+  const isWriter = user?.mb_no === notice.userId || user?.id === notice.userId;
 
-  const createdAtValue =
-    (notice as any).created_at ?? (notice as any).date ?? null;
-  const createdAtText = createdAtValue
-    ? new Date(createdAtValue).toLocaleDateString()
+  const createdAtText = notice.created_at
+    ? new Date(notice.created_at).toLocaleDateString()
     : '';
 
-  const isImportant =
-    (notice as any).isImportant ?? (notice as any).is_important ?? false;
+  const isImportant = notice.is_important;
 
   // 🔥 여기서 이미지 src 보정
   const contentHtml = fixImageSrcInHtml(notice.content || '');
@@ -204,7 +200,7 @@ const NoticeDetail = () => {
                   d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
                 />
               </svg>
-              <span>{(notice as any).user?.mb_name || '관리자'}</span>
+              <span>{notice.g5_member?.mb_name || '관리자'}</span>
             </div>
             <div className="flex items-center gap-2">
               <svg
@@ -246,11 +242,16 @@ const NoticeDetail = () => {
               첨부파일
             </h3>
             <div className="space-y-2">
-              {notice.attachments.map((file: any) => (
+              {notice.attachments.map((file) => (
                 <a
                   key={file.id}
                   href="#"
-                  onClick={(e) => handleDownload(e, file)}
+                  onClick={(e) =>
+                    handleDownload(e, {
+                      fileUrl: file.fileUrl,
+                      fileName: file.fileName,
+                    })
+                  }
                   className="flex items-center gap-2 text-blue-600 hover:text-blue-700 text-sm"
                 >
                   <span>{getFileIcon(file.mimeType)}</span>

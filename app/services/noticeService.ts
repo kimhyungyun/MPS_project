@@ -9,27 +9,37 @@ const BASE_URL = `${API_URL}/api`;
 // ✅ 백엔드에서 내려주는 첨부파일(조회용) 타입
 export interface NoticeAttachment {
   id: number;
-  name: string;
-  url: string;
+  fileName: string;
+  fileUrl: string;
+  fileSize?: number | null;
+  mimeType?: string | null;
 }
 
-// ✅ 프론트에서 사용하는 Notice 타입
+// ✅ 백엔드에서 내려주는 Notice(post) 타입
 export interface Notice {
   id: number;
   title: string;
   content: string;
-  isImportant: boolean;
-  date: string;
-  writer_id: number;
+  is_important: boolean;
+  created_at: string;
+  coverImageUrl?: string | null;
+  userId: number | null;
+
+  // 🔥 둘 다 optional 로 둔다 (어디서는 user, 어디서는 g5_member 사용)
   user?: {
     mb_name: string;
   };
+
+  g5_member?: {
+    mb_name: string;
+  };
+
   attachments?: NoticeAttachment[];
 }
 
 // ✅ 생성/수정 요청에 실어 보낼 첨부파일 타입 (백엔드 DTO랑 맞춤)
 export interface NoticeAttachmentRequest {
-  id?: number;               // 기존 첨부파일이면 id 존재
+  id?: number;               // 기존 첨부파일이면 id 존재 (지금은 안 써도 됨)
   fileName: string;
   fileUrl: string;
   fileSize?: number;
@@ -41,11 +51,7 @@ export interface CreateNoticeDto {
   title: string;
   content: string;
   is_important?: boolean;
-
-  // 대표 이미지 URL
   coverImageUrl?: string;
-
-  // 첨부파일 목록
   attachments?: NoticeAttachmentRequest[];
 }
 
@@ -107,18 +113,17 @@ class NoticeService {
     data: {
       title?: string;
       content?: string;
-      isImportant?: boolean;
+      is_important?: boolean;           // 🔥 snake_case 로 통일
       coverImageUrl?: string;
       attachments?: NoticeAttachmentRequest[];
       deleteAttachmentIds?: number[];
       removeCoverImage?: boolean;
     },
   ) {
-    // 백엔드 UpdateNoticeDto는 is_important / coverImageUrl / attachments 구조
     const requestData: CreateNoticeDto = {
       title: data.title ?? '',
       content: data.content ?? '',
-      is_important: data.isImportant,
+      is_important: data.is_important,
       coverImageUrl: data.coverImageUrl,
       attachments: data.attachments,
     };
