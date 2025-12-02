@@ -13,7 +13,7 @@ export interface UploadedFileInfo {
 
 function getToken() {
   if (typeof window === 'undefined') return null;
-  // 백엔드에서 jwt 쓰는 키가 'token' 이라서 이걸 기준으로 맞춤
+  // 백엔드에서 jwt 쓰는 키가 'token'
   return localStorage.getItem('token');
 }
 

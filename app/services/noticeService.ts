@@ -2,7 +2,8 @@
 
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || 'https://api.mpspain.co.kr';
 const BASE_URL = `${API_URL}/api`;
 
 // ✅ 백엔드에서 내려주는 첨부파일(조회용) 타입
@@ -62,7 +63,6 @@ class NoticeService {
           ...this.getAuthHeader(),
           'Content-Type': 'application/json',
         },
-        // 필요하면 쿠키도 같이
         withCredentials: true,
       });
       return response.data as Notice;
@@ -75,6 +75,9 @@ class NoticeService {
   async getNotices() {
     try {
       const response = await axios.get(`${BASE_URL}/notices`, {
+        headers: {
+          ...this.getAuthHeader(),
+        },
         withCredentials: true,
       });
       return response.data as Notice[];
@@ -87,6 +90,9 @@ class NoticeService {
   async getNotice(id: number) {
     try {
       const response = await axios.get(`${BASE_URL}/notices/${id}`, {
+        headers: {
+          ...this.getAuthHeader(),
+        },
         withCredentials: true,
       });
       return response.data as Notice;
@@ -96,19 +102,19 @@ class NoticeService {
     }
   }
 
-  async updateNotice(id: number, data: {
-    title?: string;
-    content?: string;
-    isImportant?: boolean;
-    coverImageUrl?: string;
-    attachments?: NoticeAttachmentRequest[];
-    deleteAttachmentIds?: number[];   // 🔥 새로 추가
-    removeCoverImage?: boolean;       // 🔥 새로 추가
-  }) {
-    const token =
-      typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-
-    // 백엔드 UpdateNoticeDto는 is_important / coverImageUrl / attachments 구조이므로 거기에 맞게 변환
+  async updateNotice(
+    id: number,
+    data: {
+      title?: string;
+      content?: string;
+      isImportant?: boolean;
+      coverImageUrl?: string;
+      attachments?: NoticeAttachmentRequest[];
+      deleteAttachmentIds?: number[];
+      removeCoverImage?: boolean;
+    },
+  ) {
+    // 백엔드 UpdateNoticeDto는 is_important / coverImageUrl / attachments 구조
     const requestData: CreateNoticeDto = {
       title: data.title ?? '',
       content: data.content ?? '',
@@ -125,7 +131,7 @@ class NoticeService {
         requestData,
         {
           headers: {
-            Authorization: token ? `Bearer ${token}` : '',
+            ...this.getAuthHeader(),
             'Content-Type': 'application/json',
           },
           withCredentials: true,
