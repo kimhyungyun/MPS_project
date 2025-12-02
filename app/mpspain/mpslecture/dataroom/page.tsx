@@ -1,16 +1,17 @@
+// app/mpslecture/dataroom/page.tsx (예시 경로)
 'use client';
 
 import { useState, useEffect, ChangeEvent } from 'react';
-import { 
-  FaFilePdf, 
-  FaUpload, 
-  FaSearch, 
+import {
+  FaFilePdf,
+  FaUpload,
+  FaSearch,
   FaFileWord,
   FaFileExcel,
   FaFileImage,
   FaFileAlt,
   FaFile,
-  FaTrash
+  FaTrash,
 } from 'react-icons/fa';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
@@ -18,11 +19,10 @@ import axios from 'axios';
 interface FileItem {
   id: number;
   name: string;
-  type: string;          // mimeType
-  size: string;          // 문자열 (백엔드에서 toString 해서 내려줌)
-  upload_date: string;   // ISO 문자열
-
-  s3_key: string;        // 🔥 presigned 요청에 사용할 S3 key
+  type: string; // mimeType
+  size: string; // 문자열
+  upload_date: string; // ISO string
+  s3_key: string; // S3 key (presigned 요청용)
   user?: {
     mb_nick: string;
   };
@@ -35,15 +35,15 @@ interface User {
   mb_level: number;
 }
 
-const UploadButton = ({ onUpload }: { onUpload: (event: ChangeEvent<HTMLInputElement>) => void }) => (
+const UploadButton = ({
+  onUpload,
+}: {
+  onUpload: (event: ChangeEvent<HTMLInputElement>) => void;
+}) => (
   <label className="ml-4 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 cursor-pointer flex items-center gap-2">
     <FaUpload />
     <span>파일 업로드</span>
-    <input
-      type="file"
-      className="hidden"
-      onChange={onUpload}
-    />
+    <input type="file" className="hidden" onChange={onUpload} />
   </label>
 );
 
@@ -125,7 +125,9 @@ const Dataroom = () => {
           router.push('/form/login');
         } else if (error.response?.status === 404) {
           console.error('API URL:', `${apiUrl}/api/files`);
-          alert('서버에 연결할 수 없습니다. 백엔드 서버가 실행 중인지 확인해주세요.');
+          alert(
+            '서버에 연결할 수 없습니다. 백엔드 서버가 실행 중인지 확인해주세요.',
+          );
         } else {
           alert('파일 목록을 불러오는데 실패했습니다.');
         }
@@ -165,12 +167,16 @@ const Dataroom = () => {
 
     try {
       setIsLoading(true);
-      const response = await axios.post(`${apiUrl}/api/files/upload`, formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data',
+      const response = await axios.post(
+        `${apiUrl}/api/files/upload`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+          },
         },
-      });
+      );
 
       if (response.data.success) {
         alert('파일이 성공적으로 업로드되었습니다.');
@@ -236,7 +242,7 @@ const Dataroom = () => {
     }
   };
 
-  // 🔥 presigned URL로 다운로드
+  // presigned URL로 다운로드
   const handleDownload = async (file: FileItem) => {
     const token = localStorage.getItem('token');
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -266,10 +272,14 @@ const Dataroom = () => {
   const getFileIcon = (fileType: string) => {
     const type = fileType.toLowerCase();
     if (type.includes('pdf')) return <FaFilePdf className="text-red-500" />;
-    if (type.includes('word') || type.includes('doc')) return <FaFileWord className="text-blue-500" />;
-    if (type.includes('excel') || type.includes('sheet') || type.includes('xls')) return <FaFileExcel className="text-green-500" />;
-    if (type.includes('image') || type.includes('jpg') || type.includes('png') || type.includes('gif')) return <FaFileImage className="text-purple-500" />;
-    if (type.includes('text') || type.includes('txt')) return <FaFileAlt className="text-gray-500" />;
+    if (type.includes('word') || type.includes('doc'))
+      return <FaFileWord className="text-blue-500" />;
+    if (type.includes('excel') || type.includes('sheet') || type.includes('xls'))
+      return <FaFileExcel className="text-green-500" />;
+    if (type.includes('image') || type.includes('jpg') || type.includes('png') || type.includes('gif'))
+      return <FaFileImage className="text-purple-500" />;
+    if (type.includes('text') || type.includes('txt'))
+      return <FaFileAlt className="text-gray-500" />;
     return <FaFile className="text-gray-500" />;
   };
 
@@ -278,9 +288,11 @@ const Dataroom = () => {
 
     if (lower.includes('pdf')) return 'PDF 문서';
     if (lower.includes('word') || lower.includes('doc')) return '워드 문서';
-    if (lower.includes('excel') || lower.includes('sheet') || lower.includes('xls')) return '엑셀 문서';
+    if (lower.includes('excel') || lower.includes('sheet') || lower.includes('xls'))
+      return '엑셀 문서';
     if (lower.includes('hwp')) return '한글 문서';
-    if (lower.includes('image') || lower.includes('jpg') || lower.includes('png') || lower.includes('gif')) return '이미지 파일';
+    if (lower.includes('image') || lower.includes('jpg') || lower.includes('png') || lower.includes('gif'))
+      return '이미지 파일';
     if (lower.includes('text') || lower.includes('txt')) return '텍스트 파일';
     return '기타 파일';
   };
@@ -308,10 +320,11 @@ const Dataroom = () => {
   const renderPagination = () => {
     const pages = [];
     const maxVisiblePages = 10;
-    
-    let startPage = Math.max(1, Math.floor((currentPage - 1) / maxVisiblePages) * maxVisiblePages + 1);
+
+    let startPage =
+      Math.max(1, Math.floor((currentPage - 1) / maxVisiblePages) * maxVisiblePages + 1);
     let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-    
+
     if (startPage > 1) {
       pages.push(
         <button
@@ -320,7 +333,7 @@ const Dataroom = () => {
           className="px-3 py-1 rounded hover:bg-slate-100"
         >
           ...
-        </button>
+        </button>,
       );
     }
 
@@ -330,13 +343,11 @@ const Dataroom = () => {
           key={i}
           onClick={() => handlePageChange(i)}
           className={`px-3 py-1 rounded ${
-            currentPage === i
-              ? 'bg-emerald-600 text-white'
-              : 'hover:bg-slate-100'
+            currentPage === i ? 'bg-emerald-600 text-white' : 'hover:bg-slate-100'
           }`}
         >
           {i}
-        </button>
+        </button>,
       );
     }
 
@@ -348,7 +359,7 @@ const Dataroom = () => {
           className="px-3 py-1 rounded hover:bg-slate-100"
         >
           ...
-        </button>
+        </button>,
       );
     }
 
@@ -359,7 +370,7 @@ const Dataroom = () => {
     <section className="w-full min-h-screen bg-slate-50 p-8 mt-30 mb-20">
       <div className="max-w-6xl mx-auto">
         <h1 className="text-3xl font-bold text-slate-800 mb-8">자료실</h1>
-        
+
         {/* 검색 및 업로드 영역 */}
         <div className="flex justify-between items-center mb-6">
           <div className="relative flex-1 max-w-md">
@@ -375,7 +386,7 @@ const Dataroom = () => {
             />
             <FaSearch className="absolute left-3 top-3 text-slate-400" />
           </div>
-          
+
           {isAdmin(user) && <UploadButton onUpload={handleFileUpload} />}
         </div>
 
@@ -386,7 +397,7 @@ const Dataroom = () => {
           </div>
         )}
 
-        {/* 파일 목록 */} 
+        {/* 파일 목록 */}
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
           <div className="grid grid-cols-12 gap-4 p-4 bg-slate-100 text-sm font-medium text-slate-600">
             <div className="col-span-5">파일명</div>
@@ -395,21 +406,32 @@ const Dataroom = () => {
             <div className="col-span-2">업로드 날짜</div>
             <div className="col-span-1">작업</div>
           </div>
-          
+
           <div className="divide-y divide-slate-200">
             {isLoading ? (
               <div className="p-4 text-center text-slate-500">로딩 중...</div>
             ) : files.length === 0 ? (
-              <div className="p-4 text-center text-slate-500">등록된 파일이 없습니다.</div>
+              <div className="p-4 text-center text-slate-500">
+                등록된 파일이 없습니다.
+              </div>
             ) : (
               files.map((file) => (
-                <div key={file.id} className="grid grid-cols-12 gap-4 p-4 items-center hover:bg-slate-50">
+                <div
+                  key={file.id}
+                  className="grid grid-cols-12 gap-4 p-4 items-center hover:bg-slate-50"
+                >
                   <div className="col-span-5 flex items-center gap-2">
                     {getFileIcon(file.type)}
-                    <span className="text-slate-700">{decodeFileName(file.name)}</span>
+                    <span className="text-slate-700">
+                      {decodeFileName(file.name)}
+                    </span>
                   </div>
-                  <div className="col-span-2 text-slate-600">{getFileTypeLabel(file.type)}</div>
-                  <div className="col-span-2 text-slate-600">{formatFileSize(file.size)}</div>
+                  <div className="col-span-2 text-slate-600">
+                    {getFileTypeLabel(file.type)}
+                  </div>
+                  <div className="col-span-2 text-slate-600">
+                    {formatFileSize(file.size)}
+                  </div>
                   <div className="col-span-2 text-slate-600">
                     {new Date(file.upload_date).toLocaleDateString()}
                   </div>
@@ -434,7 +456,6 @@ const Dataroom = () => {
             )}
           </div>
 
-          {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex justify-center items-center gap-2 p-4 border-t border-slate-200">
               {renderPagination()}

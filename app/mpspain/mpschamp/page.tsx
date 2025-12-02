@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image'; // 🔥 추가
+import Image from 'next/image';
 import { noticeService, Notice } from '@/app/services/noticeService';
 
 // 👤 사용자 타입
@@ -181,7 +181,7 @@ const MpsChamp = () => {
                 <div
                   key={item.id}
                   onClick={() => handleNoticeClick(item.id)}
-                  className="grid grid-cols-12 gap-4 py-3 hover:bg-gray-50 transition cursor-pointer border-b border-gray-100"
+                  className="grid grid-cols-12 items-center gap-4 py-3 hover:bg-gray-50 transition cursor-pointer border-b border-gray-100"
                 >
                   {/* 번호 */}
                   <div className="col-span-1 text-center text-sm text-gray-600">
@@ -191,13 +191,15 @@ const MpsChamp = () => {
                   {/* 중요 (이미지) */}
                   <div className="col-span-1 flex items-center justify-center">
                     {isImportant && (
-                      <Image
-                        src="/중요.png" // public/중요.png
-                        alt="중요 공지"
-                        width={60}
-                        height={18}
-                        className="object-contain"
-                      />
+                      <div className="h-5 flex items-center justify-center">
+                        <Image
+                          src="/중요.png" // public/중요.png
+                          alt="중요 공지"
+                          width={40}
+                          height={16}
+                          className="object-contain"
+                        />
+                      </div>
                     )}
                   </div>
 
