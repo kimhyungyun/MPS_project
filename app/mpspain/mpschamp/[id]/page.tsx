@@ -7,6 +7,27 @@ import { noticeService, Notice } from '@/app/services/noticeService';
 import styles from '../create/CreateNotice.module.css';
 import { getPresignedDownloadUrl } from '@/app/services/fileUpload';
 
+// .env 에서 NEXT_PUBLIC_FILE_BASE_URL 사용
+// 예) NEXT_PUBLIC_FILE_BASE_URL=media.mpspain.co.kr
+const RAW_BASE_URL = process.env.NEXT_PUBLIC_FILE_BASE_URL || '';
+
+const IMAGE_BASE_URL = RAW_BASE_URL
+  ? RAW_BASE_URL.startsWith('http')
+    ? RAW_BASE_URL
+    : `https://${RAW_BASE_URL}`
+  : '';
+
+const fixImageSrcInHtml = (html: string) => {
+  if (!html || !IMAGE_BASE_URL) return html;
+
+  // src 가 http/https/data:/절대경로(/) 로 시작하지 않는 경우만 prefix 붙임
+  // <img ... src="some/key.png">  →  <img ... src="https://도메인/some/key.png">
+  return html.replace(
+    /<img([^>]+)src="(?!https?:\/\/|data:|\/)([^"]+)"/g,
+    `<img$1src="${IMAGE_BASE_URL}/$2"`,
+  );
+};
+
 const NoticeDetail = () => {
   const router = useRouter();
   const params = useParams();
@@ -106,6 +127,9 @@ const NoticeDetail = () => {
   const isImportant =
     (notice as any).isImportant ?? (notice as any).is_important ?? false;
 
+  // 🔥 여기서 이미지 src 보정
+  const contentHtml = fixImageSrcInHtml(notice.content || '');
+
   return (
     <section className="w-full px-4 lg:px-24 py-12 bg-gradient-to-b from-gray-50 to-gray-100 mt-20 pt-20">
       <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
@@ -195,7 +219,7 @@ const NoticeDetail = () => {
 
         {/* 본문 */}
         <div className={`${styles.tiptap} prose max-w-none mb-8`}>
-          <div dangerouslySetInnerHTML={{ __html: notice.content }} />
+          <div dangerouslySetInnerHTML={{ __html: contentHtml }} />
         </div>
 
         {/* 첨부파일 */}
