@@ -7,7 +7,7 @@ import axios from 'axios';
 export default function LoginForm() {
   const [formData, setFormData] = useState({
     mb_id: '',
-    mb_password: ''
+    mb_password: '',
   });
   const [error, setError] = useState('');
   const router = useRouter();
@@ -17,18 +17,17 @@ export default function LoginForm() {
     setError('');
 
     try {
-        const response = await axios.post(
-         `${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`,
-         formData,
-          {
-           withCredentials: true,          
-           validateStatus: () => true,      
-            headers: {                       
-              'Content-Type': 'application/json'
-    }
-  }
-);
-
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`,
+        formData,
+        {
+          withCredentials: true,
+          validateStatus: () => true,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        },
+      );
 
       if (response.data.success) {
         const userData = response.data.data;
@@ -40,14 +39,31 @@ export default function LoginForm() {
         document.cookie = `user=${JSON.stringify(userData)}; path=/`;
         document.cookie = `token=${userData.access_token}; path=/`;
 
-        // mb_level이 8 이상이면 관리자 페이지로, 그렇지 않으면 메인 페이지로 이동
+        const needProfileUpdate = userData.needProfileUpdate === true;
+
+        // ✅ 추가 정보/동의가 필요한 경우 우선 이동
+        if (needProfileUpdate) {
+          console.log('Login - Redirecting to complete profile page');
+          setTimeout(() => {
+            window.location.href = '/member/complete-profile';
+          }, 100);
+          return;
+        }
+
+        // ✅ 그 외 기존 로직 유지
         if (userData.mb_level >= 8) {
-          console.log('Login - Redirecting to admin page, mb_level:', userData.mb_level);
+          console.log(
+            'Login - Redirecting to admin page, mb_level:',
+            userData.mb_level,
+          );
           setTimeout(() => {
             window.location.href = '/admin';
           }, 100);
         } else {
-          console.log('Login - Redirecting to main page, mb_level:', userData.mb_level);
+          console.log(
+            'Login - Redirecting to main page, mb_level:',
+            userData.mb_level,
+          );
           setTimeout(() => {
             window.location.href = '/';
           }, 100);
@@ -56,15 +72,18 @@ export default function LoginForm() {
         setError(response.data.message || '로그인에 실패했습니다.');
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || '로그인에 실패했습니다. 다시 시도해주세요.');
+      setError(
+        err.response?.data?.message ||
+          '로그인에 실패했습니다. 다시 시도해주세요.',
+      );
     }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
@@ -84,7 +103,10 @@ export default function LoginForm() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label htmlFor="mb_id" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="mb_id"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               아이디
             </label>
             <input
@@ -100,7 +122,10 @@ export default function LoginForm() {
           </div>
 
           <div>
-            <label htmlFor="mb_password" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="mb_password"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               비밀번호
             </label>
             <input
@@ -129,15 +154,15 @@ export default function LoginForm() {
                 회원가입
               </a>
             </p>
-              <div className="mt-2 flex items-center justify-center gap-4 text-sm text-gray-600">
-            <a href="/form/findid" className="hover:text-blue-700">
-            아이디 찾기
-            </a>
-            <span className="text-gray-300">|</span>
-            <a href="/form/findpassword" className="hover:text-blue-700">
-            비밀번호 찾기
-             </a>
-           </div>
+            <div className="mt-2 flex items-center justify-center gap-4 text-sm text-gray-600">
+              <a href="/form/findid" className="hover:text-blue-700">
+                아이디 찾기
+              </a>
+              <span className="text-gray-300">|</span>
+              <a href="/form/findpassword" className="hover:text-blue-700">
+                비밀번호 찾기
+              </a>
+            </div>
           </div>
         </form>
       </div>

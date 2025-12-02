@@ -53,15 +53,15 @@ export default function FindPasswordPage() {
         }
       );
 
-      if (response.data.success) {
+      if (response.data?.success) {
         setInfo('입력하신 휴대폰 번호로 인증번호를 전송했습니다.');
         setStep('verify');
       } else {
-        setError(response.data.message || '인증번호 전송에 실패했습니다.');
+        setError(response.data?.message || '인증번호 전송에 실패했습니다.');
       }
     } catch (err: any) {
       setError(
-        err.response?.data?.message ||
+        err?.response?.data?.message ||
           '인증번호 전송 중 오류가 발생했습니다. 다시 시도해주세요.'
       );
     } finally {
@@ -92,16 +92,16 @@ export default function FindPasswordPage() {
         }
       );
 
-      if (response.data.success && response.data.resetToken) {
+      if (response.data?.success && response.data?.resetToken) {
         setResetToken(response.data.resetToken);
         setInfo('인증이 완료되었습니다. 새 비밀번호를 설정해주세요.');
         setStep('reset');
       } else {
-        setError(response.data.message || '인증번호가 올바르지 않습니다.');
+        setError(response.data?.message || '인증번호가 올바르지 않습니다.');
       }
     } catch (err: any) {
       setError(
-        err.response?.data?.message ||
+        err?.response?.data?.message ||
           '인증번호 확인 중 오류가 발생했습니다. 다시 시도해주세요.'
       );
     } finally {
@@ -143,18 +143,20 @@ export default function FindPasswordPage() {
         }
       );
 
-      if (response.data.success) {
-        setInfo('비밀번호가 성공적으로 변경되었습니다.');
-        // 잠깐 보여준 뒤 로그인 페이지로 이동
+      if (response.data?.success) {
+        setError('');
+        setInfo('비밀번호가 성공적으로 변경되었습니다. 로그인 페이지로 이동합니다.');
+
+        // 1.5초 후 로그인 페이지로 자동 이동
         setTimeout(() => {
           router.push('/form/login');
         }, 1500);
       } else {
-        setError(response.data.message || '비밀번호 변경에 실패했습니다.');
+        setError(response.data?.message || '비밀번호 변경에 실패했습니다.');
       }
     } catch (err: any) {
       setError(
-        err.response?.data?.message ||
+        err?.response?.data?.message ||
           '비밀번호 변경 중 오류가 발생했습니다. 다시 시도해주세요.'
       );
     } finally {
