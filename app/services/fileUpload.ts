@@ -1,78 +1,48 @@
 // app/services/fileUpload.ts
 
-// .env 에서 NEXT_PUBLIC_API_URL = https://api.mpspain.co.kr 로 설정
+// .env 에는 이렇게 들어있다고 가정
+// NEXT_PUBLIC_API_URL=https://api.mpspain.co.kr
+// NEXT_PUBLIC_CLOUDFRONT_DOMAIN=media.mpspain.co.kr
+// NEXT_PUBLIC_S3_BUCKET_NAME=mpsnotices
+// NEXT_PUBLIC_S3_REGION=ap-northeast-2
+
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || 'https://api.mpspain.co.kr';
 
+// 🔥 Nest globalPrefix("api") 때문에 여기까지 포함
+const API_PREFIX = `${API_BASE_URL}/api`;
+
 export interface UploadedFileInfo {
   id?: number;
-  key: string;        // S3 object key
+  key: string;       // S3 object key
   fileName: string;
   fileSize?: number;
   mimeType?: string;
 }
 
-/** 공통 인증 헤더 */
-function getAuthHeader(): Record<string, string> {
-  if (typeof window === 'undefined') return {};
-  const token = localStorage.getItem('token'); // 🔥 기존과 동일하게 'token' 사용
-  if (!token) return {};
-  return { Authorization: `Bearer ${token}` };
-}
-
-/** 업로드 응답(normalize) */
-function normalizeUploadData(data: any, file: File): UploadedFileInfo {
-  const key: string =
-    data.key ||
-    data.s3_key ||
-    data.fileUrl ||
-    data.file_url ||
-    data.file_key ||
-    data.path ||
-    '';
-
-  if (!key) {
-    console.error('No S3 object key found in upload result:', data);
-    throw new Error('업로드 결과에 S3 key가 없습니다.');
-  }
-
-  let size: number | undefined;
-  if (typeof data.size === 'number') {
-    size = data.size;
-  } else if (typeof data.size === 'string') {
-    const parsed = parseInt(data.size, 10);
-    if (!Number.isNaN(parsed)) size = parsed;
-  }
-
-  return {
-    id: data.id,
-    key,
-    fileName:
-      data.name ||
-      data.fileName ||
-      data.originalName ||
-      file.name,
-    fileSize: size ?? file.size,
-    mimeType: data.mimeType || data.type || file.type,
-  };
+// 공통 토큰 헬퍼 (로그인 시 localStorage.setItem('token', ...) 기준)
+function getToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('token');
 }
 
 /**
- * 📁 자료실 / 일반 첨부파일 업로드
- *   POST /api/files/upload
+ * 📌 공지 첨부파일 / 자료실 파일 업로드
+ * → 백엔드: POST /api/files/upload  (dataroom 버킷 / File 테이블 기록)
  */
 export async function uploadFileToServer(
   file: File,
 ): Promise<UploadedFileInfo> {
   const formData = new FormData();
-  const encodedName = encodeURIComponent(file.name);
-  formData.append('file', file, encodedName);
+  formData.append('file', file);
 
-  const res = await fetch(`${API_BASE_URL}/api/files/upload`, {
+  const token = getToken();
+
+  const res = await fetch(`${API_PREFIX}/files/upload`, {
     method: 'POST',
     body: formData,
     headers: {
-      ...getAuthHeader(),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   });
 
@@ -84,55 +54,87 @@ export async function uploadFileToServer(
   const json = await res.json();
   const data = json.data ?? json;
 
-  return normalizeUploadData(data, file);
+  const key =
+    data.s3_key ||
+    data.key ||
+    data.fileUrl ||
+    data.file_key ||
+    data.path;
+
+  if (!key) {
+    console.error('No S3 object key found in upload result:', data);
+    throw new Error('업로드 결과에 S3 key가 없습니다.');
+  }
+
+  return {
+    id: data.id,
+    key,
+    fileName: data.name || data.fileName || file.name,
+    fileSize:
+      typeof data.size === 'string'
+        ? Number(data.size)
+        : data.size ?? file.size,
+    mimeType: data.type || data.mimeType || file.type,
+  };
 }
 
 /**
- * 🖼 공지 에디터 본문 이미지 업로드
- *   POST /api/files/notice-image
- *   (mpsnotices 버킷 사용)
+ * 📌 공지 에디터 "본문 이미지" 업로드
+ * → 백엔드: POST /api/files/notice-image  (mpsnotices 버킷, DB 기록 X)
+ *    반환: { success: true, data: { key, fileName, fileSize, mimeType } }
  */
 export async function uploadNoticeImageToServer(
   file: File,
 ): Promise<UploadedFileInfo> {
   const formData = new FormData();
-  const encodedName = encodeURIComponent(file.name);
-  formData.append('file', file, encodedName);
+  formData.append('file', file);
 
-  const res = await fetch(`${API_BASE_URL}/api/files/notice-image`, {
+  const token = getToken();
+
+  const res = await fetch(`${API_PREFIX}/files/notice-image`, {
     method: 'POST',
     body: formData,
     headers: {
-      ...getAuthHeader(),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   });
 
   if (!res.ok) {
     console.error('uploadNoticeImageToServer error:', await res.text());
-    throw new Error('이미지 업로드에 실패했습니다.');
+    throw new Error('공지 이미지 업로드에 실패했습니다.');
   }
 
   const json = await res.json();
   const data = json.data ?? json;
 
-  return normalizeUploadData(data, file);
+  if (!data.key) {
+    console.error('No S3 object key found in notice-image result:', data);
+    throw new Error('공지 이미지 업로드 결과에 key가 없습니다.');
+  }
+
+  return {
+    key: data.key,
+    fileName: data.fileName || file.name,
+    fileSize: data.fileSize ?? file.size,
+    mimeType: data.mimeType || file.type,
+  };
 }
 
 /**
- * 🔗 프리사인드 다운로드 URL
- *   GET /api/files/presigned?key=...
+ * 📌 프리사인드 다운로드 URL (자료실/첨부 다운로드용)
+ * → 백엔드: GET /api/files/presigned?key=...
  */
 export async function getPresignedDownloadUrl(
   key: string,
 ): Promise<string> {
-  const url = new URL(`${API_BASE_URL}/api/files/presigned`);
+  const token = getToken();
+
+  const url = new URL(`${API_PREFIX}/files/presigned`);
   url.searchParams.set('key', key);
 
   const res = await fetch(url.toString(), {
-    method: 'GET',
     headers: {
-      ...getAuthHeader(),
-      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   });
 
