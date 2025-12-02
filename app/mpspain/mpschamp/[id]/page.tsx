@@ -7,21 +7,25 @@ import { noticeService, Notice } from '@/app/services/noticeService';
 import styles from '../create/CreateNotice.module.css';
 import { getPresignedDownloadUrl } from '@/app/services/fileUpload';
 
-// .env 에서 NEXT_PUBLIC_FILE_BASE_URL 사용
-// 예) NEXT_PUBLIC_FILE_BASE_URL=media.mpspain.co.kr
-const RAW_BASE_URL = process.env.NEXT_PUBLIC_FILE_BASE_URL || '';
+// 🔥 S3/CloudFront 기본 URL
+// 1순위: NEXT_PUBLIC_FILE_BASE_URL
+// 2순위: NEXT_PUBLIC_CLOUDFRONT_DOMAIN
+// 3순위: 하드코딩 기본값
+const RAW_BASE_URL =
+  process.env.NEXT_PUBLIC_FILE_BASE_URL ||
+  process.env.NEXT_PUBLIC_CLOUDFRONT_DOMAIN ||
+  'https://media.mpspain.co.kr';
 
-const IMAGE_BASE_URL = RAW_BASE_URL
-  ? RAW_BASE_URL.startsWith('http')
-    ? RAW_BASE_URL
-    : `https://${RAW_BASE_URL}`
-  : '';
+const IMAGE_BASE_URL = RAW_BASE_URL.startsWith('http')
+  ? RAW_BASE_URL
+  : `https://${RAW_BASE_URL}`;
 
+// 🔧 notice.content 안의 <img src="..."> 경로를 절대경로로 보정
 const fixImageSrcInHtml = (html: string) => {
   if (!html || !IMAGE_BASE_URL) return html;
 
-  // src 가 http/https/data:/절대경로(/) 로 시작하지 않는 경우만 prefix 붙임
-  // <img ... src="some/key.png">  →  <img ... src="https://도메인/some/key.png">
+  // http/https/data:/ 또는 / 로 시작하지 않는 src 만 prefix 붙임
+  // <img ... src="some/key.png"> → <img ... src="https://도메인/some/key.png">
   return html.replace(
     /<img([^>]+)src="(?!https?:\/\/|data:|\/)([^"]+)"/g,
     `<img$1src="${IMAGE_BASE_URL}/$2"`,
@@ -127,7 +131,7 @@ const NoticeDetail = () => {
   const isImportant =
     (notice as any).isImportant ?? (notice as any).is_important ?? false;
 
-  // 🔥 여기서 이미지 src 보정
+  // 🔥 이미지 src 보정된 HTML
   const contentHtml = fixImageSrcInHtml(notice.content || '');
 
   return (
