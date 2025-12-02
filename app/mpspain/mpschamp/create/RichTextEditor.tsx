@@ -144,7 +144,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
     });
   };
 
-  // 🔥 이미지 업로드 + 에디터 삽입
+  // 이미지 업로드 + 에디터 삽입
   const insertEditorImage = async (file: File) => {
     if (!editor) return;
 
@@ -462,16 +462,20 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
             Img
           </button>
 
+          {/* 여러 이미지 업로드 + 본문에 여러 개 삽입 */}
           <input
             ref={imageInputRef}
             type="file"
             accept="image/*"
+            multiple
             className="hidden"
             onChange={async (e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
+              const files = Array.from(e.target.files ?? []);
+              if (!files.length) return;
               try {
-                await insertEditorImage(file);
+                for (const file of files) {
+                  await insertEditorImage(file);
+                }
               } finally {
                 e.target.value = '';
               }
@@ -495,32 +499,33 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
                     ? `${tableHoverSize.rows} × ${tableHoverSize.cols}`
                     : '표 크기 선택'}
                 </div>
-                  <div className="grid grid-cols-[repeat(18,1fr)] gap-0.5 w-[360px]">
-                    {Array.from({ length: 18 * 18 }).map((_, index) => {
-                      const row = Math.floor(index / 18) + 1;
-                      const col = (index % 18) + 1;
-                      const active =
-                        tableHoverSize.rows >= row &&
-                        tableHoverSize.cols >= col;
+                <div className="grid grid-cols-[repeat(18,1fr)] gap-0.5 w-[360px]">
+                  {Array.from({ length: 18 * 18 }).map((_, index) => {
+                    const row = Math.floor(index / 18) + 1;
+                    const col = (index % 18) + 1;
+                    const active =
+                      tableHoverSize.rows >= row &&
+                      tableHoverSize.cols >= col;
 
-                      return (
-                        <div
-                          key={index}
-                          onMouseEnter={() => setTableHoverSize({ rows: row, cols: col })}
-                          onClick={() => {
-                            insertTable(row, col);
-                            setIsTablePickerOpen(false);
-                          }}
-                          className={`h-5 w-5 border rounded-sm cursor-pointer ${
-                            active
-                              ? 'bg-blue-500 border-blue-500'
-                              : 'bg-white border-gray-300 hover:bg-gray-100'
-                          }`}
-                        />
-                      );
-                    })}
-                  </div>
-
+                    return (
+                      <div
+                        key={index}
+                        onMouseEnter={() =>
+                          setTableHoverSize({ rows: row, cols: col })
+                        }
+                        onClick={() => {
+                          insertTable(row, col);
+                          setIsTablePickerOpen(false);
+                        }}
+                        className={`h-5 w-5 border rounded-sm cursor-pointer ${
+                          active
+                            ? 'bg-blue-500 border-blue-500'
+                            : 'bg-white border-gray-300 hover:bg-gray-100'
+                        }`}
+                      />
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>

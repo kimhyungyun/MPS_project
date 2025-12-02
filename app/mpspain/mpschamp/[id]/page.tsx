@@ -1,4 +1,4 @@
-// app/mpspain/mpschamp/[id]/NoticeDetail.tsx (경로는 네 프로젝트 맞게 유지)
+// app/mpspain/mpschamp/[id]/NoticeDetail.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -55,7 +55,7 @@ const NoticeDetail = () => {
     }
   };
 
-  // 🔥 첨부파일 다운로드 (항상 다운로드 창 띄우기)
+  // 첨부파일 다운로드
   const handleDownload = async (e: React.MouseEvent, file: any) => {
     e.preventDefault();
 

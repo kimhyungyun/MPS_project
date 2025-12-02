@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image'; // 🔥 추가
 import { noticeService, Notice } from '@/app/services/noticeService';
 
 // 👤 사용자 타입
@@ -82,7 +83,7 @@ const MpsChamp = () => {
 
   // 중요 + 작성일(created_at) 순 정렬
   const sortedNotices = [...notices].sort((a, b) => {
-    // 🔥 isImportant / is_important 둘 다 대응
+    // isImportant / is_important 둘 다 대응
     const aImportant =
       (a as any).isImportant ?? (a as any).is_important ?? false;
     const bImportant =
@@ -171,7 +172,6 @@ const MpsChamp = () => {
         ) : (
           <div className="space-y-2">
             {sortedNotices.map((item, index) => {
-              // 🔥 디테일 페이지와 동일하게 중요 여부 계산
               const isImportant =
                 (item as any).isImportant ??
                 (item as any).is_important ??
@@ -188,12 +188,16 @@ const MpsChamp = () => {
                     {sortedNotices.length - index}
                   </div>
 
-                  {/* 중요 */}
+                  {/* 중요 (이미지) */}
                   <div className="col-span-1 flex items-center justify-center">
                     {isImportant && (
-                      <span className="px-2 py-1 text-xs font-medium text-red-600 bg-red-100 rounded">
-                        중요
-                      </span>
+                      <Image
+                        src="/중요.png" // public/중요.png
+                        alt="중요 공지"
+                        width={60}
+                        height={18}
+                        className="object-contain"
+                      />
                     )}
                   </div>
 

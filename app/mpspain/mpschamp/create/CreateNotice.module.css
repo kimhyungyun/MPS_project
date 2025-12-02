@@ -45,7 +45,7 @@
   width: auto;
 }
 
-/* 셀 — 한글 한 글자씩 줄바꿈 문제 방지 */
+/* 셀 — 한글 한 글자씩 줄바꿈 문제 방지 + 커서/리사이즈 준비 */
 .tiptap th,
 .tiptap td {
   border: 2px solid #d1d5db !important;
@@ -54,6 +54,10 @@
   background-color: #ffffff;
   vertical-align: middle;
   white-space: nowrap;
+
+  /* 표 안에서 텍스트 I 커서 말고 기본 커서 + 리사이즈 핸들용 position */
+  cursor: default;
+  position: relative;
 }
 
 .tiptap th p,
@@ -62,10 +66,56 @@
   white-space: normal;
 }
 
-/* --- 이미지 자동 크기 문제 방지 --- */
+/* 🔥 컬럼 리사이즈 핸들 (tiptap table resizable 핸들) */
+.tiptap table .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  cursor: col-resize; /* ← 여기서 마우스가 <-> 느낌으로 바뀜 */
+  background-color: transparent;
+}
+
+/* --- 이미지 자동 크기 문제 방지 ---
+   => width 는 건들지 않고, max-width만 잡아줘서
+   에디터에서 지정한 width(px, %) 그대로 유지되게 함
+*/
 .tiptap img {
   max-width: 100%;
   height: auto;
   display: block;
   margin: 0.5rem auto;
 }
+/* --- 동영상 자동 크기 문제 방지 --- */          
+
+.tiptap video {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0.5rem auto;
+}
+/* --- 첨부파일 링크 스타일 --- */
+.tiptap .attachment-link {      
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  background-color: #f3f4f6;
+  border-radius: 0.25rem;
+  text-decoration: none;
+  color: #1f2937;
+  font-weight: 500;
+  margin: 0.25rem 0;
+}
+
+.tiptap .attachment-link:hover {
+  background-color: #e5e7eb;
+}
+.tiptap .attachment-link .file-name {
+  margin-right: 0.5rem;
+}
+.tiptap .attachment-link .file-size {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+/* --- End of CreateNotice.module.css --- */
+

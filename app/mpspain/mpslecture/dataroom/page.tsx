@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, ChangeEvent } from 'react';
 import { 
   FaFilePdf, 
   FaUpload, 
@@ -18,10 +18,11 @@ import axios from 'axios';
 interface FileItem {
   id: number;
   name: string;
-  type: string;
-  size: string;
-  upload_date: string;
-  download_url: string;
+  type: string;          // mimeType
+  size: string;          // 문자열 (백엔드에서 toString 해서 내려줌)
+  upload_date: string;   // ISO 문자열
+
+  s3_key: string;        // 🔥 presigned 요청에 사용할 S3 key
   user?: {
     mb_nick: string;
   };
@@ -34,7 +35,7 @@ interface User {
   mb_level: number;
 }
 
-const UploadButton = ({ onUpload }: { onUpload: (event: React.ChangeEvent<HTMLInputElement>) => void }) => (
+const UploadButton = ({ onUpload }: { onUpload: (event: ChangeEvent<HTMLInputElement>) => void }) => (
   <label className="ml-4 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 cursor-pointer flex items-center gap-2">
     <FaUpload />
     <span>파일 업로드</span>
@@ -60,7 +61,6 @@ const Dataroom = () => {
   const router = useRouter();
 
   useEffect(() => {
-    // Check user authentication
     const userData = localStorage.getItem('user');
     if (!userData) {
       router.push('/form/login');
@@ -76,11 +76,12 @@ const Dataroom = () => {
     }
   }, [router]);
 
-  // 파일 목록 가져오기를 별도의 useEffect로 분리
+  // 파일 목록 가져오기
   useEffect(() => {
     if (user) {
       fetchFiles();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, currentPage, searchTerm]);
 
   const fetchFiles = async () => {
@@ -91,7 +92,7 @@ const Dataroom = () => {
       return;
     }
 
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL; // API URL을 환경변수에서 가져오기
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
     if (!apiUrl) {
       console.error('API URL is not defined');
       return;
@@ -102,11 +103,11 @@ const Dataroom = () => {
       const response = await axios.get(`${apiUrl}/api/files`, {
         params: {
           page: currentPage,
-          search: searchTerm || undefined
+          search: searchTerm || undefined,
         },
         headers: {
-          'Authorization': `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       if (response.data.success) {
@@ -136,7 +137,7 @@ const Dataroom = () => {
     }
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     if (!user || user.mb_level < 8) {
       alert('관리자만 파일을 업로드할 수 있습니다.');
       return;
@@ -156,7 +157,7 @@ const Dataroom = () => {
     const encodedFileName = encodeURIComponent(file.name);
     formData.append('file', file, encodedFileName);
 
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL; // API URL을 환경변수에서 가져오기
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
     if (!apiUrl) {
       console.error('API URL is not defined');
       return;
@@ -166,14 +167,13 @@ const Dataroom = () => {
       setIsLoading(true);
       const response = await axios.post(`${apiUrl}/api/files/upload`, formData, {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
-        }
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
       });
 
       if (response.data.success) {
         alert('파일이 성공적으로 업로드되었습니다.');
-        // 파일 업로드 후 현재 페이지의 파일 목록 다시 가져오기
         await fetchFiles();
       } else {
         alert(response.data.message || '파일 업로드에 실패했습니다.');
@@ -194,7 +194,6 @@ const Dataroom = () => {
   const decodeFileName = (name: string) => {
     try {
       const decodedName = decodeURIComponent(name);
-      // 확장자 제거
       return decodedName.replace(/\.[^/.]+$/, '');
     } catch (e) {
       return name.replace(/\.[^/.]+$/, '');
@@ -209,7 +208,7 @@ const Dataroom = () => {
 
     if (!confirm('정말로 이 파일을 삭제하시겠습니까?')) return;
 
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL; // API URL을 환경변수에서 가져오기
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
     if (!apiUrl) {
       console.error('API URL is not defined');
       return;
@@ -219,13 +218,12 @@ const Dataroom = () => {
       setIsLoading(true);
       const response = await axios.delete(`${apiUrl}/api/files/${fileId}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
       });
 
       if (response.data.success) {
         alert('파일이 성공적으로 삭제되었습니다.');
-        // 파일 삭제 후 현재 페이지의 파일 목록 다시 가져오기
         await fetchFiles();
       } else {
         alert(response.data.message || '파일 삭제에 실패했습니다.');
@@ -235,6 +233,33 @@ const Dataroom = () => {
       alert('파일 삭제에 실패했습니다.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // 🔥 presigned URL로 다운로드
+  const handleDownload = async (file: FileItem) => {
+    const token = localStorage.getItem('token');
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+    if (!token || !apiUrl) {
+      alert('로그인이 필요합니다.');
+      router.push('/form/login');
+      return;
+    }
+
+    try {
+      const res = await axios.get(`${apiUrl}/api/files/presigned`, {
+        params: { key: file.s3_key },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const url = res.data.data.url as string;
+      window.location.href = url;
+    } catch (error) {
+      console.error('Failed to get presigned url:', error);
+      alert('파일 다운로드에 실패했습니다.');
     }
   };
 
@@ -273,7 +298,6 @@ const Dataroom = () => {
       unitIndex++;
     }
 
-    // 소수점 1자리까지 표시
     return `${value.toFixed(1)} ${units[unitIndex]}`;
   };
 
@@ -346,7 +370,7 @@ const Dataroom = () => {
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
-                setCurrentPage(1); // 검색 시 첫 페이지로 이동
+                setCurrentPage(1);
               }}
             />
             <FaSearch className="absolute left-3 top-3 text-slate-400" />
@@ -390,13 +414,12 @@ const Dataroom = () => {
                     {new Date(file.upload_date).toLocaleDateString()}
                   </div>
                   <div className="col-span-1 flex items-center gap-2">
-                    <a
-                      href={`${process.env.NEXT_PUBLIC_API_URL}${file.download_url}`} // 경로 수정
-                      download
+                    <button
+                      onClick={() => handleDownload(file)}
                       className="text-emerald-600 hover:text-emerald-700 text-sm"
                     >
                       다운로드
-                    </a>
+                    </button>
                     {isAdmin(user) && (
                       <button
                         onClick={() => handleDeleteFile(file.id)}
