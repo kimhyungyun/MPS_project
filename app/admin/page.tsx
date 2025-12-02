@@ -175,6 +175,26 @@ export default function AdminPage() {
               <h3 className="text-lg font-medium text-gray-900">문의 관리</h3>
               <p className="mt-2 text-sm text-gray-500">문의사항 답변 관리</p>
             </button>
+
+              <button
+                onClick={() => router.push('/admin/lauthority')}
+                className="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow"
+              >
+                <h3 className="text-lg font-medium text-gray-900">기기 관리</h3>
+                <p className="mt-2 text-sm text-gray-500">
+                  계정별 등록된 기기 확인 및 초기화
+                </p>
+              </button>
+
+                <button
+                onClick={() => router.push('/admin/videoauthority')}
+                className="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow"
+              >
+                <h3 className="text-lg font-medium text-gray-900">동영상 권한 관리</h3>
+                <p className="mt-2 text-sm text-gray-500">
+                  회원별 동영상 권한 관리
+                </p>
+              </button>
           </div>
         </div>
       </div>
