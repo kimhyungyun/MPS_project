@@ -8,7 +8,7 @@ import { Autoplay, Pagination } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
 
-const images = ["/테스트이미지2.png", "/메인사진모바일사진.jpg"];
+const images = ["/테스트이미지2.png", "/메인모바일사진.jpg"];
 
 export default function MobileHero() {
   const [swiper, setSwiper] = useState<any>(null);
