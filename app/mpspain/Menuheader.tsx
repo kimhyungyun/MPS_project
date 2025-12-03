@@ -148,7 +148,7 @@ const Header = () => {
             <div className="grid grid-cols-3 place-items-center">
               {menuData.map((menu) => (
                 <div key={menu.title} className="text-center">
-                  <ul className="space-y-4 font-pretendard text-sm font-medium">
+                  <ul className="space-y-8 font-pretendard text-sm font-medium">
                     {menu.submenu.map((sub) => (
                       <li key={sub.href}>
                         <Link href={sub.href}>{sub.title}</Link>
