@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { menuData } from "@/types/menudata";
-import { useRouter } from "next/navigation";
 
 interface User {
   mb_id: string;
@@ -20,7 +19,6 @@ interface Props {
 
 export default function DesktopHeader({ user, handleLogout }: Props) {
   const [isScrolled, setIsScrolled] = useState(false);
-  const router = useRouter();
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 10);
@@ -41,7 +39,7 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
       <div className="flex items-center justify-between max-w-6xl mx-auto h-[100px] px-6">
 
         {/* 로고 */}
-        <Link href="/" className="flex items-center w-52 shrink-0">
+        <Link href="/" className="flex items-center w-40 lg:w-52 shrink-0">
           <Image
             src="/빈배경로고.png"
             alt="로고"
@@ -56,24 +54,27 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
         <nav className="flex-1 flex justify-center">
           <ul
             className="
-              grid grid-cols-3 gap-12
+              grid grid-cols-3
+              gap-4 lg:gap-8 xl:gap-12
               font-pretendard font-medium
-              text-base lg:text-lg xl:text-xl
+              text-xs md:text-sm lg:text-base xl:text-lg 2xl:text-xl
               place-items-center
             "
           >
-            <li>
+            <li className="whitespace-nowrap">
               <Link href="/mpspain/introduction">연구회 소개</Link>
             </li>
-            <li>
+            <li className="whitespace-nowrap">
               <Link href="/mpspain/mpschamp">MPS 회원 광장</Link>
             </li>
-            <li>MPS 강좌</li>
+            <li className="whitespace-nowrap">
+              MPS 강좌
+            </li>
           </ul>
         </nav>
 
         {/* 로그인 영역 */}
-        <div className="flex w-52 items-center justify-end gap-2 text-xs font-pretendard text-gray-700">
+        <div className="flex w-40 lg:w-52 items-center justify-end gap-2 text-[11px] md:text-xs font-pretendard text-gray-700">
           {user ? (
             <>
               <Link
