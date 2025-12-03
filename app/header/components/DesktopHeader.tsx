@@ -1,106 +1,147 @@
-"use client";
+ "use client";
 
-import { useState } from "react";
+import { useState, useEffect, FC } from "react";
+import Link from "next/link";
 import Image from "next/image";
-import { Swiper, SwiperSlide } from "swiper/react";
-import { Autoplay, Pagination } from "swiper/modules";
+import { menuData } from "@/types/menudata";
 
-import "swiper/css";
-import "swiper/css/pagination";
+export interface User {
+  mb_id: string;
+  mb_name: string;
+  mb_nick: string;
+  mb_level: number;
+}
 
-// 1번: 빈 배경 + 텍스트
-// 2,3번: 이미지 슬라이드 (텍스트/블러 없음)
-const slides = [
-  { type: "blank" as const },
-  { type: "image" as const, src: "/메인이미지.jpg" },
-  { type: "image" as const, src: "/메인사진1.jpg" },
-];
+export interface DesktopHeaderProps {
+  user: User | null;
+  handleLogout: () => void;
+}
 
-export default function DesktopHero() {
-  const [swiper, setSwiper] = useState<any>(null);
-  const [paused, setPaused] = useState(false);
+const DesktopHeader: FC<DesktopHeaderProps> = ({ user, handleLogout }) => {
+  const [isScrolled, setIsScrolled] = useState(false);
 
-  const toggleAutoplay = () => {
-    if (!swiper) return;
-
-    if (paused) {
-      swiper.autoplay.start();
-      setPaused(false);
-    } else {
-      swiper.autoplay.stop();
-      setPaused(true);
-    }
-  };
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 10);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   return (
-    // 헤더 높이는 레이아웃에서 pt-[100px] 같은 걸로 보정하고, 여기선 h-screen만 사용
-    <section className="relative w-full h-screen overflow-hidden hidden md:block">
-      <Swiper
-        modules={[Autoplay, Pagination]}
-        loop
-        autoplay={{
-          delay: 8000,
-          disableOnInteraction: false,
-        }}
-        pagination={{ clickable: true }}
-        onSwiper={setSwiper}
-        className="w-full h-full"
-      >
-        {slides.map((slide, idx) => (
-          <SwiperSlide key={idx}>
-            <div className="relative w-full h-full">
-              {/* 1번 슬라이드: 빈 배경 + 텍스트 + 블러 */}
-              {slide.type === "blank" && (
-                <>
-                  {/* 배경: 단색/그라데이션 (원하면 색만 바꿔도 됨) */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-blue-900 via-blue-700 to-indigo-500" />
+    <header
+      className={`
+        hidden md:block fixed top-0 left-0 w-full z-50 transition-all duration-300 group
+        ${isScrolled ? "bg-white/90 backdrop-blur shadow-md" : "bg-white/90 backdrop-blur"}
+        border-b border-gray-200
+      `}
+    >
+      {/* 상단 헤더 바 */}
+      <div className="flex items-center justify-between max-w-6xl mx-auto h-[110px] px-8">
+        {/* 로고 */}
+        <Link href="/" className="flex items-center w-44 lg:w-56 shrink-0">
+          <Image
+            src="/빈배경로고.png"
+            alt="로고"
+            width={190}
+            height={80}
+            className="object-contain"
+            priority
+          />
+        </Link>
 
-                  {/* 살짝 어둡게 */}
-                  <div className="absolute inset-0 bg-black/20" />
+        {/* 중앙 메뉴 */}
+        <nav className="flex-1 flex justify-center">
+          <ul
+            className="
+              grid grid-cols-3
+              gap-8 lg:gap-16 xl:gap-24
+              font-pretendard font-semibold
+              text-sm md:text-base lg:text-lg xl:text-xl
+              place-items-center
+            "
+          >
+            <li className="whitespace-nowrap">
+              <Link href="/mpspain/introduction">연구회 소개</Link>
+            </li>
+            <li className="whitespace-nowrap">
+              <Link href="/mpspain/mpschamp">MPS 회원 광장</Link>
+            </li>
+            <li className="whitespace-nowrap">MPS 강좌</li>
+          </ul>
+        </nav>
 
-                  {/* 텍스트 */}
-                  <div className="absolute inset-0 z-10 flex items-center">
-                    <div className="w-full max-w-6xl mx-auto px-12">
-                      <h1 className="text-5xl lg:text-6xl font-extrabold text-white leading-tight">
-                        MPS 연구회
-                      </h1>
-                      <p className="mt-4 text-2xl text-white/90">
-                        전문적인 의료진과 함께하는 MPS 연구회
-                      </p>
-                    </div>
-                  </div>
-                </>
-              )}
+        {/* 로그인 영역 */}
+        <div
+          className="
+            flex items-center justify-end
+            w-44 lg:w-56
+            gap-1 lg:gap-2
+            text-[10px] lg:text-xs xl:text-sm
+            font-pretendard text-gray-700
+            whitespace-nowrap
+          "
+        >
+          {user ? (
+            <>
+              <Link
+                href={user.mb_level >= 8 ? "/admin" : "/mypage"}
+                className="hover:text-blue-600 font-medium"
+              >
+                {user.mb_name}
+              </Link>
+              <span>님 반갑습니다!</span>
+              <button
+                onClick={handleLogout}
+                className="hover:text-blue-600 font-medium"
+              >
+                로그아웃
+              </button>
+            </>
+          ) : (
+            <Link
+              href="/form/login"
+              className="hover:text-blue-600 font-medium"
+            >
+              로그인
+            </Link>
+          )}
+        </div>
+      </div>
 
-              {/* 2,3번: 이미지 슬라이드 (텍스트/블러 없음) */}
-              {slide.type === "image" && slide.src && (
-                <Image
-                  src={slide.src}
-                  alt={`메인 이미지 ${idx}`}
-                  fill
-                  priority={idx === 1} // 첫 이미지 슬라이드만 priority
-                  className="object-cover object-center"
-                />
-              )}
-            </div>
-          </SwiperSlide>
-        ))}
-      </Swiper>
-
-      {/* ▶️⏸ 버튼 */}
-      <button
-        onClick={toggleAutoplay}
+      {/* 드롭다운 전체 메뉴 */}
+      <div
         className="
-          absolute bottom-6 right-6 z-20
-          bg-black/50 text-white rounded-full
-          w-10 h-10 flex items-center justify-center
-          backdrop-blur-sm
-          hover:bg-black/70
-          transition
+          absolute left-0 top-full w-full 
+          bg-white/95 backdrop-blur shadow-md 
+          opacity-0 invisible 
+          group-hover:opacity-100 group-hover:visible 
+          transition-all duration-300
         "
       >
-        {paused ? "▶" : "⏸"}
-      </button>
-    </section>
+        <div className="flex justify-center py-8">
+          <div className="max-w-6xl w-full px-8">
+            <div className="grid grid-cols-3 gap-12">
+              {menuData.map((menu) => (
+                <div key={menu.title} className="text-left">
+                  <ul className="space-y-3 font-medium text-base lg:text-lg text-gray-800">
+                    {menu.submenu.map((sub) => (
+                      <li key={sub.href}>
+                        <Link
+                          href={sub.href}
+                          className="hover:text-blue-600 transition-colors"
+                        >
+                          {sub.title}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
   );
-}
+};
+
+export default DesktopHeader;

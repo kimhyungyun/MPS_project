@@ -1,54 +1,91 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
+import { FC, useState } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import MobileMenu from "./MobileMenu";
+import type { User } from "./DesktopHeader";
 
-export default function MobileHeader({ user, handleLogout }: any) {
-  const [open, setOpen] = useState(false);
+export interface MobileHeaderProps {
+  user: User | null;
+  handleLogout: () => void;
+}
+
+const MobileHeader: FC<MobileHeaderProps> = ({ user, handleLogout }) => {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const router = useRouter();
 
   return (
-    <header className="block md:hidden fixed top-0 left-0 w-full h-[64px] bg-white/90 backdrop-blur border-b border-gray-200 z-50">
-      <div className="flex items-center justify-between h-full">
-
+    <header className="md:hidden fixed top-0 left-0 w-full z-50 border-b border-gray-200 bg-white/90 backdrop-blur">
+      <div className="flex justify-between items-center w-full h-[64px] px-4 max-w-6xl mx-auto">
         {/* 로고 */}
-        <Link href="/">
+        <Link href="/" className="flex items-center">
           <Image
             src="/빈배경로고.png"
             alt="로고"
-            width={120}
-            height={50}
+            width={130}
+            height={60}
             className="object-contain"
+            priority
           />
         </Link>
 
-        {/* 로그인 + 햄버거 */}
+        {/* 오른쪽 영역 */}
         <div className="flex items-center gap-2">
           {user ? (
-            <Link href="/mypage" className="text-[11px] text-gray-700">
-              {user.mb_name} 님
-            </Link>
+            <div className="flex items-center gap-2 text-[11px] text-gray-700 font-pretendard">
+              <button
+                onClick={() =>
+                  router.push(user.mb_level >= 8 ? "/admin" : "/mypage")
+                }
+              >
+                {user.mb_name} 님
+              </button>
+              <button onClick={handleLogout} className="underline">
+                로그아웃
+              </button>
+            </div>
           ) : (
-            <Link href="/form/login" className="text-[11px] text-gray-700">
+            <button
+              onClick={() => router.push("/form/login")}
+              className="text-[11px] text-gray-700 font-pretendard"
+            >
               로그인
-            </Link>
+            </button>
           )}
 
           {/* 햄버거 */}
           <button
-            onClick={() => setOpen(!open)}
-            className="flex flex-col justify-center items-center h-8 w-8 gap-1 border border-gray-300 rounded-md bg-white/70"
+            onClick={() => setIsMobileMenuOpen((prev) => !prev)}
+            className="flex flex-col items-center justify-center h-8 w-8 gap-1.5 border border-gray-300 rounded-md bg-white/70"
           >
-            <span className={`h-[2px] w-4 bg-gray-800 rounded transition ${open ? "rotate-45 translate-y-[5px]" : ""}`} />
-            <span className={`h-[2px] w-4 bg-gray-800 rounded transition ${open ? "opacity-0" : ""}`} />
-            <span className={`h-[2px] w-4 bg-gray-800 rounded transition ${open ? "-rotate-45 -translate-y-[5px]" : ""}`} />
+            <span
+              className={`block h-[2px] w-4 rounded bg-gray-800 transition-transform ${
+                isMobileMenuOpen ? "translate-y-[5px] rotate-45" : ""
+              }`}
+            />
+            <span
+              className={`block h-[2px] w-4 rounded bg-gray-800 transition-opacity ${
+                isMobileMenuOpen ? "opacity-0" : "opacity-100"
+              }`}
+            />
+            <span
+              className={`block h-[2px] w-4 rounded bg-gray-800 transition-transform ${
+                isMobileMenuOpen ? "-translate-y-[5px] -rotate-45" : ""
+              }`}
+            />
           </button>
         </div>
       </div>
 
-      {/* 모바일 메뉴 */}
-      <MobileMenu user={user} isOpen={open} onClose={() => setOpen(false)} />
+      <MobileMenu
+        user={user}
+        isOpen={isMobileMenuOpen}
+        onClose={() => setIsMobileMenuOpen(false)}
+      />
     </header>
   );
-}
+};
+
+export default MobileHeader;

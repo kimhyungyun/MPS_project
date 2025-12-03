@@ -1,25 +1,46 @@
 "use client";
 
-import DesktopHeader from "./components/DesktopHeader";
-import MobileHeader from "./components/MobileHeader";
 import { useState, useEffect } from "react";
 import axios, { AxiosError } from "axios";
+import DesktopHeader, {
+  type User as HeaderUser,
+} from "./components/DesktopHeader";
+import MobileHeader from "./components/MobileHeader";
 
-export default function Header() {
-  const [user, setUser] = useState<any>(null);
+export default function HeaderPage() {
+  const [user, setUser] = useState<HeaderUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (!token) return;
+    if (!token) {
+      setIsLoading(false);
+      return;
+    }
 
     const fetchUser = async () => {
       try {
-        const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/profile`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/auth/profile`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+            withCredentials: true,
+            timeout: 5000,
+          }
+        );
 
         if (res.data.success) setUser(res.data.data);
-      } catch (error) {}
+      } catch (error) {
+        if (error instanceof AxiosError) {
+          if (error.response?.status === 401 || error.code === "ECONNABORTED") {
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+            setUser(null);
+          }
+        }
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     fetchUser();
@@ -31,16 +52,16 @@ export default function Header() {
     setUser(null);
   };
 
+  if (isLoading) {
+    // 필요하면 로딩상태 처리, 아니면 바로 헤더 렌더링해도 됨
+  }
+
   return (
     <>
-      {/* Desktop */}
       <DesktopHeader user={user} handleLogout={handleLogout} />
-
-      {/* Mobile */}
       <MobileHeader user={user} handleLogout={handleLogout} />
-      
-      {/* 페이지 컨텐츠는 헤더 아래로 밀리게 */}
-      {/* <div className="h-[64px] md:h-[100px]" /> */}
+      {/* 필요하면 헤더 높이만큼 여백 */}
+      {/* <div className="h-[64px] md:h-[110px]" /> */}
     </>
   );
 }
