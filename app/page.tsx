@@ -1,6 +1,7 @@
 "use client"
 
-import Firstpage from "./main/first/Firstpage";
+
+import Hero from "./main/firstpage/Firstpage";
 import Secondpage from "./main/second/Secondpage";
 
 
@@ -8,7 +9,7 @@ export default function Home() {
   return (
     <>
     <section>
-     <Firstpage/>
+     <Hero/>
      </section>
  {/* 
      <section>
