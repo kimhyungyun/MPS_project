@@ -52,7 +52,7 @@ export default function ProfileIntro() {
   return (
     <section className="w-full min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
       {/* 헤더 섹션 */}
-      <div className="w-full bg-white mt-8">
+      <div className="w-full bg-white">
         <div className="max-w-7xl mx-auto px-4 lg:px-24 py-16">
           <div className="space-y-4">
             <h1 className="text-4xl font-bold text-gray-800">
