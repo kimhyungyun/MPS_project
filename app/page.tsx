@@ -7,7 +7,7 @@ import Secondpage from "./main/second/Secondpage";
 export default function Home() {
   return (
     <>
-    <section className="margin-top-20px">
+    <section>
      <Firstpage/>
      </section>
  {/* 
