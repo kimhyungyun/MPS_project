@@ -8,14 +8,14 @@ import "swiper/css";
 import "swiper/css/pagination";
 
 const images = ["/메인사진1.jpg", "/메인사진2.jpg"];
-const HEADER_HEIGHT = 72; // 레이아웃에서 헤더 padding-top이랑 맞춰서 사용
+const HEADER_HEIGHT = 72; // 레이아웃 main padding-top이랑 맞추기
 
 const Firstpage = () => {
   return (
     <section
       className="relative w-full overflow-hidden"
       style={{
-        minHeight: `calc(100vh - ${HEADER_HEIGHT}px)`, // 헤더 높이 뺀 만큼 화면 채우기
+        height: `calc(100vh - ${HEADER_HEIGHT}px)`, // ★ 실제 높이 지정
       }}
     >
       <Swiper
@@ -31,7 +31,7 @@ const Firstpage = () => {
         {images.map((src, index) => (
           <SwiperSlide key={src}>
             <div className="relative w-full h-full">
-              {/* 사진: 위쪽 기준으로 채우기 (object-top) */}
+              {/* 사진: 위쪽 기준으로 채우기 */}
               <Image
                 src={src}
                 alt={`메인 이미지 ${index + 1}`}
