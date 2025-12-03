@@ -86,33 +86,50 @@ export default function MobileMenu({ user, isOpen, onClose }: Props) {
           )}
         </div>
 
-        {/* 메인 메뉴 - 빠른 이동 */}
-        <div>
-          <p className="mb-2 text-[11px] font-semibold text-gray-500">
-            빠른 이동
-          </p>
+          {/* 메인 메뉴 - 빠른 이동 */}
+          <div>
+            <p className="mb-2 text-[11px] font-semibold text-gray-500">
+              빠른 이동
+            </p>
 
-          <div className="grid grid-cols-3 gap-2 text-[13px] font-pretendard font-medium">
-            <button
-              className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-center text-gray-800 shadow-sm active:scale-[0.98] transition"
-              onClick={() => handleLink("/mpspain/introduction")}
-            >
-              연구회 소개
-            </button>
-            <button
-              className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-center text-gray-800 shadow-sm active:scale-[0.98] transition"
-              onClick={() => handleLink("/mpspain/mpschamp")}
-            >
-              정회원 캠프안내
-            </button>
-            <button
-              className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-center text-gray-800 shadow-sm active:scale-[0.98] transition"
-              onClick={() => handleLink("/mpspain/lecture")}
-            >
-              MPS 강의 듣기
-            </button>
+            <div className="grid grid-cols-3 gap-2 text-[13px] font-pretendard font-medium">
+              <button
+                className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-gray-800 shadow-sm active:scale-[0.98] transition"
+                onClick={() => handleLink("/mpspain/introduction")}
+              >
+                <img
+                  src="/빈배경로고.png"
+                  alt=""
+                  className="w-4 h-4 md:w-5 md:h-5 object-contain"
+                />
+                <span>연구회 소개</span>
+              </button>
+
+              <button
+                className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-gray-800 shadow-sm active:scale-[0.98] transition"
+                onClick={() => handleLink("/mpspain/mpschamp")}
+              >
+                <img
+                  src="/빈배경로고.png"
+                  alt=""
+                  className="w-4 h-4 md:w-5 md:h-5 object-contain"
+                />
+                <span>정회원 캠프안내</span>
+              </button>
+
+              <button
+                className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-gray-800 shadow-sm active:scale-[0.98] transition"
+                onClick={() => handleLink("/mpspain/lecture")}
+              >
+                <img
+                  src="/빈배경로고.png"
+                  alt=""
+                  className="w-4 h-4 md:w-5 md:h-5 object-contain"
+                />
+                <span>MPS 강의 듣기</span>
+              </button>
+            </div>
           </div>
-        </div>
 
         <div className="h-px bg-gray-200" />
 
