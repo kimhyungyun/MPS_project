@@ -33,7 +33,7 @@ export default function MobileHero() {
         modules={[Autoplay, Pagination]}
         loop
         autoplay={{
-          delay: 4000,
+          delay: 8000,
           disableOnInteraction: false,
         }}
         pagination={{ clickable: true }}

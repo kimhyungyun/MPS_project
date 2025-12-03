@@ -33,7 +33,7 @@ export default function DesktopHero() {
         modules={[Autoplay, Pagination]}
         loop
         autoplay={{
-          delay: 5000,
+          delay: 8000,
           disableOnInteraction: false,
         }}
         pagination={{ clickable: true }}

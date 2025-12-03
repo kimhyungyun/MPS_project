@@ -36,15 +36,15 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
       `}
     >
       {/* 상단 헤더 바 */}
-      <div className="flex items-center justify-between max-w-6xl mx-auto h-[100px] px-6">
+      <div className="flex items-center justify-between max-w-6xl mx-auto h-[110px] px-8">
 
         {/* 로고 */}
-        <Link href="/" className="flex items-center w-40 lg:w-52 shrink-0">
+        <Link href="/" className="flex items-center w-44 lg:w-56 shrink-0">
           <Image
             src="/빈배경로고.png"
             alt="로고"
-            width={170}
-            height={70}
+            width={190}
+            height={80}
             className="object-contain"
             priority
           />
@@ -55,9 +55,9 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
           <ul
             className="
               grid grid-cols-3
-              gap-4 lg:gap-8 xl:gap-12
-              font-pretendard font-medium
-              text-xs md:text-sm lg:text-base xl:text-lg 2xl:text-xl
+              gap-8 lg:gap-16 xl:gap-24
+              font-pretendard font-semibold
+              text-sm md:text-base lg:text-lg xl:text-xl
               place-items-center
             "
           >
@@ -74,64 +74,73 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
         </nav>
 
         {/* 로그인 영역 */}
-        <div className="flex w-40 lg:w-52 items-center justify-end gap-2 text-[11px] md:text-xs font-pretendard text-gray-700">
+        <div className="flex items-center justify-end w-44 lg:w-56 gap-2 text-sm font-pretendard text-gray-700">
           {user ? (
             <>
               <Link
                 href={user.mb_level >= 8 ? "/admin" : "/mypage"}
-                className="hover:text-blue-600"
+                className="hover:text-blue-600 font-medium"
               >
                 {user.mb_name}
               </Link>
               <span>님 반갑습니다!</span>
               <button
                 onClick={handleLogout}
-                className="hover:text-blue-600"
+                className="hover:text-blue-600 font-medium"
               >
                 로그아웃
               </button>
             </>
           ) : (
-            <Link href="/form/login" className="hover:text-blue-600">
+            <Link href="/form/login" className="hover:text-blue-600 font-medium">
               로그인
             </Link>
           )}
         </div>
       </div>
 
-          <div
-            className="
-              absolute left-0 top-full w-full 
-              bg-white/95 backdrop-blur shadow-md 
-              opacity-0 invisible 
-              group-hover:opacity-100 group-hover:visible 
-              transition-all duration-300
-            "
-          >
-            <div className="flex justify-center py-12">
-              <div className="max-w-3xl w-full">
-                
-                {/* 컬럼: 위쪽 정렬, 일정 너비 유지 */}
-                <div className="grid grid-cols-3 place-items-start gap-12">
+      {/* 드롭다운 전체 메뉴 */}
+      <div
+        className="
+          absolute left-0 top-full w-full 
+          bg-white/95 backdrop-blur shadow-md 
+          opacity-0 invisible 
+          group-hover:opacity-100 group-hover:visible 
+          transition-all duration-300
+        "
+      >
+        <div className="flex justify-center py-8">
+          <div className="max-w-4xl w-full px-6">
 
-                  {menuData.map((menu) => (
-                    <div key={menu.title}>
-                      <ul className="space-y-4 font-pretendard font-medium text-base lg:text-lg">
-                        {menu.submenu.map((sub) => (
-                          <li key={sub.href}>
-                            <Link href={sub.href}>
-                              {sub.title}
-                            </Link>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
+            {/* 메뉴 3열 그리드 */}
+            <div className="grid grid-cols-3 gap-12">
+
+              {menuData.map((menu) => (
+                <div key={menu.title} className="text-left">
+
+                  {/* 섹션 제목 */}
+                  <p className="text-sm font-semibold text-gray-600 mb-4">
+                    {menu.title}
+                  </p>
+
+                  {/* 항목 리스트 */}
+                  <ul className="space-y-3 font-medium text-base lg:text-lg text-gray-800">
+                    {menu.submenu.map((sub) => (
+                      <li key={sub.href}>
+                        <Link href={sub.href} className="hover:text-blue-600 transition-colors">
+                          {sub.title}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
 
                 </div>
-              </div>
+              ))}
+
             </div>
           </div>
+        </div>
+      </div>
 
     </header>
   );
