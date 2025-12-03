@@ -23,14 +23,18 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 10);
     window.addEventListener("scroll", handleScroll);
-
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // 각 상단 메뉴에 대응하는 서브메뉴 (index 기준)
+  const introMenu = menuData[0];
+  const champMenu = menuData[1];
+  const lectureMenu = menuData[2];
 
   return (
     <header
       className={`
-        hidden md:block fixed top-0 left-0 w-full z-50 transition-all duration-300 group
+        hidden md:block fixed top-0 left-0 w-full z-50 transition-all duration-300
         ${isScrolled ? "bg-white/90 backdrop-blur shadow-md" : "bg-white/90 backdrop-blur"}
         border-b border-gray-200
       `}
@@ -60,20 +64,124 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
               place-items-center
             "
           >
-            <li className="whitespace-nowrap">
+            {/* 연구회 소개 */}
+            <li className="relative group whitespace-nowrap">
               <Link href="/mpspain/introduction">연구회 소개</Link>
+
+              {introMenu && (
+                <div className="absolute left-1/2 top-full -translate-x-1/2 pt-3">
+                  <div
+                    className="
+                      w-56 rounded-2xl bg-white border border-gray-100 
+                      shadow-[0_12px_30px_rgba(15,23,42,0.18)]
+                      opacity-0 invisible translate-y-1
+                      group-hover:opacity-100 group-hover:visible group-hover:translate-y-0
+                      transition-all duration-200
+                    "
+                  >
+                    <p className="px-4 pt-3 pb-1 text-[11px] font-semibold text-gray-400">
+                      {introMenu.title}
+                    </p>
+                    <ul className="py-2 text-sm text-gray-800">
+                      {introMenu.submenu.map((sub) => (
+                        <li key={sub.href}>
+                          <Link
+                            href={sub.href}
+                            className="block px-4 py-2 hover:bg-gray-50"
+                          >
+                            {sub.title}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              )}
             </li>
-            <li className="whitespace-nowrap">
+
+            {/* MPS 회원 광장 */}
+            <li className="relative group whitespace-nowrap">
               <Link href="/mpspain/mpschamp">MPS 회원 광장</Link>
+
+              {champMenu && (
+                <div className="absolute left-1/2 top-full -translate-x-1/2 pt-3">
+                  <div
+                    className="
+                      w-56 rounded-2xl bg-white border border-gray-100 
+                      shadow-[0_12px_30px_rgba(15,23,42,0.18)]
+                      opacity-0 invisible translate-y-1
+                      group-hover:opacity-100 group-hover:visible group-hover:translate-y-0
+                      transition-all duration-200
+                    "
+                  >
+                    <p className="px-4 pt-3 pb-1 text-[11px] font-semibold text-gray-400">
+                      {champMenu.title}
+                    </p>
+                    <ul className="py-2 text-sm text-gray-800">
+                      {champMenu.submenu.map((sub) => (
+                        <li key={sub.href}>
+                          <Link
+                            href={sub.href}
+                            className="block px-4 py-2 hover:bg-gray-50"
+                          >
+                            {sub.title}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              )}
             </li>
-            <li className="whitespace-nowrap">
-              동영상강의
+
+            {/* MPS 강좌 (동영상 강의) */}
+            <li className="relative group whitespace-nowrap">
+              <span>MPS 강좌</span>
+
+              {lectureMenu && (
+                <div className="absolute left-1/2 top-full -translate-x-1/2 pt-3">
+                  <div
+                    className="
+                      w-56 rounded-2xl bg-white border border-gray-100 
+                      shadow-[0_12px_30px_rgba(15,23,42,0.18)]
+                      opacity-0 invisible translate-y-1
+                      group-hover:opacity-100 group-hover:visible group-hover:translate-y-0
+                      transition-all duration-200
+                    "
+                  >
+                    <p className="px-4 pt-3 pb-1 text-[11px] font-semibold text-gray-400">
+                      {lectureMenu.title}
+                    </p>
+                    <ul className="py-2 text-sm text-gray-800">
+                      {lectureMenu.submenu.map((sub) => (
+                        <li key={sub.href}>
+                          <Link
+                            href={sub.href}
+                            className="block px-4 py-2 hover:bg-gray-50"
+                          >
+                            {sub.title}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              )}
             </li>
           </ul>
         </nav>
 
         {/* 로그인 영역 */}
-        <div className="flex items-center justify-end w-44 lg:w-56 gap-2 text-sm font-pretendard text-gray-700">
+        <div
+          className="
+            flex items-center justify-end
+            w-44 lg:w-56
+            gap-1 lg:gap-2
+            text-[10px] lg:text-xs xl:text-sm
+            font-pretendard text-gray-700
+            whitespace-nowrap
+          "
+        >
           {user ? (
             <>
               <Link
@@ -91,58 +199,13 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
               </button>
             </>
           ) : (
-            <Link href="/form/login" className="hover:text-blue-600 font-medium">
+            <Link
+              href="/form/login"
+              className="hover:text-blue-600 font-medium"
+            >
               로그인
             </Link>
           )}
-        </div>
-      </div>
-
-      {/* 드롭다운 전체 메뉴 */}
-      <div
-        className="
-          absolute left-0 top-full w-full 
-          bg-white/95 backdrop-blur shadow-md 
-          opacity-0 invisible 
-          group-hover:opacity-100 group-hover:visible 
-          transition-all duration-300
-        "
-      >
-        <div className="flex justify-center py-8">
-          {/* 👉 위 상단 헤더와 동일하게 max-w-6xl / px-8 사용 */}
-          <div className="max-w-6xl w-full px-8">
-            {/* 👉 위 메뉴와 같은 3열 그리드 + 동일 gap */}
-            <div
-              className="
-                grid grid-cols-3
-                gap-8 lg:gap-16 xl:gap-24
-                place-items-center
-              "
-            >
-              {menuData.map((menu) => (
-                // 👉 각 상단 메뉴 밑에 오는 하위 메뉴들
-                <ul
-                  key={menu.title}
-                  className="
-                    space-y-3
-                    font-medium text-base lg:text-lg text-gray-800
-                    text-center
-                  "
-                >
-                  {menu.submenu.map((sub) => (
-                    <li key={sub.href}>
-                      <Link
-                        href={sub.href}
-                        className="hover:text-blue-600 transition-colors"
-                      >
-                        {sub.title}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
     </header>
