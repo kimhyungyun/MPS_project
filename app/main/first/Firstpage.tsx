@@ -8,14 +8,14 @@ import "swiper/css";
 import "swiper/css/pagination";
 
 const images = ["/메인사진1.jpg", "/메인사진2.jpg"];
-const HEADER_HEIGHT = 72; // 레이아웃 main padding-top이랑 맞추기
+const HEADER_HEIGHT = 72; // 레이아웃에서 main padding-top이랑 맞추기
 
 const Firstpage = () => {
   return (
     <section
       className="relative w-full overflow-hidden"
       style={{
-        height: `calc(100vh - ${HEADER_HEIGHT}px)`, // ★ 실제 높이 지정
+        height: `calc(100vh - ${HEADER_HEIGHT}px)`, // 헤더 제외한 영역 꽉 채우기
       }}
     >
       <Swiper
@@ -31,16 +31,16 @@ const Firstpage = () => {
         {images.map((src, index) => (
           <SwiperSlide key={src}>
             <div className="relative w-full h-full">
-              {/* 사진: 위쪽 기준으로 채우기 */}
+              {/* 섹션 기준으로 가운데 정렬 + 꽉 채우기 */}
               <Image
                 src={src}
                 alt={`메인 이미지 ${index + 1}`}
                 fill
                 priority={index === 0}
-                className="object-cover object-top"
+                className="object-cover object-center"
               />
 
-              {/* 왼쪽만 살짝 어둡게 (명암 조금 강화) */}
+              {/* 왼쪽만 살짝 어둡게 (사진은 그대로 보이게) */}
               <div className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/25 to-transparent" />
 
               {/* 텍스트 영역 */}
