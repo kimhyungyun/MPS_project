@@ -54,33 +54,31 @@ const DesktopHeader: FC<DesktopHeaderProps> = ({ user, handleLogout }) => {
           />
         </Link>
 
-        {/* 중앙 메뉴 - menuData 기준 3열 */}
-        <nav className="flex-1">
-          <ul
-            className="
-              grid grid-cols-3
-              gap-8 lg:gap-16 xl:gap-24
-              w-full max-w-3xl mx-auto
-              font-pretendard font-semibold
-              text-sm md:text-base lg:text-lg xl:text-xl
-            "
-          >
-            {menuData.map((menu) => (
-              <li
-                key={menu.title}
-                className="text-center whitespace-nowrap"
-              >
-                <Link
-                  // 🔧 여기에서 menu.href 제거하고 submenu[0].href만 사용
-                  href={menu.submenu[0]?.href || "#"}
-                  className="inline-block"
-                >
-                  {menu.title}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
+        {/* 중앙 메뉴: 위/아래 둘 다 같은 width/grid 사용 */}
+        <div className="flex-1 flex justify-center">
+          <nav className="w-full max-w-3xl">
+            <ul
+              className="
+                grid grid-cols-3
+                gap-8 lg:gap-16 xl:gap-24
+                font-pretendard font-semibold
+                text-sm md:text-base lg:text-lg xl:text-xl
+                text-center
+              "
+            >
+              {menuData.map((menu) => (
+                <li key={menu.title} className="whitespace-nowrap">
+                  <Link
+                    href={menu.submenu[0]?.href || "#"}
+                    className="inline-block"
+                  >
+                    {menu.title}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        </div>
 
         {/* 로그인 영역 */}
         <div
@@ -130,31 +128,41 @@ const DesktopHeader: FC<DesktopHeaderProps> = ({ user, handleLogout }) => {
           transition-all duration-300
         "
       >
-        <div className="flex justify-center py-8">
-          <div className="max-w-6xl w-full px-8">
-            <div
-              className="
-                grid grid-cols-3
-                gap-8 lg:gap-16 xl:gap-24
-                w-full max-w-3xl mx-auto
-              "
-            >
-              {menuData.map((menu) => (
-                <div key={menu.title} className="text-center">
-                  <ul className="space-y-3 font-medium text-base lg:text-lg text-gray-800">
-                    {menu.submenu.map((sub) => (
-                      <li key={sub.href}>
-                        <Link
-                          href={sub.href}
-                          className="hover:text-blue-600 transition-colors"
-                        >
-                          {sub.title}
-                        </Link>
-                      </li>
+        <div className="py-8">
+          {/* 위 헤더와 같은 max-w-6xl + 좌우 여백 구조 */}
+          <div className="max-w-6xl mx-auto px-8">
+            <div className="flex items-stretch">
+              {/* 위에서 로고/로그인 쓰던 폭만큼 비워서 x축 맞추기 */}
+              <div className="w-44 lg:w-56 shrink-0" />
+              <div className="flex-1 flex justify-center">
+                <div className="w-full max-w-3xl">
+                  <div
+                    className="
+                      grid grid-cols-3
+                      gap-8 lg:gap-16 xl:gap-24
+                      text-center
+                    "
+                  >
+                    {menuData.map((menu) => (
+                      <div key={menu.title}>
+                        <ul className="space-y-3 font-medium text-base lg:text-lg text-gray-800">
+                          {menu.submenu.map((sub) => (
+                            <li key={sub.href}>
+                              <Link
+                                href={sub.href}
+                                className="hover:text-blue-600 transition-colors"
+                              >
+                                {sub.title}
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 </div>
-              ))}
+              </div>
+              <div className="w-44 lg:w-56 shrink-0" />
             </div>
           </div>
         </div>
