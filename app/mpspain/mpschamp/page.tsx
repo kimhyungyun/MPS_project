@@ -114,9 +114,9 @@ const MpsChamp = () => {
   };
 
   return (
-    <section className="w-full px-4 lg:px-24 py-12 bg-gray-100 mt-10">
+    <section className="w-full px-4 lg:px-24 py-12 bg-gray-100">
       {/* 상단 타이틀 & 버튼 */}
-      <div className="w-full flex justify-between items-center border-b border-gray-300 pb-6 mb-8 mt-30">
+      <div className="w-full flex justify-between items-center border-b border-gray-300 pb-6 mb-8 mt-8">
         <div className="flex items-center gap-2">
           <svg
             className="w-8 h-8 text-blue-500"

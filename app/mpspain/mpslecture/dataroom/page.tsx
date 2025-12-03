@@ -367,7 +367,7 @@ const Dataroom = () => {
   };
 
   return (
-    <section className="w-full min-h-screen bg-slate-50 p-8 mt-30 mb-20">
+    <section className="w-full min-h-screen bg-slate-50 p-8 mt-8 mb-20">
       <div className="max-w-6xl mx-auto">
         <h1 className="text-3xl font-bold text-slate-800 mb-8">자료실</h1>
 

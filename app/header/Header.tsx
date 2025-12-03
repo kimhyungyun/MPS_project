@@ -111,7 +111,7 @@ const Header = () => {
           </nav>
 
           {/* 오른쪽 로그인/유저 영역 – 왼쪽과 같은 폭 */}
-          <div className="shrink-0 w-52 flex items-center justify-end text-s font-pretendard gap-2">
+          <div className="shrink-0 w-52 flex items-center justify-end text-sm font-pretendard gap-2">
             {!isLoading &&
               (user ? (
                 <>
