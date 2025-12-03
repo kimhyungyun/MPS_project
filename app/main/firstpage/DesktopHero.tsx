@@ -8,10 +8,10 @@ import { Autoplay, Pagination } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
 
-// 1번: 빈 배경 + 텍스트
-// 2,3번: 이미지 슬라이드 (텍스트/블러 없음)
+// 1번: 이미지 + 텍스트 + 블러
+// 2,3번: 이미지 슬라이드
 const slides = [
-  { type: "blank" as const },
+  { type: "hero" as const, src: "/메인흰이미지.avif" }, 
   { type: "image" as const, src: "/메인이미지.jpg" },
   { type: "image" as const, src: "/메인사진.jpg" },
 ];
@@ -33,7 +33,6 @@ export default function DesktopHero() {
   };
 
   return (
-    // 헤더 높이는 레이아웃에서 pt-[100px] 같은 걸로 보정하고, 여기선 h-screen만 사용
     <section className="relative w-full h-screen overflow-hidden hidden md:block">
       <Swiper
         modules={[Autoplay, Pagination]}
@@ -49,14 +48,19 @@ export default function DesktopHero() {
         {slides.map((slide, idx) => (
           <SwiperSlide key={idx}>
             <div className="relative w-full h-full">
-              {/* 1번 슬라이드: 빈 배경 + 텍스트 + 블러 */}
-              {slide.type === "blank" && (
+              {/* === 1번 슬라이드: 기존 스타일 그대로 === */}
+              {slide.type === "hero" && (
                 <>
-                  {/* 배경: 단색/그라데이션 (원하면 색만 바꿔도 됨) */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-blue-900 via-blue-700 to-indigo-500" />
+                  <Image
+                    src={slide.src}
+                    alt="메인 이미지"
+                    fill
+                    priority
+                    className="object-cover object-center"
+                  />
 
-                  {/* 살짝 어둡게 */}
-                  <div className="absolute inset-0 bg-black/20" />
+                  {/* 기존 명암 */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/25 to-transparent" />
 
                   {/* 텍스트 */}
                   <div className="absolute inset-0 z-10 flex items-center">
@@ -72,13 +76,12 @@ export default function DesktopHero() {
                 </>
               )}
 
-              {/* 2,3번: 이미지 슬라이드 (텍스트/블러 없음) */}
-              {slide.type === "image" && slide.src && (
+              {/* === 2,3번 슬라이드: 이미지만 === */}
+              {slide.type === "image" && (
                 <Image
                   src={slide.src}
                   alt={`메인 이미지 ${idx}`}
                   fill
-                  priority={idx === 1} // 첫 이미지 슬라이드만 priority
                   className="object-cover object-center"
                 />
               )}

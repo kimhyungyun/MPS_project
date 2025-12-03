@@ -8,10 +8,10 @@ import { Autoplay, Pagination } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
 
-// 1번: 빈 배경 + 텍스트
+// 1번: 이미지 + 텍스트 + 블러
 // 2,3번: 이미지 슬라이드
 const slides = [
-  { type: "blank" as const },
+  { type: "hero" as const, src: "/메인흰이미지.avif" },
   { type: "image" as const, src: "/테스트이미지2.png" },
   { type: "image" as const, src: "/메인모바일사진.jpg" },
 ];
@@ -33,7 +33,6 @@ export default function MobileHero() {
   };
 
   return (
-    // 헤더 보정은 레이아웃에서, 여기서는 h-screen만
     <section className="relative w-full h-screen overflow-hidden block md:hidden">
       <Swiper
         modules={[Autoplay, Pagination]}
@@ -49,33 +48,40 @@ export default function MobileHero() {
         {slides.map((slide, idx) => (
           <SwiperSlide key={idx}>
             <div className="relative w-full h-full">
-              {/* 1번: 빈 배경 + 텍스트 */}
-              {slide.type === "blank" && (
+              
+              {/* === 1번: 이미지 + 블러 + 텍스트 === */}
+              {slide.type === "hero" && (
                 <>
-                  {/* 배경 그라데이션 */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-blue-900 via-blue-700 to-indigo-500" />
-                  {/* 살짝 어둡게 */}
-                  <div className="absolute inset-0 bg-black/25" />
+                  <Image
+                    src={slide.src}
+                    alt="메인 이미지"
+                    fill
+                    priority
+                    className="object-cover object-center"
+                  />
+
+                  {/* 검정 반투명 오버레이 */}
+                  <div className="absolute inset-0 bg-black/40" />
 
                   {/* 텍스트 */}
-                  <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-center px-4">
-                    <h1 className="text-3xl font-extrabold text-white leading-tight">
+                  <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-center px-5">
+                    <h1 className="text-3xl font-extrabold text-white leading-tight drop-shadow-md">
                       MPS 연구회
                     </h1>
-                    <p className="mt-3 text-base text-white/90">
+
+                    <p className="mt-2 text-base text-white/90 drop-shadow-sm">
                       전문적인 의료진과 함께하는 MPS 연구회
                     </p>
                   </div>
                 </>
               )}
 
-              {/* 2, 3번: 이미지만 (텍스트/블러 없음) */}
+              {/* === 2,3번: 이미지 슬라이드 === */}
               {slide.type === "image" && slide.src && (
                 <Image
                   src={slide.src}
                   alt={`메인 이미지 ${idx}`}
                   fill
-                  priority={idx === 1} // 첫 이미지 슬라이드만 priority
                   className="object-cover object-center"
                 />
               )}
@@ -84,7 +90,7 @@ export default function MobileHero() {
         ))}
       </Swiper>
 
-      {/* ▶️⏸ 버튼 (모바일용은 조금 작게) */}
+      {/* ▶️⏸ 버튼 */}
       <button
         onClick={toggleAutoplay}
         className="
