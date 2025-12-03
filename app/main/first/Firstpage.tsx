@@ -37,7 +37,7 @@ const Firstpage = () => {
                 alt={`메인 이미지 ${index + 1}`}
                 fill
                 priority={index === 0}
-                className="object-cover object-center"
+                className="object-center"
               />
 
               {/* 명암: 왼쪽만 살짝 어둡게 */}
