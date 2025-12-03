@@ -98,7 +98,7 @@ export default function MobileMenu({ user, isOpen, onClose }: Props) {
                 onClick={() => handleLink("/mpspain/introduction")}
               >
                 <img
-                  src="/빈배경로고.png"
+                  src="/빈배경로고1.png"
                   alt=""
                   className="w-4 h-4 md:w-5 md:h-5 object-contain"
                 />
