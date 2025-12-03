@@ -12,7 +12,7 @@ export interface User {
   mb_level: number;
 }
 
-interface Props {
+export interface Props {
   user: User | null;
   handleLogout: () => void;
 }
@@ -26,7 +26,7 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // 각 상단 메뉴에 대응하는 서브메뉴 (index 기준)
+  // 상단 메뉴 3개와 매칭되는 메뉴 데이터 (index 기준)
   const introMenu = menuData[0];
   const champMenu = menuData[1];
   const lectureMenu = menuData[2];
@@ -69,25 +69,29 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
               <Link href="/mpspain/introduction">연구회 소개</Link>
 
               {introMenu && (
-                <div className="absolute left-1/2 top-full -translate-x-1/2 pt-3">
+                <div className="absolute left-1/2 top-full -translate-x-1/2 pt-4">
                   <div
                     className="
-                      w-56 rounded-2xl bg-white border border-gray-100 
-                      shadow-[0_12px_30px_rgba(15,23,42,0.18)]
-                      opacity-0 invisible translate-y-1
+                      w-72 bg-white border border-gray-200 rounded-lg shadow-xl
+                      opacity-0 invisible translate-y-2
                       group-hover:opacity-100 group-hover:visible group-hover:translate-y-0
                       transition-all duration-200
+                      py-5 px-4
+                      text-center
                     "
                   >
-                    <p className="px-4 pt-3 pb-1 text-[11px] font-semibold text-gray-400">
+                    {/* 회색 타이틀 */}
+                    <p className="text-base font-semibold text-gray-600 mb-3">
                       {introMenu.title}
                     </p>
-                    <ul className="py-2 text-sm text-gray-800">
+
+                    {/* 메뉴 리스트 */}
+                    <ul className="space-y-2 text-[15px] text-gray-800 font-medium">
                       {introMenu.submenu.map((sub) => (
                         <li key={sub.href}>
                           <Link
                             href={sub.href}
-                            className="block px-4 py-2 hover:bg-gray-50"
+                            className="block py-2 hover:text-blue-600 transition-colors"
                           >
                             {sub.title}
                           </Link>
@@ -104,25 +108,27 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
               <Link href="/mpspain/mpschamp">MPS 회원 광장</Link>
 
               {champMenu && (
-                <div className="absolute left-1/2 top-full -translate-x-1/2 pt-3">
+                <div className="absolute left-1/2 top-full -translate-x-1/2 pt-4">
                   <div
                     className="
-                      w-56 rounded-2xl bg-white border border-gray-100 
-                      shadow-[0_12px_30px_rgba(15,23,42,0.18)]
-                      opacity-0 invisible translate-y-1
+                      w-72 bg-white border border-gray-200 rounded-lg shadow-xl
+                      opacity-0 invisible translate-y-2
                       group-hover:opacity-100 group-hover:visible group-hover:translate-y-0
                       transition-all duration-200
+                      py-5 px-4
+                      text-center
                     "
                   >
-                    <p className="px-4 pt-3 pb-1 text-[11px] font-semibold text-gray-400">
+                    <p className="text-base font-semibold text-gray-600 mb-3">
                       {champMenu.title}
                     </p>
-                    <ul className="py-2 text-sm text-gray-800">
+
+                    <ul className="space-y-2 text-[15px] text-gray-800 font-medium">
                       {champMenu.submenu.map((sub) => (
                         <li key={sub.href}>
                           <Link
                             href={sub.href}
-                            className="block px-4 py-2 hover:bg-gray-50"
+                            className="block py-2 hover:text-blue-600 transition-colors"
                           >
                             {sub.title}
                           </Link>
@@ -134,30 +140,32 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
               )}
             </li>
 
-            {/* MPS 강좌 (동영상 강의) */}
+            {/* MPS 강좌 */}
             <li className="relative group whitespace-nowrap">
               <span>MPS 강좌</span>
 
               {lectureMenu && (
-                <div className="absolute left-1/2 top-full -translate-x-1/2 pt-3">
+                <div className="absolute left-1/2 top-full -translate-x-1/2 pt-4">
                   <div
                     className="
-                      w-56 rounded-2xl bg-white border border-gray-100 
-                      shadow-[0_12px_30px_rgba(15,23,42,0.18)]
-                      opacity-0 invisible translate-y-1
+                      w-72 bg-white border border-gray-200 rounded-lg shadow-xl
+                      opacity-0 invisible translate-y-2
                       group-hover:opacity-100 group-hover:visible group-hover:translate-y-0
                       transition-all duration-200
+                      py-5 px-4
+                      text-center
                     "
                   >
-                    <p className="px-4 pt-3 pb-1 text-[11px] font-semibold text-gray-400">
+                    <p className="text-base font-semibold text-gray-600 mb-3">
                       {lectureMenu.title}
                     </p>
-                    <ul className="py-2 text-sm text-gray-800">
+
+                    <ul className="space-y-2 text-[15px] text-gray-800 font-medium">
                       {lectureMenu.submenu.map((sub) => (
                         <li key={sub.href}>
                           <Link
                             href={sub.href}
-                            className="block px-4 py-2 hover:bg-gray-50"
+                            className="block py-2 hover:text-blue-600 transition-colors"
                           >
                             {sub.title}
                           </Link>
