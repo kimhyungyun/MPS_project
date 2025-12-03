@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useRef, useState } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination } from "swiper/modules";
 
@@ -10,6 +11,21 @@ import "swiper/css/pagination";
 const images = ["/메인사진1.png", "/메인사진2.jpg"];
 
 const Firstpage = () => {
+  const swiperRef = useRef<any>(null);
+  const [isPlaying, setIsPlaying] = useState(true);
+
+  const togglePlay = () => {
+    if (!swiperRef.current) return;
+
+    if (isPlaying) {
+      swiperRef.current.autoplay.stop();
+    } else {
+      swiperRef.current.autoplay.start();
+    }
+
+    setIsPlaying(!isPlaying);
+  };
+
   return (
     <section
       className="
@@ -20,6 +36,7 @@ const Firstpage = () => {
     >
       <Swiper
         modules={[Autoplay, Pagination]}
+        onSwiper={(swiper) => (swiperRef.current = swiper)}
         loop
         autoplay={{
           delay: 5000,
@@ -31,16 +48,16 @@ const Firstpage = () => {
         {images.map((src, index) => (
           <SwiperSlide key={src}>
             <div className="relative w-full h-full">
-              {/* 이미지: 가운데 기준으로 꽉 채우기 */}
+              {/* 이미지 */}
               <Image
                 src={src}
                 alt={`메인 이미지 ${index + 1}`}
                 fill
                 priority={index === 0}
-                className="object-center"
+                className="object-cover object-center"
               />
 
-              {/* 명암: 왼쪽만 살짝 어둡게 */}
+              {/* 명암 */}
               <div className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/25 to-transparent" />
 
               {/* 텍스트 영역 */}
@@ -59,6 +76,24 @@ const Firstpage = () => {
             </div>
           </SwiperSlide>
         ))}
+
+        {/* ▶ / ❚❚ 버튼 */}
+        <div className="absolute bottom-4 right-6 z-20 flex items-center gap-3">
+          {/* Swiper default pagination 위치 옆으로 */}
+          <button
+            onClick={togglePlay}
+            className="
+              text-white/80 hover:text-white
+              text-sm sm:text-base
+              bg-black/40 hover:bg-black/60
+              px-3 py-1 rounded-full
+              backdrop-blur
+              transition
+            "
+          >
+            {isPlaying ? "❚❚" : "▶"}
+          </button>
+        </div>
       </Swiper>
     </section>
   );
