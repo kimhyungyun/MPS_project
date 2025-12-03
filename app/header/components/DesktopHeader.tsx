@@ -73,7 +73,7 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
         </nav>
 
         {/* 로그인 영역 */}
-        <div className="flex w-52 items-center justify-end gap-2 text-sm font-pretendard text-gray-700">
+        <div className="flex w-52 items-center justify-end gap-2 text-xs font-pretendard text-gray-700">
           {user ? (
             <>
               <Link

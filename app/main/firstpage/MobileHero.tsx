@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination } from "swiper/modules";
@@ -10,8 +11,24 @@ import "swiper/css/pagination";
 const images = ["/테스트이미지2.png", "/메인사진2.jpg"];
 
 export default function MobileHero() {
+  const [swiper, setSwiper] = useState<any>(null);
+  const [paused, setPaused] = useState(false);
+
+  const toggleAutoplay = () => {
+    if (!swiper) return;
+
+    if (paused) {
+      swiper.autoplay.start();
+      setPaused(false);
+    } else {
+      swiper.autoplay.stop();
+      setPaused(true);
+    }
+  };
+
   return (
-    <section className="relative w-full h-[calc(100vh-64px)] overflow-hidden block md:hidden">
+    // 여기서도 calc 빼고 h-screen만, 헤더 보정은 레이아웃에서
+    <section className="relative w-full h-screen overflow-hidden block md:hidden">
       <Swiper
         modules={[Autoplay, Pagination]}
         loop
@@ -20,6 +37,7 @@ export default function MobileHero() {
           disableOnInteraction: false,
         }}
         pagination={{ clickable: true }}
+        onSwiper={setSwiper}
         className="w-full h-full"
       >
         {images.map((src, idx) => (
@@ -50,6 +68,22 @@ export default function MobileHero() {
           </SwiperSlide>
         ))}
       </Swiper>
+
+      {/* ▶️⏸ 버튼 (모바일용은 조금 작게) */}
+      <button
+        onClick={toggleAutoplay}
+        className="
+          absolute bottom-4 right-4 z-20
+          bg-black/55 text-white rounded-full
+          w-8 h-8 flex items-center justify-center
+          text-xs
+          backdrop-blur-sm
+          hover:bg-black/70
+          transition
+        "
+      >
+        {paused ? "▶" : "⏸"}
+      </button>
     </section>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination } from "swiper/modules";
@@ -10,8 +11,24 @@ import "swiper/css/pagination";
 const images = ["/테스트이미지2.png", "/메인사진2.jpg"];
 
 export default function DesktopHero() {
+  const [swiper, setSwiper] = useState<any>(null);
+  const [paused, setPaused] = useState(false);
+
+  const toggleAutoplay = () => {
+    if (!swiper) return;
+
+    if (paused) {
+      swiper.autoplay.start();
+      setPaused(false);
+    } else {
+      swiper.autoplay.stop();
+      setPaused(true);
+    }
+  };
+
   return (
-    <section className="relative w-full h-[calc(100vh-100px)] overflow-hidden hidden md:block">
+    // 헤더 높이는 레이아웃에서 pt-[100px] 같은 걸로 보정하고, 여기선 h-screen만 사용
+    <section className="relative w-full h-screen overflow-hidden hidden md:block">
       <Swiper
         modules={[Autoplay, Pagination]}
         loop
@@ -20,6 +37,7 @@ export default function DesktopHero() {
           disableOnInteraction: false,
         }}
         pagination={{ clickable: true }}
+        onSwiper={setSwiper}
         className="w-full h-full"
       >
         {images.map((src, idx) => (
@@ -51,6 +69,21 @@ export default function DesktopHero() {
           </SwiperSlide>
         ))}
       </Swiper>
+
+      {/* ▶️⏸ 버튼 */}
+      <button
+        onClick={toggleAutoplay}
+        className="
+          absolute bottom-6 right-6 z-20
+          bg-black/50 text-white rounded-full
+          w-10 h-10 flex items-center justify-center
+          backdrop-blur-sm
+          hover:bg-black/70
+          transition
+        "
+      >
+        {paused ? "▶" : "⏸"}
+      </button>
     </section>
   );
 }
