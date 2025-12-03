@@ -8,9 +8,10 @@ export interface MobileMenuProps {
   user: User | null;
   isOpen: boolean;
   onClose: () => void;
+  onLogout: () => void; // 🔥 추가
 }
 
-const MobileMenu = ({ user, isOpen, onClose }: MobileMenuProps) => {
+const MobileMenu = ({ user, isOpen, onClose, onLogout }: MobileMenuProps) => {
   const router = useRouter();
 
   const handleLink = (href: string) => {
@@ -18,18 +19,11 @@ const MobileMenu = ({ user, isOpen, onClose }: MobileMenuProps) => {
     router.push(href);
   };
 
-  const handleLogout = () => {
-    try {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-    } catch (e) {
-      console.error("로그아웃 실패:", e);
-    }
-    router.push("/");
-
-    setTimeout(() => {
-      onClose();
-    }, 100);
+  // 🔥 여기서는 부모에서 받은 onLogout만 호출
+  const handleLogoutClick = () => {
+    onLogout();      // user 상태, localStorage 정리는 부모에서
+    onClose();       // 메뉴 닫고
+    router.push("/"); // 홈으로 이동 (원하면 제거해도 됨)
   };
 
   if (!isOpen) return null;
@@ -61,7 +55,7 @@ const MobileMenu = ({ user, isOpen, onClose }: MobileMenuProps) => {
 
                 <button
                   type="button"
-                  onClick={handleLogout}
+                  onClick={handleLogoutClick}
                   className="text-[11px] text-red-500 underline underline-offset-2"
                 >
                   로그아웃

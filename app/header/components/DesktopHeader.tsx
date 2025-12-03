@@ -1,4 +1,4 @@
- "use client";
+"use client";
 
 import { useState, useEffect, FC } from "react";
 import Link from "next/link";
@@ -35,7 +35,13 @@ const DesktopHeader: FC<DesktopHeaderProps> = ({ user, handleLogout }) => {
       `}
     >
       {/* 상단 헤더 바 */}
-      <div className="flex items-center justify-between max-w-6xl mx-auto h-[110px] px-8">
+      <div
+        className="
+          flex items-center justify-between
+          max-w-6xl mx-auto h-[110px] px-8
+          gap-16   /* 👉 로고 / 메뉴 / 로그인 영역 간격 늘림 */
+        "
+      >
         {/* 로고 */}
         <Link href="/" className="flex items-center w-44 lg:w-56 shrink-0">
           <Image
@@ -53,7 +59,7 @@ const DesktopHeader: FC<DesktopHeaderProps> = ({ user, handleLogout }) => {
           <ul
             className="
               grid grid-cols-3
-              gap-8 lg:gap-16 xl:gap-24
+              gap-8 lg:gap-16 xl:gap-24  /* 👉 이 gap과 아래 드롭다운 gap을 동일하게 맞춤 */
               font-pretendard font-semibold
               text-sm md:text-base lg:text-lg xl:text-xl
               place-items-center
@@ -119,7 +125,13 @@ const DesktopHeader: FC<DesktopHeaderProps> = ({ user, handleLogout }) => {
       >
         <div className="flex justify-center py-8">
           <div className="max-w-6xl w-full px-8">
-            <div className="grid grid-cols-3 gap-12">
+            {/* 👉 상단 메뉴와 동일한 그리드/간격 사용 */}
+            <div
+              className="
+                grid grid-cols-3
+                gap-8 lg:gap-16 xl:gap-24
+              "
+            >
               {menuData.map((menu) => (
                 <div key={menu.title} className="text-left">
                   <ul className="space-y-3 font-medium text-base lg:text-lg text-gray-800">

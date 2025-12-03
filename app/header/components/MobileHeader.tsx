@@ -87,11 +87,13 @@ const MobileHeader = ({ user, handleLogout }: MobileHeaderProps) => {
       </div>
 
       {/* 여기서 MobileMenu props 타입이 정확히 맞음 */}
-      <MobileMenu
-        user={user}
-        isOpen={isMobileMenuOpen}
-        onClose={() => setIsMobileMenuOpen(false)}
-      />
+        <MobileMenu
+          user={user}
+          isOpen={isMobileMenuOpen}
+          onClose={() => setIsMobileMenuOpen(false)}
+          onLogout={handleLogout} //  🔥 추가
+        />
+
     </header>
   );
 };
