@@ -99,36 +99,39 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
         </div>
       </div>
 
-      {/* 드롭다운 전체 메뉴 */}
-      <div
-        className="
-          absolute left-0 top-full w-full 
-          bg-white/95 backdrop-blur shadow-md 
-          opacity-0 invisible 
-          group-hover:opacity-100 group-hover:visible 
-          transition-all duration-300
-        "
-      >
-        <div className="flex justify-center py-12">
-          <div className="max-w-3xl w-full">
-            <div className="grid grid-cols-3 place-items-center gap-8">
-              {menuData.map((menu) => (
-                <div key={menu.title} className="text-center">
-                  <ul className="space-y-6 font-pretendard font-medium text-base lg:text-lg">
-                    {menu.submenu.map((sub) => (
-                      <li key={sub.href}>
-                        <Link href={sub.href}>
-                          {sub.title}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
+          <div
+            className="
+              absolute left-0 top-full w-full 
+              bg-white/95 backdrop-blur shadow-md 
+              opacity-0 invisible 
+              group-hover:opacity-100 group-hover:visible 
+              transition-all duration-300
+            "
+          >
+            <div className="flex justify-center py-12">
+              <div className="max-w-3xl w-full">
+                
+                {/* 컬럼: 위쪽 정렬, 일정 너비 유지 */}
+                <div className="grid grid-cols-3 place-items-start gap-12">
+
+                  {menuData.map((menu) => (
+                    <div key={menu.title}>
+                      <ul className="space-y-4 font-pretendard font-medium text-base lg:text-lg">
+                        {menu.submenu.map((sub) => (
+                          <li key={sub.href}>
+                            <Link href={sub.href}>
+                              {sub.title}
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+
                 </div>
-              ))}
+              </div>
             </div>
           </div>
-        </div>
-      </div>
 
     </header>
   );
