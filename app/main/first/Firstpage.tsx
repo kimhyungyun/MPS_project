@@ -45,7 +45,7 @@ const Firstpage = () => {
                 />
 
                 {/* 왼쪽만 살짝 어둡게 해서 글자만 보이게 */}
-                <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-black/10 to-transparent" />
+                 <div className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/25 to-transparent" />
 
                 {/* 텍스트 영역 */}
                 <div className="absolute inset-0 z-10 flex items-center">
