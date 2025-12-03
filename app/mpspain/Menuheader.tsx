@@ -6,7 +6,7 @@ import { menuData } from "@/types/menudata";
 import Image from "next/image";
 import axios, { AxiosError } from "axios";
 import { useRouter } from "next/navigation";
-import MobileMenu from "../header/MobileMenu";
+import MobileMenu from "../header/components/MobileMenu";
 
 interface User {
   mb_id: string;

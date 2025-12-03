@@ -1,7 +1,7 @@
 "use client";
 
-import DesktopHeader from "./DesktopHeader";
-import MobileHeader from "./MobileHeader";
+import DesktopHeader from "./components/DesktopHeader";
+import MobileHeader from "./components/MobileHeader";
 import { useState, useEffect } from "react";
 import axios, { AxiosError } from "axios";
 
