@@ -3,8 +3,15 @@
 import { menuData } from "@/types/menudata";
 import { useRouter } from "next/navigation";
 
+interface User {
+  mb_id: string;
+  mb_name: string;
+  mb_nick: string;
+  mb_level: number;
+}
+
 interface Props {
-  user: any;
+  user: User | null;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -20,10 +27,10 @@ export default function MobileMenu({ user, isOpen, onClose }: Props) {
   if (!isOpen) return null;
 
   return (
-    <div className="md:hidden border-t border-gray-200 bg-white/95 backdrop-blur">
-      <div className="max-w-6xl mx-auto px-4 py-4 space-y-4">
+    <div className="md:hidden border-t border-gray-200 bg-white/95 backdrop-blur shadow-md">
+      <div className="max-w-6xl mx-auto px-6 py-6 space-y-6">
 
-        {/* 상단 3개 메인 메뉴 */}
+        {/* 메인 메뉴 */}
         <div className="flex flex-col gap-3 font-pretendard text-base font-medium">
           <button className="text-left" onClick={() => handleLink("/mpspain/introduction")}>
             연구회 소개
@@ -34,21 +41,21 @@ export default function MobileMenu({ user, isOpen, onClose }: Props) {
           <span className="text-left">MPS 강좌</span>
         </div>
 
-        <div className="h-px bg-gray-200 my-2" />
+        <div className="h-px bg-gray-200" />
 
-        {/* 전체 드롭다운 메뉴 */}
-        <div className="grid grid-cols-1 gap-4 text-sm font-pretendard">
+        {/* 전체 메뉴 */}
+        <div className="space-y-4">
           {menuData.map((menu) => (
             <div key={menu.title}>
               <p className="mb-1 text-xs font-semibold text-gray-500">
                 {menu.title}
               </p>
 
-              <ul className="space-y-1">
+              <ul className="space-y-2">
                 {menu.submenu.map((sub) => (
                   <li key={sub.href}>
                     <button
-                      className="text-left text-gray-800"
+                      className="w-full text-left text-gray-800 py-1"
                       onClick={() => handleLink(sub.href)}
                     >
                       {sub.title}
@@ -58,6 +65,30 @@ export default function MobileMenu({ user, isOpen, onClose }: Props) {
               </ul>
             </div>
           ))}
+        </div>
+
+        <div className="h-px bg-gray-200" />
+
+        {/* 유저 정보 */}
+        <div className="text-[11px] text-gray-600 flex justify-between items-center">
+          {user ? (
+            <>
+              <span>{user.mb_name} 님</span>
+              <button
+                onClick={() => handleLink(user.mb_level >= 8 ? "/admin" : "/mypage")}
+                className="underline"
+              >
+                마이페이지
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => handleLink("/form/login")}
+              className="underline"
+            >
+              로그인 하러가기
+            </button>
+          )}
         </div>
 
       </div>
