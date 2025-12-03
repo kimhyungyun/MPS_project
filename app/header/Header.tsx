@@ -81,7 +81,7 @@ const Header = () => {
       border-b border-gray-200`}
     >
       {/* 헤더 높이 72px */}
-      <div className="flex justify-center items-center w-full h-[72px] px-6">
+      <div className="flex justify-center items-center w-full h-[100px] px-6">
         <div className="flex items-center w-full max-w-6xl mx-auto">
           {/* 왼쪽 로고 영역 : 오른쪽이랑 폭 맞춤 */}
           <div className="shrink-0 w-52 flex items-center">
@@ -143,7 +143,7 @@ const Header = () => {
 
       {/* 드롭다운 – 위 중앙 메뉴와 같은 max-w-3xl + 같은 3칸 그리드 */}
       <div className="absolute left-0 top-full w-full bg-white/95 backdrop-blur shadow-md opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-40">
-        <div className="flex justify-center py-6">
+        <div className="flex justify-center py-12">
           <div className="w-full max-w-3xl mx-auto">
             <div className="grid grid-cols-3 place-items-center">
               {menuData.map((menu) => (
