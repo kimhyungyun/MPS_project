@@ -26,7 +26,6 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // 상단 메뉴 3개와 매칭되는 메뉴 데이터 (index 기준)
   const introMenu = menuData[0];
   const champMenu = menuData[1];
   const lectureMenu = menuData[2];
@@ -39,9 +38,8 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
         border-b border-gray-200
       `}
     >
-      {/* 상단 헤더 바 */}
       <div className="flex items-center justify-between max-w-6xl mx-auto h-[110px] px-8">
-        {/* 로고 */}
+
         <Link href="/" className="flex items-center w-44 lg:w-56 shrink-0">
           <Image
             src="/빈배경로고.png"
@@ -53,7 +51,6 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
           />
         </Link>
 
-        {/* 중앙 메뉴 */}
         <nav className="flex-1 flex justify-center">
           <ul
             className="
@@ -80,21 +77,20 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
                       text-center
                     "
                   >
-                    {/* 🔥 로고 + 타이틀 */}
-                    <div className="flex items-center justify-center gap-2 mb-3">
+                    {/* 로고 + 타이틀 */}
+                    <div className="flex items-center justify-center gap-3 mb-3">
                       <Image
                         src="/빈배경로고1.png"
                         alt="MPS 로고"
-                        width={16}
-                        height={16}
+                        width={20}
+                        height={20}
                         className="object-contain opacity-80"
                       />
-                      <p className="text-base font-semibold text-gray-600">
+                      <p className="text-lg font-semibold text-gray-600">
                         {introMenu.title}
                       </p>
                     </div>
 
-                    {/* 메뉴 리스트 */}
                     <ul className="space-y-2 text-[15px] text-gray-800 font-medium">
                       {introMenu.submenu.map((sub) => (
                         <li key={sub.href}>
@@ -128,16 +124,15 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
                       text-center
                     "
                   >
-                    {/* 🔥 로고 + 타이틀 */}
-                    <div className="flex items-center justify-center gap-2 mb-3">
+                    <div className="flex items-center justify-center gap-3 mb-3">
                       <Image
                         src="/빈배경로고1.png"
                         alt="MPS 로고"
-                        width={16}
-                        height={16}
+                        width={20}
+                        height={20}
                         className="object-contain opacity-80"
                       />
-                      <p className="text-base font-semibold text-gray-600">
+                      <p className="text-lg font-semibold text-gray-600">
                         {champMenu.title}
                       </p>
                     </div>
@@ -175,16 +170,15 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
                       text-center
                     "
                   >
-                    {/* 🔥 로고 + 타이틀 */}
-                    <div className="flex items-center justify-center gap-2 mb-3">
+                    <div className="flex items-center justify-center gap-3 mb-3">
                       <Image
                         src="/빈배경로고1.png"
                         alt="MPS 로고"
-                        width={16}
-                        height={16}
+                        width={20}
+                        height={20}
                         className="object-contain opacity-80"
                       />
-                      <p className="text-base font-semibold text-gray-600">
+                      <p className="text-lg font-semibold text-gray-600">
                         {lectureMenu.title}
                       </p>
                     </div>

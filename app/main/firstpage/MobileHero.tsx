@@ -8,12 +8,11 @@ import { Autoplay, Pagination } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
 
-// 1번: 이미지 + 텍스트 + 블러
-// 2,3번: 이미지 슬라이드
+// 1,3번: 이미지 + 텍스트 + 블러 / 2번: 이미지만
 const slides = [
-  { type: "hero" as const, src: "/메인흰이미지.avif" },
-  { type: "image" as const, src: "/테스트이미지2.png" },
-  { type: "image" as const, src: "/메인모바일사진.jpg" },
+  { type: "hero" as const, src: "/메인흰이미지.avif" },   // 1번: hero
+  { type: "image" as const, src: "/테스트이미지2.png" },  // 2번: 이미지만
+  { type: "hero" as const, src: "/메인모바일사진.jpg" }, // 3번: hero
 ];
 
 export default function MobileHero() {
@@ -48,23 +47,22 @@ export default function MobileHero() {
         {slides.map((slide, idx) => (
           <SwiperSlide key={idx}>
             <div className="relative w-full h-full">
-              
-              {/* === 1번: 이미지 + 블러 + 텍스트 === */}
+              {/* === 1,3번: 이미지 + 블러 + 텍스트 (상단 배치) === */}
               {slide.type === "hero" && (
                 <>
                   <Image
                     src={slide.src}
                     alt="메인 이미지"
                     fill
-                    priority
+                    priority={idx === 0}
                     className="object-cover object-center"
                   />
 
                   {/* 검정 반투명 오버레이 */}
                   <div className="absolute inset-0 bg-black/40" />
 
-                  {/* 텍스트 */}
-                  <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-center px-5">
+                  {/* 텍스트 (상단으로 이동) */}
+                  <div className="absolute inset-0 z-10 flex flex-col items-center justify-start px-5 pt-24 text-center">
                     <h1 className="text-3xl font-extrabold text-white leading-tight drop-shadow-md">
                       MPS 연구회
                     </h1>
@@ -76,11 +74,11 @@ export default function MobileHero() {
                 </>
               )}
 
-              {/* === 2,3번: 이미지 슬라이드 === */}
+              {/* === 2번: 이미지 슬라이드만 === */}
               {slide.type === "image" && slide.src && (
                 <Image
                   src={slide.src}
-                  alt={`메인 이미지 ${idx}`}
+                  alt={`메인 이미지 ${idx + 1}`}
                   fill
                   className="object-cover object-center"
                 />
