@@ -7,7 +7,7 @@ import { Autoplay, Pagination } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
 
-const images = ["/테스트이미지1.png", "/메인사진2.jpg"];
+const images = ["/테스트이미지2.png", "/메인사진2.jpg"];
 
 export default function DesktopHero() {
   return (
@@ -30,7 +30,7 @@ export default function DesktopHero() {
                 alt={`메인 이미지 ${idx + 1}`}
                 fill
                 priority={idx === 0}
-                className="object-cover object-center"
+                className="object-center"
               />
 
               {/* 명암 */}
