@@ -8,7 +8,13 @@ import { Autoplay, Pagination } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
 
-const images = ["/메인이미지.jpg", "/메인사진1.jpg"];
+// 1번: 빈 배경 + 텍스트
+// 2,3번: 이미지 슬라이드 (텍스트/블러 없음)
+const slides = [
+  { type: "blank" as const },
+  { type: "image" as const, src: "/메인이미지.jpg" },
+  { type: "image" as const, src: "/메인사진1.jpg" },
+];
 
 export default function DesktopHero() {
   const [swiper, setSwiper] = useState<any>(null);
@@ -40,31 +46,42 @@ export default function DesktopHero() {
         onSwiper={setSwiper}
         className="w-full h-full"
       >
-        {images.map((src, idx) => (
-          <SwiperSlide key={src}>
+        {slides.map((slide, idx) => (
+          <SwiperSlide key={idx}>
             <div className="relative w-full h-full">
-              <Image
-                src={src}
-                alt={`메인 이미지 ${idx + 1}`}
-                fill
-                priority={idx === 0}
-                className="object-cover object-center"
-              />
+              {/* 1번 슬라이드: 빈 배경 + 텍스트 + 블러 */}
+              {slide.type === "blank" && (
+                <>
+                  {/* 배경: 단색/그라데이션 (원하면 색만 바꿔도 됨) */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-900 via-blue-700 to-indigo-500" />
 
-              {/* 명암 */}
-              <div className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/25 to-transparent" />
+                  {/* 살짝 어둡게 */}
+                  <div className="absolute inset-0 bg-black/20" />
 
-              {/* 텍스트 */}
-              <div className="absolute inset-0 z-10 flex items-center">
-                <div className="w-full max-w-6xl mx-auto px-12">
-                  <h1 className="text-5xl lg:text-6xl font-extrabold text-white leading-tight">
-                    MPS 연구회
-                  </h1>
-                  <p className="mt-4 text-2xl text-white/90">
-                    전문적인 의료진과 함께하는 MPS 연구회
-                  </p>
-                </div>
-              </div>
+                  {/* 텍스트 */}
+                  <div className="absolute inset-0 z-10 flex items-center">
+                    <div className="w-full max-w-6xl mx-auto px-12">
+                      <h1 className="text-5xl lg:text-6xl font-extrabold text-white leading-tight">
+                        MPS 연구회
+                      </h1>
+                      <p className="mt-4 text-2xl text-white/90">
+                        전문적인 의료진과 함께하는 MPS 연구회
+                      </p>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* 2,3번: 이미지 슬라이드 (텍스트/블러 없음) */}
+              {slide.type === "image" && slide.src && (
+                <Image
+                  src={slide.src}
+                  alt={`메인 이미지 ${idx}`}
+                  fill
+                  priority={idx === 1} // 첫 이미지 슬라이드만 priority
+                  className="object-cover object-center"
+                />
+              )}
             </div>
           </SwiperSlide>
         ))}
