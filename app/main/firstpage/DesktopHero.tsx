@@ -30,7 +30,7 @@ export default function DesktopHero() {
                 alt={`메인 이미지 ${idx + 1}`}
                 fill
                 priority={idx === 0}
-                className="object-center"
+                className="object-cover object-center"
               />
 
               {/* 명암 */}
