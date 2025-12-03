@@ -8,7 +8,7 @@ import "swiper/css";
 import "swiper/css/pagination";
 
 const images = ["/메인사진1.jpg", "/메인사진2.jpg"];
-const HEADER_HEIGHT = 72; // 레이아웃에서 main padding-top이랑 맞추기
+const HEADER_HEIGHT = 100; // 레이아웃에서 main padding-top이랑 맞추기
 
 const Firstpage = () => {
   return (
