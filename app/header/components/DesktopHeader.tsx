@@ -39,7 +39,7 @@ const DesktopHeader: FC<DesktopHeaderProps> = ({ user, handleLogout }) => {
         className="
           flex items-center justify-between
           max-w-6xl mx-auto h-[110px] px-8
-          gap-16   /* 👉 로고 / 메뉴 / 로그인 영역 간격 늘림 */
+          gap-16
         "
       >
         {/* 로고 */}
@@ -54,24 +54,31 @@ const DesktopHeader: FC<DesktopHeaderProps> = ({ user, handleLogout }) => {
           />
         </Link>
 
-        {/* 중앙 메뉴 */}
-        <nav className="flex-1 flex justify-center">
+        {/* 중앙 메뉴 - menuData 기준 3열 */}
+        <nav className="flex-1">
           <ul
             className="
               grid grid-cols-3
-              gap-8 lg:gap-16 xl:gap-24  /* 👉 이 gap과 아래 드롭다운 gap을 동일하게 맞춤 */
+              gap-8 lg:gap-16 xl:gap-24
+              w-full max-w-3xl mx-auto
               font-pretendard font-semibold
               text-sm md:text-base lg:text-lg xl:text-xl
-              place-items-center
             "
           >
-            <li className="whitespace-nowrap">
-              <Link href="/mpspain/introduction">연구회 소개</Link>
-            </li>
-            <li className="whitespace-nowrap">
-              <Link href="/mpspain/mpschamp">MPS 회원 광장</Link>
-            </li>
-            <li className="whitespace-nowrap">MPS 강좌</li>
+            {menuData.map((menu) => (
+              <li
+                key={menu.title}
+                className="text-center whitespace-nowrap"
+              >
+                <Link
+                  // 🔧 여기에서 menu.href 제거하고 submenu[0].href만 사용
+                  href={menu.submenu[0]?.href || "#"}
+                  className="inline-block"
+                >
+                  {menu.title}
+                </Link>
+              </li>
+            ))}
           </ul>
         </nav>
 
@@ -125,15 +132,15 @@ const DesktopHeader: FC<DesktopHeaderProps> = ({ user, handleLogout }) => {
       >
         <div className="flex justify-center py-8">
           <div className="max-w-6xl w-full px-8">
-            {/* 👉 상단 메뉴와 동일한 그리드/간격 사용 */}
             <div
               className="
                 grid grid-cols-3
                 gap-8 lg:gap-16 xl:gap-24
+                w-full max-w-3xl mx-auto
               "
             >
               {menuData.map((menu) => (
-                <div key={menu.title} className="text-left">
+                <div key={menu.title} className="text-center">
                   <ul className="space-y-3 font-medium text-base lg:text-lg text-gray-800">
                     {menu.submenu.map((sub) => (
                       <li key={sub.href}>
