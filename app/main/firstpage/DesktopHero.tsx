@@ -8,7 +8,7 @@ import { Autoplay, Pagination } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
 
-const images = ["/테스트이미지1.jpg", "/메인사진2.jpg"];
+const images = ["/메인이미지.jpg", "/메인사진2.jpg"];
 
 export default function DesktopHero() {
   const [swiper, setSwiper] = useState<any>(null);
