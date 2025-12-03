@@ -13,7 +13,7 @@ import "swiper/css/pagination";
 const slides = [
   { type: "blank" as const },
   { type: "image" as const, src: "/메인이미지.jpg" },
-  { type: "image" as const, src: "/메인사진1.jpg" },
+  { type: "image" as const, src: "/메인사진.jpg" },
 ];
 
 export default function DesktopHero() {
