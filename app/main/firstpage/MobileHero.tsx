@@ -7,7 +7,7 @@ import { Autoplay, Pagination } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
 
-const images = ["/메인사진1.png", "/메인사진2.jpg"];
+const images = ["/테스트이미지2.png", "/메인사진2.jpg"];
 
 export default function MobileHero() {
   return (
