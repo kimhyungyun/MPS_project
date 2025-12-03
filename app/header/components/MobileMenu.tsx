@@ -86,50 +86,52 @@ export default function MobileMenu({ user, isOpen, onClose }: Props) {
           )}
         </div>
 
-          {/* 메인 메뉴 - 빠른 이동 */}
-          <div>
-            <p className="mb-2 text-[11px] font-semibold text-gray-500">
-              빠른 이동
-            </p>
+        {/* 메인 메뉴 - 빠른 이동 */}
+        <div>
+          <p className="mb-2 text-[11px] font-semibold text-gray-500">
+            빠른 이동
+          </p>
 
-            <div className="grid grid-cols-3 gap-2 text-[13px] font-pretendard font-medium">
-              <button
-                className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-gray-800 shadow-sm active:scale-[0.98] transition"
-                onClick={() => handleLink("/mpspain/introduction")}
-              >
-                <img
-                  src="/빈배경로고1.png"
-                  alt=""
-                  className="w-4 h-4 md:w-5 md:h-5 object-contain"
-                />
-                <span>연구회 소개</span>
-              </button>
+          <div className="grid grid-cols-3 gap-2 text-[13px] font-pretendard font-medium">
 
-              <button
-                className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-gray-800 shadow-sm active:scale-[0.98] transition"
-                onClick={() => handleLink("/mpspain/mpschamp")}
-              >
-                <img
-                  src="/빈배경로고.png"
-                  alt=""
-                  className="w-4 h-4 md:w-5 md:h-5 object-contain"
-                />
-                <span>정회원 캠프안내</span>
-              </button>
+            <button
+              className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-gray-800 shadow-sm active:scale-[0.98] transition"
+              onClick={() => handleLink("/mpspain/introduction")}
+            >
+              <img
+                src="/빈배경로고.png"
+                alt=""
+                className="w-4 h-4 md:w-5 md:h-5 object-contain"
+              />
+              <span>연구회 소개</span>
+            </button>
 
-              <button
-                className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-gray-800 shadow-sm active:scale-[0.98] transition"
-                onClick={() => handleLink("/mpspain/lecture")}
-              >
-                <img
-                  src="/빈배경로고.png"
-                  alt=""
-                  className="w-4 h-4 md:w-5 md:h-5 object-contain"
-                />
-                <span>MPS 강의 듣기</span>
-              </button>
-            </div>
+            <button
+              className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-gray-800 shadow-sm active:scale-[0.98] transition"
+              onClick={() => handleLink("/mpspain/mpschamp")}
+            >
+              <img
+                src="/빈배경로고.png"
+                alt=""
+                className="w-4 h-4 md:w-5 md:h-5 object-contain"
+              />
+              <span>정회원 캠프안내</span>
+            </button>
+
+            <button
+              className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-gray-800 shadow-sm active:scale-[0.98] transition"
+              onClick={() => handleLink("/mpspain/lecture")}
+            >
+              <img
+                src="/빈배경로고.png"
+                alt=""
+                className="w-4 h-4 md:w-5 md:h-5 object-contain"
+              />
+              <span>MPS 강의 듣기</span>
+            </button>
+
           </div>
+        </div>
 
         <div className="h-px bg-gray-200" />
 
@@ -141,7 +143,13 @@ export default function MobileMenu({ user, isOpen, onClose }: Props) {
               className="overflow-hidden rounded-2xl border border-gray-100 bg-gray-50/70"
             >
               {/* 섹션 헤더 */}
-              <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
+              <div className="flex items-center border-b border-gray-100 px-4 py-3">
+                <img
+                  src="/빈배경로고.png"
+                  alt=""
+                  className="w-4 h-4 object-contain opacity-80 mr-2"
+                />
+
                 <p className="text-xs font-semibold text-gray-600">
                   {menu.title}
                 </p>
@@ -167,7 +175,7 @@ export default function MobileMenu({ user, isOpen, onClose }: Props) {
           ))}
         </div>
 
-        {/* 닫기 버튼 (선택 사항) */}
+        {/* 닫기 버튼 */}
         <div className="pt-2 flex justify-center">
           <button
             onClick={onClose}
@@ -176,6 +184,7 @@ export default function MobileMenu({ user, isOpen, onClose }: Props) {
             닫기
           </button>
         </div>
+
       </div>
     </div>
   );
