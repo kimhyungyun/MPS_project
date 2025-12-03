@@ -1,6 +1,6 @@
 import Menuheader from "./Menuheader";
 
-const HEADER_HEIGHT = 72; // Menuheader 실제 높이에 맞게 숫자만 조정
+const HEADER_HEIGHT = 100; // Menuheader 실제 높이에 맞게 숫자만 조정
 
 export default function Layout({
   children,

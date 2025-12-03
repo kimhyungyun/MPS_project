@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const HEADER_HEIGHT = 72; // Header 컴포넌트에서 쓰는 높이랑 반드시 맞추기
+const HEADER_HEIGHT = 100; // Header 컴포넌트에서 쓰는 높이랑 반드시 맞추기
 
 export default function RootLayout({
   children,

@@ -99,7 +99,7 @@ const Header = () => {
 
           {/* 중앙 상단 메뉴 */}
           <nav className="flex-1 flex justify-center">
-            <ul className="grid grid-cols-3 w-full max-w-3xl place-items-center gap-10 font-pretendard text-base">
+            <ul className="grid grid-cols-3 w-full max-w-3xl place-items-center gap-12 font-pretendard text-lg md:text-xl font-medium">
               <li>
                 <Link href="/mpspain/introduction">연구회 소개</Link>
               </li>
