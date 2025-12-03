@@ -36,23 +36,16 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
       `}
     >
       {/* 상단 헤더 바 */}
-      <div
-        className={`
-          flex items-center justify-between max-w-6xl mx-auto px-8
-          transition-all duration-300
-
-          ${isScrolled ? "h-[80px]" : "h-[110px]"}
-        `}
-      >
+      <div className="flex items-center justify-between max-w-6xl mx-auto h-[110px] px-8">
 
         {/* 로고 */}
-        <Link href="/" className="flex items-center w-44 lg:w-56 shrink-0 transition-all duration-300">
+        <Link href="/" className="flex items-center w-44 lg:w-56 shrink-0">
           <Image
             src="/빈배경로고.png"
             alt="로고"
-            width={isScrolled ? 150 : 190}
-            height={isScrolled ? 60 : 80}
-            className="object-contain transition-all duration-300"
+            width={190}
+            height={80}
+            className="object-contain"
             priority
           />
         </Link>
@@ -81,55 +74,38 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
         </nav>
 
         {/* 로그인 영역 */}
-        {user ? (
-          <div
-            className={`
-              flex items-center justify-end transition-all duration-200
-
-              ${isScrolled
-                ? "w-40 gap-1 text-xs"
-                : "w-44 lg:w-56 gap-2 text-sm"}
-              
-              font-pretendard text-gray-700
-            `}
-          >
-            <Link
-              href={user.mb_level >= 8 ? "/admin" : "/mypage"}
-              className="hover:text-blue-600 font-medium"
-            >
-              {user.mb_name}
-            </Link>
-
-            {/* 축소 상태에서는 “님 반갑습니다” 제거 */}
-            {!isScrolled && (
+        <div
+          className="
+            flex items-center justify-end
+            w-44 lg:w-56
+            gap-1 lg:gap-2
+            text-[10px] lg:text-xs xl:text-sm
+            font-pretendard text-gray-700
+            whitespace-nowrap
+          "
+        >
+          {user ? (
+            <>
+              <Link
+                href={user.mb_level >= 8 ? "/admin" : "/mypage"}
+                className="hover:text-blue-600 font-medium"
+              >
+                {user.mb_name}
+              </Link>
               <span>님 반갑습니다!</span>
-            )}
-
-            <button
-              onClick={handleLogout}
-              className="hover:text-blue-600 font-medium"
-            >
-              로그아웃
-            </button>
-          </div>
-        ) : (
-          <div
-            className={`
-              flex items-center justify-end transition-all duration-200
-
-              ${isScrolled
-                ? "w-40 text-xs gap-1"
-                : "w-44 lg:w-56 text-sm gap-2"}
-
-              font-pretendard text-gray-700
-            `}
-          >
+              <button
+                onClick={handleLogout}
+                className="hover:text-blue-600 font-medium"
+              >
+                로그아웃
+              </button>
+            </>
+          ) : (
             <Link href="/form/login" className="hover:text-blue-600 font-medium">
               로그인
             </Link>
-          </div>
-        )}
-
+          )}
+        </div>
       </div>
 
       {/* 드롭다운 전체 메뉴 */}
@@ -143,21 +119,29 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
         "
       >
         <div className="flex justify-center py-8">
-          <div className="max-w-4xl w-full px-6">
+          {/* ⬇️ 헤더와 동일하게 max-w-6xl, px-8 로 맞춰서
+              상단 메뉴랑 세로/가로 정렬이 딱 맞게 정렬됨 */}
+          <div className="max-w-6xl w-full px-8">
 
+            {/* 메뉴 3열 그리드 */}
             <div className="grid grid-cols-3 gap-12">
 
               {menuData.map((menu) => (
                 <div key={menu.title} className="text-left">
-
-                  <p className="text-sm font-semibold text-gray-600 mb-4">
+                  {/* 🔹 요청: MPS 연구회 소개 / MPS 회원 광장 / 동영상강의 타이틀 숨김
+                      → menu.title 표시는 제거하고 서브 메뉴만 노출 */}
+                  {/* <p className="text-sm font-semibold text-gray-600 mb-4">
                     {menu.title}
-                  </p>
+                  </p> */}
 
+                  {/* 항목 리스트 */}
                   <ul className="space-y-3 font-medium text-base lg:text-lg text-gray-800">
                     {menu.submenu.map((sub) => (
                       <li key={sub.href}>
-                        <Link href={sub.href} className="hover:text-blue-600 transition-colors">
+                        <Link
+                          href={sub.href}
+                          className="hover:text-blue-600 transition-colors"
+                        >
                           {sub.title}
                         </Link>
                       </li>
@@ -168,7 +152,6 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
               ))}
 
             </div>
-
           </div>
         </div>
       </div>
