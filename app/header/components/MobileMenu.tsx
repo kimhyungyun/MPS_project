@@ -24,6 +24,13 @@ export default function MobileMenu({ user, isOpen, onClose }: Props) {
     router.push(href);
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    onClose();
+    router.push("/");
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -31,14 +38,18 @@ export default function MobileMenu({ user, isOpen, onClose }: Props) {
       <div className="max-w-6xl mx-auto px-4 py-5 space-y-6">
 
         {/* 유저 정보 / 로그인 박스 */}
-        <div className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3 text-[11px] text-gray-700">
+        <div className="flex justify-between items-center rounded-xl bg-gray-50 px-4 py-3 text-[11px] text-gray-700">
           {user ? (
             <>
               <div className="flex flex-col">
                 <span className="font-semibold">{user.mb_name} 님</span>
-                <span className="text-[10px] text-gray-500">MPS 서비스 이용 중</span>
+                <span className="text-[10px] text-gray-500">
+                  MPS 서비스 이용 중
+                </span>
               </div>
+
               <div className="flex items-center gap-3">
+                {/* 마이페이지 */}
                 <button
                   onClick={() =>
                     handleLink(user.mb_level >= 8 ? "/admin" : "/mypage")
@@ -46,6 +57,14 @@ export default function MobileMenu({ user, isOpen, onClose }: Props) {
                   className="text-[11px] underline underline-offset-2"
                 >
                   마이페이지
+                </button>
+
+                {/* 로그아웃 */}
+                <button
+                  onClick={handleLogout}
+                  className="text-[11px] text-red-500 underline underline-offset-2"
+                >
+                  로그아웃
                 </button>
               </div>
             </>
@@ -72,24 +91,25 @@ export default function MobileMenu({ user, isOpen, onClose }: Props) {
           <p className="mb-2 text-[11px] font-semibold text-gray-500">
             빠른 이동
           </p>
+
           <div className="grid grid-cols-3 gap-2 text-[13px] font-pretendard font-medium">
             <button
-              className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-left text-gray-800 shadow-sm active:scale-[0.98] transition"
+              className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-center text-gray-800 shadow-sm active:scale-[0.98] transition"
               onClick={() => handleLink("/mpspain/introduction")}
             >
               연구회 소개
             </button>
             <button
-              className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-left text-gray-800 shadow-sm active:scale-[0.98] transition"
+              className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-center text-gray-800 shadow-sm active:scale-[0.98] transition"
               onClick={() => handleLink("/mpspain/mpschamp")}
             >
-              MPS 회원 광장
+              정회원 캠프안내
             </button>
             <button
-              className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-left text-gray-800 shadow-sm active:scale-[0.98] transition"
+              className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-center text-gray-800 shadow-sm active:scale-[0.98] transition"
               onClick={() => handleLink("/mpspain/lecture")}
             >
-              MPS 강좌
+              MPS 강의 듣기
             </button>
           </div>
         </div>
