@@ -36,16 +36,23 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
       `}
     >
       {/* 상단 헤더 바 */}
-      <div className="flex items-center justify-between max-w-6xl mx-auto h-[110px] px-8">
+      <div
+        className={`
+          flex items-center justify-between max-w-6xl mx-auto px-8
+          transition-all duration-300
+
+          ${isScrolled ? "h-[80px]" : "h-[110px]"}
+        `}
+      >
 
         {/* 로고 */}
-        <Link href="/" className="flex items-center w-44 lg:w-56 shrink-0">
+        <Link href="/" className="flex items-center w-44 lg:w-56 shrink-0 transition-all duration-300">
           <Image
             src="/빈배경로고.png"
             alt="로고"
-            width={190}
-            height={80}
-            className="object-contain"
+            width={isScrolled ? 150 : 190}
+            height={isScrolled ? 60 : 80}
+            className="object-contain transition-all duration-300"
             priority
           />
         </Link>
@@ -74,29 +81,55 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
         </nav>
 
         {/* 로그인 영역 */}
-        <div className="flex items-center justify-end w-44 lg:w-56 gap-2 text-sm font-pretendard text-gray-700">
-          {user ? (
-            <>
-              <Link
-                href={user.mb_level >= 8 ? "/admin" : "/mypage"}
-                className="hover:text-blue-600 font-medium"
-              >
-                {user.mb_name}
-              </Link>
+        {user ? (
+          <div
+            className={`
+              flex items-center justify-end transition-all duration-200
+
+              ${isScrolled
+                ? "w-40 gap-1 text-xs"
+                : "w-44 lg:w-56 gap-2 text-sm"}
+              
+              font-pretendard text-gray-700
+            `}
+          >
+            <Link
+              href={user.mb_level >= 8 ? "/admin" : "/mypage"}
+              className="hover:text-blue-600 font-medium"
+            >
+              {user.mb_name}
+            </Link>
+
+            {/* 축소 상태에서는 “님 반갑습니다” 제거 */}
+            {!isScrolled && (
               <span>님 반갑습니다!</span>
-              <button
-                onClick={handleLogout}
-                className="hover:text-blue-600 font-medium"
-              >
-                로그아웃
-              </button>
-            </>
-          ) : (
+            )}
+
+            <button
+              onClick={handleLogout}
+              className="hover:text-blue-600 font-medium"
+            >
+              로그아웃
+            </button>
+          </div>
+        ) : (
+          <div
+            className={`
+              flex items-center justify-end transition-all duration-200
+
+              ${isScrolled
+                ? "w-40 text-xs gap-1"
+                : "w-44 lg:w-56 text-sm gap-2"}
+
+              font-pretendard text-gray-700
+            `}
+          >
             <Link href="/form/login" className="hover:text-blue-600 font-medium">
               로그인
             </Link>
-          )}
-        </div>
+          </div>
+        )}
+
       </div>
 
       {/* 드롭다운 전체 메뉴 */}
@@ -112,18 +145,15 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
         <div className="flex justify-center py-8">
           <div className="max-w-4xl w-full px-6">
 
-            {/* 메뉴 3열 그리드 */}
             <div className="grid grid-cols-3 gap-12">
 
               {menuData.map((menu) => (
                 <div key={menu.title} className="text-left">
 
-                  {/* 섹션 제목 */}
                   <p className="text-sm font-semibold text-gray-600 mb-4">
                     {menu.title}
                   </p>
 
-                  {/* 항목 리스트 */}
                   <ul className="space-y-3 font-medium text-base lg:text-lg text-gray-800">
                     {menu.submenu.map((sub) => (
                       <li key={sub.href}>
@@ -138,6 +168,7 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
               ))}
 
             </div>
+
           </div>
         </div>
       </div>

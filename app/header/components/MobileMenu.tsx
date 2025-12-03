@@ -24,11 +24,22 @@ export default function MobileMenu({ user, isOpen, onClose }: Props) {
     router.push(href);
   };
 
+  /** 🔥 로그아웃 (안먹는 문제 해결) */
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    onClose();
+    try {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+    } catch (e) {
+      console.error("로그아웃 실패:", e);
+    }
+
+    // 먼저 이동
     router.push("/");
+
+    // 메뉴 닫기는 약간 지연
+    setTimeout(() => {
+      onClose();
+    }, 100);
   };
 
   if (!isOpen) return null;
@@ -51,6 +62,7 @@ export default function MobileMenu({ user, isOpen, onClose }: Props) {
               <div className="flex items-center gap-3">
                 {/* 마이페이지 */}
                 <button
+                  type="button"
                   onClick={() =>
                     handleLink(user.mb_level >= 8 ? "/admin" : "/mypage")
                   }
@@ -61,6 +73,7 @@ export default function MobileMenu({ user, isOpen, onClose }: Props) {
 
                 {/* 로그아웃 */}
                 <button
+                  type="button"
                   onClick={handleLogout}
                   className="text-[11px] text-red-500 underline underline-offset-2"
                 >
@@ -77,6 +90,7 @@ export default function MobileMenu({ user, isOpen, onClose }: Props) {
                 </span>
               </div>
               <button
+                type="button"
                 onClick={() => handleLink("/form/login")}
                 className="rounded-full border border-gray-300 px-3 py-1 text-[11px] font-medium"
               >
@@ -95,6 +109,7 @@ export default function MobileMenu({ user, isOpen, onClose }: Props) {
           <div className="grid grid-cols-3 gap-2 text-[13px] font-pretendard font-medium">
 
             <button
+              type="button"
               className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-gray-800 shadow-sm active:scale-[0.98] transition"
               onClick={() => handleLink("/mpspain/introduction")}
             >
@@ -102,6 +117,7 @@ export default function MobileMenu({ user, isOpen, onClose }: Props) {
             </button>
 
             <button
+              type="button"
               className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-gray-800 shadow-sm active:scale-[0.98] transition"
               onClick={() => handleLink("/mpspain/mpschamp")}
             >
@@ -109,6 +125,7 @@ export default function MobileMenu({ user, isOpen, onClose }: Props) {
             </button>
 
             <button
+              type="button"
               className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-gray-800 shadow-sm active:scale-[0.98] transition"
               onClick={() => handleLink("/mpspain/lecture")}
             >
@@ -145,6 +162,7 @@ export default function MobileMenu({ user, isOpen, onClose }: Props) {
                 {menu.submenu.map((sub) => (
                   <li key={sub.href}>
                     <button
+                      type="button"
                       className="flex w-full items-center justify-between px-4 py-2.5 text-left text-sm text-gray-800 hover:bg-white active:bg-gray-100"
                       onClick={() => handleLink(sub.href)}
                     >
@@ -163,6 +181,7 @@ export default function MobileMenu({ user, isOpen, onClose }: Props) {
         {/* 닫기 버튼 */}
         <div className="pt-2 flex justify-center">
           <button
+            type="button"
             onClick={onClose}
             className="text-[11px] text-gray-400 underline underline-offset-4"
           >

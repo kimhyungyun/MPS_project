@@ -10,7 +10,7 @@ export default function MobileHeader({ user, handleLogout }: any) {
 
   return (
     <header className="block md:hidden fixed top-0 left-0 w-full h-[64px] bg-white/90 backdrop-blur border-b border-gray-200 z-50">
-      <div className="flex items-center justify-between h-full px-4">
+      <div className="flex items-center justify-between h-full">
 
         {/* 로고 */}
         <Link href="/">
