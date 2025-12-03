@@ -80,10 +80,19 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
                       text-center
                     "
                   >
-                    {/* 회색 타이틀 */}
-                    <p className="text-base font-semibold text-gray-600 mb-3">
-                      {introMenu.title}
-                    </p>
+                    {/* 🔥 로고 + 타이틀 */}
+                    <div className="flex items-center justify-center gap-2 mb-3">
+                      <Image
+                        src="/빈배경로고1.png"
+                        alt="MPS 로고"
+                        width={16}
+                        height={16}
+                        className="object-contain opacity-80"
+                      />
+                      <p className="text-base font-semibold text-gray-600">
+                        {introMenu.title}
+                      </p>
+                    </div>
 
                     {/* 메뉴 리스트 */}
                     <ul className="space-y-2 text-[15px] text-gray-800 font-medium">
@@ -119,9 +128,19 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
                       text-center
                     "
                   >
-                    <p className="text-base font-semibold text-gray-600 mb-3">
-                      {champMenu.title}
-                    </p>
+                    {/* 🔥 로고 + 타이틀 */}
+                    <div className="flex items-center justify-center gap-2 mb-3">
+                      <Image
+                        src="/빈배경로고1.png"
+                        alt="MPS 로고"
+                        width={16}
+                        height={16}
+                        className="object-contain opacity-80"
+                      />
+                      <p className="text-base font-semibold text-gray-600">
+                        {champMenu.title}
+                      </p>
+                    </div>
 
                     <ul className="space-y-2 text-[15px] text-gray-800 font-medium">
                       {champMenu.submenu.map((sub) => (
@@ -156,9 +175,19 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
                       text-center
                     "
                   >
-                    <p className="text-base font-semibold text-gray-600 mb-3">
-                      {lectureMenu.title}
-                    </p>
+                    {/* 🔥 로고 + 타이틀 */}
+                    <div className="flex items-center justify-center gap-2 mb-3">
+                      <Image
+                        src="/빈배경로고1.png"
+                        alt="MPS 로고"
+                        width={16}
+                        height={16}
+                        className="object-contain opacity-80"
+                      />
+                      <p className="text-base font-semibold text-gray-600">
+                        {lectureMenu.title}
+                      </p>
+                    </div>
 
                     <ul className="space-y-2 text-[15px] text-gray-800 font-medium">
                       {lectureMenu.submenu.map((sub) => (

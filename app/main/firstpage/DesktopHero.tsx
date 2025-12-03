@@ -8,12 +8,11 @@ import { Autoplay, Pagination } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
 
-// 1번: 이미지 + 텍스트 + 블러
-// 2,3번: 이미지 슬라이드
+// 1,3번: 이미지 + 텍스트 + 블러 / 2번: 이미지만
 const slides = [
-  { type: "hero" as const, src: "/메인흰이미지.avif" }, 
-  { type: "image" as const, src: "/메인이미지.jpg" },
-  { type: "image" as const, src: "/메인사진.jpg" },
+  { type: "hero" as const, src: "/메인흰이미지.avif", align: "center" as const }, // 1번
+  { type: "image" as const, src: "/메인이미지.jpg" },                            // 2번
+  { type: "hero" as const, src: "/메인사진.jpg", align: "left" as const },       // 3번 (텍스트 좀 더 왼쪽)
 ];
 
 export default function DesktopHero() {
@@ -48,23 +47,31 @@ export default function DesktopHero() {
         {slides.map((slide, idx) => (
           <SwiperSlide key={idx}>
             <div className="relative w-full h-full">
-              {/* === 1번 슬라이드: 기존 스타일 그대로 === */}
+              {/* === hero 타입 (1번, 3번) === */}
               {slide.type === "hero" && (
                 <>
                   <Image
                     src={slide.src}
                     alt="메인 이미지"
                     fill
-                    priority
+                    priority={idx === 0}
                     className="object-cover object-center"
                   />
 
-                  {/* 기존 명암 */}
+                  {/* 명암/블러 오버레이 */}
                   <div className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/25 to-transparent" />
 
-                  {/* 텍스트 */}
+                  {/* 텍스트 영역 */}
                   <div className="absolute inset-0 z-10 flex items-center">
-                    <div className="w-full max-w-6xl mx-auto px-12">
+                    <div
+                      className={
+                        slide.align === "left"
+                          ? // 3번 슬라이드: 조금 더 왼쪽으로
+                            "w-full max-w-5xl pl-24 pr-12"
+                          : // 1번 슬라이드: 기존처럼 중앙 정렬 느낌
+                            "w-full max-w-6xl mx-auto px-12"
+                      }
+                    >
                       <h1 className="text-5xl lg:text-6xl font-extrabold text-white leading-tight">
                         MPS 연구회
                       </h1>
@@ -76,11 +83,11 @@ export default function DesktopHero() {
                 </>
               )}
 
-              {/* === 2,3번 슬라이드: 이미지만 === */}
+              {/* === image 타입 (2번) : 이미지만 === */}
               {slide.type === "image" && (
                 <Image
                   src={slide.src}
-                  alt={`메인 이미지 ${idx}`}
+                  alt={`메인 이미지 ${idx + 1}`}
                   fill
                   className="object-cover object-center"
                 />
