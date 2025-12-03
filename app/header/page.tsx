@@ -40,7 +40,7 @@ export default function Header() {
       <MobileHeader user={user} handleLogout={handleLogout} />
       
       {/* 페이지 컨텐츠는 헤더 아래로 밀리게 */}
-      <div className="h-[64px] md:h-[100px]" />
+      {/* <div className="h-[64px] md:h-[100px]" /> */}
     </>
   );
 }
