@@ -89,8 +89,8 @@ const Header = () => {
               <Image
                 src="/빈배경로고.png"
                 alt="로고"
-                width={150}
-                height={50}
+                width={170}
+                height={70}
                 priority
                 className="object-contain"
               />
@@ -99,7 +99,7 @@ const Header = () => {
 
           {/* 중앙 상단 메뉴 */}
           <nav className="flex-1 flex justify-center">
-            <ul className="grid grid-cols-3 w-full max-w-3xl place-items-center gap-12 font-pretendard text-lg md:text-xl font-medium">
+            <ul className="grid grid-cols-3 w-full max-w-3xl place-items-center gap-12 font-pretendard text-lg md:text-2xl font-medium">
               <li>
                 <Link href="/mpspain/introduction">연구회 소개</Link>
               </li>
@@ -111,7 +111,7 @@ const Header = () => {
           </nav>
 
           {/* 오른쪽 로그인/유저 영역 – 왼쪽과 같은 폭 */}
-          <div className="shrink-0 w-52 flex items-center justify-end text-xs font-pretendard gap-2">
+          <div className="shrink-0 w-52 flex items-center justify-end text-s font-pretendard gap-2">
             {!isLoading &&
               (user ? (
                 <>
@@ -148,7 +148,7 @@ const Header = () => {
             <div className="grid grid-cols-3 place-items-center">
               {menuData.map((menu) => (
                 <div key={menu.title} className="text-center">
-                  <ul className="space-y-8 font-pretendard text-sm font-medium">
+                  <ul className="space-y-8 font-pretendard text-lg font-medium">
                     {menu.submenu.map((sub) => (
                       <li key={sub.href}>
                         <Link href={sub.href}>{sub.title}</Link>

@@ -81,7 +81,7 @@ const Header = () => {
       border-b border-gray-200`}
     >
       {/* 헤더 높이 72px */}
-      <div className="flex justify-center items-center w-full h-[72px] px-6">
+      <div className="flex justify-center items-center w-full h-[100px] px-6">
         <div className="flex items-center w-full max-w-6xl mx-auto">
           {/* 왼쪽 로고 영역 : 오른쪽이랑 폭 맞춤 */}
           <div className="shrink-0 w-52 flex items-center">
@@ -89,8 +89,8 @@ const Header = () => {
               <Image
                 src="/빈배경로고.png"
                 alt="로고"
-                width={150}
-                height={50}
+                width={170}
+                height={70}
                 priority
                 className="object-contain"
               />
@@ -99,7 +99,7 @@ const Header = () => {
 
           {/* 중앙 상단 메뉴 */}
           <nav className="flex-1 flex justify-center">
-            <ul className="grid grid-cols-3 w-full max-w-3xl place-items-center gap-12 font-pretendard text-lg md:text-xl font-medium">
+            <ul className="grid grid-cols-3 w-full max-w-3xl place-items-center gap-12 font-pretendard text-lg md:text-2xl font-medium">
               <li>
                 <Link href="/mpspain/introduction">연구회 소개</Link>
               </li>
@@ -111,7 +111,7 @@ const Header = () => {
           </nav>
 
           {/* 오른쪽 로그인/유저 영역 – 왼쪽과 같은 폭 */}
-          <div className="shrink-0 w-52 flex items-center justify-end text-xs font-pretendard gap-2">
+          <div className="shrink-0 w-52 flex items-center justify-end text-s font-pretendard gap-2">
             {!isLoading &&
               (user ? (
                 <>
@@ -143,12 +143,12 @@ const Header = () => {
 
       {/* 드롭다운 – 위 중앙 메뉴와 같은 max-w-3xl + 같은 3칸 그리드 */}
       <div className="absolute left-0 top-full w-full bg-white/95 backdrop-blur shadow-md opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-40">
-        <div className="flex justify-center py-6">
+        <div className="flex justify-center py-12">
           <div className="w-full max-w-3xl mx-auto">
             <div className="grid grid-cols-3 place-items-center">
               {menuData.map((menu) => (
                 <div key={menu.title} className="text-center">
-                  <ul className="space-y-8 font-pretendard text-sm font-medium">
+                  <ul className="space-y-8 font-pretendard text-lg font-medium">
                     {menu.submenu.map((sub) => (
                       <li key={sub.href}>
                         <Link href={sub.href}>{sub.title}</Link>
