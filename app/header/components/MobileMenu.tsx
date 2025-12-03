@@ -98,11 +98,6 @@ export default function MobileMenu({ user, isOpen, onClose }: Props) {
               className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-gray-800 shadow-sm active:scale-[0.98] transition"
               onClick={() => handleLink("/mpspain/introduction")}
             >
-              <img
-                src="/빈배경로고.png"
-                alt=""
-                className="w-4 h-4 md:w-5 md:h-5 object-contain"
-              />
               <span>연구회 소개</span>
             </button>
 
@@ -110,11 +105,6 @@ export default function MobileMenu({ user, isOpen, onClose }: Props) {
               className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-gray-800 shadow-sm active:scale-[0.98] transition"
               onClick={() => handleLink("/mpspain/mpschamp")}
             >
-              <img
-                src="/빈배경로고.png"
-                alt=""
-                className="w-4 h-4 md:w-5 md:h-5 object-contain"
-              />
               <span>정회원 캠프안내</span>
             </button>
 
@@ -122,11 +112,6 @@ export default function MobileMenu({ user, isOpen, onClose }: Props) {
               className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-gray-800 shadow-sm active:scale-[0.98] transition"
               onClick={() => handleLink("/mpspain/lecture")}
             >
-              <img
-                src="/빈배경로고.png"
-                alt=""
-                className="w-4 h-4 md:w-5 md:h-5 object-contain"
-              />
               <span>MPS 강의 듣기</span>
             </button>
 
@@ -145,7 +130,7 @@ export default function MobileMenu({ user, isOpen, onClose }: Props) {
               {/* 섹션 헤더 */}
               <div className="flex items-center border-b border-gray-100 px-4 py-3">
                 <img
-                  src="/빈배경로고.png"
+                  src="/빈배경로고1.png"
                   alt=""
                   className="w-4 h-4 object-contain opacity-80 mr-2"
                 />
