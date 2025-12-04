@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface Member {
-  mb_no: number; // 🔹 권한 API에 넘길 PK (프론트에서 강제로 맞춰서 사용)
+  mb_no: number; // 🔹 권한 API에 넘길 PK
   mb_id: string;
   mb_name: string;
   mb_hp: string;
@@ -61,6 +61,7 @@ export default function VideoAuthorityPage() {
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalMembers, setTotalMembers] = useState(0);
@@ -161,7 +162,7 @@ export default function VideoAuthorityPage() {
 
       const data = await response.json();
 
-      // 🔥 여기서 서버 응답을 강제로 mb_no에 매핑
+      // 서버 응답을 mb_no에 매핑
       const raw = data.data.members as any[];
 
       const normalized: Member[] = raw.map((m, idx) => ({
@@ -188,7 +189,7 @@ export default function VideoAuthorityPage() {
     }
   };
 
-  // 🔹 특정 회원 선택 + 권한 로딩
+  // 특정 회원 선택 + 권한 로딩
   const handleSelectMember = async (member: Member) => {
     setSelectedMember(member);
     setSelectedMemberId(member.mb_no ?? null);
@@ -271,18 +272,12 @@ export default function VideoAuthorityPage() {
     const userId = selectedMember.mb_no;
 
     if (userId == null) {
-      // 여기까지 오면 이제 정말 이상한 케이스
       setAuthorityMessage('회원 번호가 없습니다.');
       return;
     }
 
     setAuthoritySaving(true);
     setAuthorityMessage(null);
-
-    // single(권한 없음)은 서버에 보내지 않음 (필요 없다면 주석 풀어서 사용)
-    // const videoTypesToSend = selectedVideoTypes.includes('single')
-    //   ? []
-    //   : selectedVideoTypes;
 
     try {
       const res = await fetch(`${API_URL}/api/video-authorities`, {
@@ -295,7 +290,7 @@ export default function VideoAuthorityPage() {
         body: JSON.stringify({
           userId,
           classGroups: selectedClassGroups,
-          videoTypes: selectedVideoTypes, // 또는 videoTypesToSend
+          videoTypes: selectedVideoTypes,
         }),
       });
 
@@ -312,6 +307,24 @@ export default function VideoAuthorityPage() {
     }
   };
 
+  // 검색 submit
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSearching(true);
+    setCurrentPage(1);
+  };
+
+  // 페이지 그룹 이동
+  const handlePrevGroup = () => {
+    if (startPage === 1 || loading) return;
+    setCurrentPage(Math.max(startPage - pageGroupSize, 1));
+  };
+
+  const handleNextGroup = () => {
+    if (endPage === totalPages || loading) return;
+    setCurrentPage(Math.min(startPage + pageGroupSize, totalPages));
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-8 mt-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -319,7 +332,7 @@ export default function VideoAuthorityPage() {
           동영상 권한 관리
         </h1>
 
-        {/* 회원 목록 */}
+        {/* 회원 목록 박스 */}
         <div className="bg-white shadow rounded-lg overflow-hidden mb-6">
           <div className="overflow-x-auto">
             {loading ? (
@@ -327,7 +340,9 @@ export default function VideoAuthorityPage() {
                 회원 목록을 불러오는 중...
               </div>
             ) : error ? (
-              <div className="p-6 text-center text-sm text-red-600">{error}</div>
+              <div className="p-6 text-center text-sm text-red-600">
+                {error}
+              </div>
             ) : (
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -392,7 +407,70 @@ export default function VideoAuthorityPage() {
           </div>
         </div>
 
-        {/* 선택한 회원 권한 관리 */}
+        {/* 회원박스와 동영상권한 박스 사이에 검색 박스 */}
+        <div className="flex justify-center mb-6">
+          <form onSubmit={handleSearch} className="w-[600px]">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="   아이디, 이름, 휴대폰, 학교 검색"
+                className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 px-4 py-2"
+              />
+              <button
+                type="submit"
+                disabled={isSearching}
+                className={`bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700 ${
+                  isSearching ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+              >
+                {isSearching ? '검색 중...' : '검색'}
+              </button>
+            </div>
+          </form>
+        </div>
+
+        {/* 검색 아래 페이지네이션 */}
+        {totalPages > 1 && (
+          <div className="mt-4 mb-8 flex justify-center">
+            <nav className="flex items-center gap-2">
+              <button
+                onClick={handlePrevGroup}
+                disabled={startPage === 1 || loading}
+                className="px-3 py-2 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                &lt;
+              </button>
+              {Array.from(
+                { length: endPage - startPage + 1 },
+                (_, i) => startPage + i,
+              ).map((page) => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  disabled={loading}
+                  className={`w-9 h-9 flex items-center justify-center rounded-md text-sm font-medium transition-colors ${
+                    currentPage === page
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+                  } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  {page}
+                </button>
+              ))}
+              <button
+                onClick={handleNextGroup}
+                disabled={endPage === totalPages || loading}
+                className="px-3 py-2 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                &gt;
+              </button>
+            </nav>
+          </div>
+        )}
+
+        {/* 동영상 권한 박스 */}
         <div ref={authorityPanelRef} className="bg-white shadow rounded-lg p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
             {selectedMember
@@ -409,7 +487,9 @@ export default function VideoAuthorityPage() {
               )}
 
               {authorityLoading ? (
-                <p className="text-sm text-gray-500">권한 정보를 불러오는 중...</p>
+                <p className="text-sm text-gray-500">
+                  권한 정보를 불러오는 중...
+                </p>
               ) : (
                 <div className="space-y-6">
                   {/* 캠프강의 권한 */}
