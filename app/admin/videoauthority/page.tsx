@@ -30,11 +30,10 @@ interface VideoAuthority {
   type: LectureType | null;
 }
 
-// 화면에 보여줄 라벨 맵
 const CLASS_GROUP_LABELS: Record<ClassGroup, string> = {
   A: 'A반',
   B: 'B반',
-  S: 'S', // S는 사용 안함
+  S: 'S', // S는 사용 안함(향후 확장용)
 };
 
 const VIDEO_TYPE_LABELS: Record<LectureType, string> = {
@@ -46,7 +45,6 @@ const VIDEO_TYPE_LABELS: Record<LectureType, string> = {
   packageE: '패키지 E',
 };
 
-// 패키지 타입만 분리
 const PACKAGE_TYPES: LectureType[] = [
   'packageA',
   'packageB',
@@ -70,9 +68,8 @@ export default function VideoAuthorityPage() {
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
 
-  // 선택된 회원 + 권한 상태
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
-  const [selectedMemberId, setSelectedMemberId] = useState<number | null>(null); // PK만 저장
+  const [selectedMemberId, setSelectedMemberId] = useState<number | null>(null);
 
   const [authorityLoading, setAuthorityLoading] = useState(false);
   const [authoritySaving, setAuthoritySaving] = useState(false);
@@ -84,7 +81,6 @@ export default function VideoAuthorityPage() {
   );
   const [authorityMessage, setAuthorityMessage] = useState<string | null>(null);
 
-  // 권한 패널 Ref (자동 스크롤용)
   const authorityPanelRef = useRef<HTMLDivElement | null>(null);
 
   const pageSize = 10;
@@ -94,7 +90,6 @@ export default function VideoAuthorityPage() {
   const startPage = (currentPageGroup - 1) * pageGroupSize + 1;
   const endPage = Math.min(startPage + pageGroupSize - 1, totalPages);
 
-  // 관리자 권한 체크 + 목록 가져오기
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     if (!user || user.mb_level < 8) {
@@ -178,13 +173,12 @@ export default function VideoAuthorityPage() {
   // 🔹 특정 회원 선택 + 권한 로딩
   const handleSelectMember = async (member: Member) => {
     setSelectedMember(member);
-    setSelectedMemberId(member.mb_no ?? null); // PK 저장
+    setSelectedMemberId(member.mb_no ?? null);
 
     setAuthorityMessage(null);
     setSelectedClassGroups([]);
     setSelectedVideoTypes([]);
 
-    // 스크롤 이동
     if (authorityPanelRef.current) {
       authorityPanelRef.current.scrollIntoView({
         behavior: 'smooth',
@@ -192,7 +186,6 @@ export default function VideoAuthorityPage() {
       });
     }
 
-    // 권한 로딩
     if (member.mb_no == null) return;
 
     setAuthorityLoading(true);
@@ -228,20 +221,22 @@ export default function VideoAuthorityPage() {
     }
   };
 
-  // 캠프
+  // 캠프 권한 토글 (A / B / S)
   const toggleClassGroup = (cg: ClassGroup) => {
     setSelectedClassGroups((prev) =>
       prev.includes(cg) ? prev.filter((v) => v !== cg) : [...prev, cg],
     );
   };
 
-  // 패키지
+  // 패키지 권한 토글
   const toggleVideoType = (vt: LectureType) => {
     setSelectedVideoTypes((prev) => {
       if (vt === 'single') {
+        // single 체크 → 나머지 패키지는 전부 해제, single만 남김
         return prev.includes('single') ? [] : ['single'];
       }
 
+      // single 선택되어 있으면 제거하고 패키지 선택
       const after = prev.filter((v) => v !== 'single');
 
       if (after.includes(vt)) return after.filter((v) => v !== vt);
@@ -257,10 +252,8 @@ export default function VideoAuthorityPage() {
       return;
     }
 
-    // 🔹 mb_no 그대로 사용 (Number()로 다시 감싸지 않음)
     const userId = selectedMember.mb_no;
 
-    // null/undefined 체크
     if (userId == null) {
       setAuthorityMessage('회원 번호가 없습니다.');
       return;
@@ -268,6 +261,11 @@ export default function VideoAuthorityPage() {
 
     setAuthoritySaving(true);
     setAuthorityMessage(null);
+
+    // 🔹 single(권한 없음)은 서버에 보내지 않음
+    const videoTypesToSend = selectedVideoTypes.includes('single')
+      ? []
+      : selectedVideoTypes;
 
     try {
       const res = await fetch(`${API_URL}/api/video-authorities`, {
@@ -278,9 +276,9 @@ export default function VideoAuthorityPage() {
         },
         credentials: 'include',
         body: JSON.stringify({
-          userId, // 숫자 PK
+          userId,
           classGroups: selectedClassGroups,
-          videoTypes: selectedVideoTypes,
+          videoTypes: videoTypesToSend,
         }),
       });
 
@@ -303,6 +301,8 @@ export default function VideoAuthorityPage() {
         <h1 className="text-3xl font-bold text-gray-900 mb-8">
           동영상 권한 관리
         </h1>
+
+        {/* 검색 / 정렬 영역 (필요하면 추가해서 사용) */}
 
         {/* 회원 목록 */}
         <div className="bg-white shadow rounded-lg overflow-hidden mb-6">
@@ -426,7 +426,7 @@ export default function VideoAuthorityPage() {
                       패키지 권한
                     </h3>
 
-                    {/* 권한 없음 */}
+                    {/* 권한 없음(single) */}
                     <div className="mb-3">
                       <label className="inline-flex items-center gap-2 text-sm">
                         <input
