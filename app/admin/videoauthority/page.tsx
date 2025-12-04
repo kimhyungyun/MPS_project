@@ -30,7 +30,6 @@ interface VideoAuthority {
   type: LectureType | null;
 }
 
-// 화면에 보여줄 라벨 맵
 const CLASS_GROUP_LABELS: Record<ClassGroup, string> = {
   A: 'A반',
   B: 'B반',
@@ -70,7 +69,6 @@ export default function VideoAuthorityPage() {
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
 
-  // 선택된 회원 + 권한 상태
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [selectedMemberId, setSelectedMemberId] = useState<number | null>(null);
 
@@ -93,7 +91,6 @@ export default function VideoAuthorityPage() {
   const startPage = (currentPageGroup - 1) * pageGroupSize + 1;
   const endPage = Math.min(startPage + pageGroupSize - 1, totalPages);
 
-  // 관리자 권한 체크 + 목록 가져오기
   useEffect(() => {
     const stored = localStorage.getItem('user');
     if (!stored) {
@@ -109,11 +106,7 @@ export default function VideoAuthorityPage() {
       return;
     }
 
-    if (
-      !user.mb_id ||
-      typeof user.mb_level !== 'number' ||
-      user.mb_level < 8
-    ) {
+    if (!user.mb_id || typeof user.mb_level !== 'number' || user.mb_level < 8) {
       router.push('/');
       return;
     }
@@ -178,11 +171,14 @@ export default function VideoAuthorityPage() {
       }
 
       const data = await response.json();
-
       const raw = data.data.members as any[];
 
-      const normalized: Member[] = raw.map((m) => ({
-        mb_no: m.mb_no ?? m.mbNo ?? m.id, // idx + 1 없음
+      const normalized: Member[] = raw.map((m, idx) => ({
+        mb_no:
+          m.mb_no ??
+          m.mbNo ??
+          m.id ?? // 백엔드가 id 쓰면 이거
+          idx + 1, // 🔙 마지막 fallback (이게 없으면 mb_no 가 undefined 될 수 있음)
         mb_id: m.mb_id,
         mb_name: m.mb_name,
         mb_hp: m.mb_hp,
@@ -201,7 +197,6 @@ export default function VideoAuthorityPage() {
     }
   };
 
-  // 특정 회원 선택 + 권한 로딩
   const handleSelectMember = async (member: Member) => {
     setSelectedMember(member);
     setSelectedMemberId(member.mb_no ?? null);
@@ -217,7 +212,6 @@ export default function VideoAuthorityPage() {
       });
     }
 
-    // 진짜로 mb_no가 없으면 여기서만 막음
     if (member.mb_no == null) {
       setAuthorityMessage('회원 번호가 없어 권한을 불러올 수 없습니다.');
       return;
@@ -256,14 +250,12 @@ export default function VideoAuthorityPage() {
     }
   };
 
-  // 캠프
   const toggleClassGroup = (cg: ClassGroup) => {
     setSelectedClassGroups((prev) =>
       prev.includes(cg) ? prev.filter((v) => v !== cg) : [...prev, cg],
     );
   };
 
-  // 패키지
   const toggleVideoType = (vt: LectureType) => {
     setSelectedVideoTypes((prev) => {
       if (vt === 'single') {
@@ -278,7 +270,6 @@ export default function VideoAuthorityPage() {
     });
   };
 
-  // 저장
   const handleSaveAuthority = async () => {
     if (!selectedMember) {
       setAuthorityMessage('회원이 선택되지 않았습니다.');
@@ -323,14 +314,12 @@ export default function VideoAuthorityPage() {
     }
   };
 
-  // 검색 submit
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setIsSearching(true);
     setCurrentPage(1);
   };
 
-  // 페이지 그룹 이동
   const handlePrevGroup = () => {
     if (startPage === 1 || loading) return;
     setCurrentPage(Math.max(startPage - pageGroupSize, 1));
@@ -423,7 +412,7 @@ export default function VideoAuthorityPage() {
           </div>
         </div>
 
-        {/* 회원박스와 동영상권한 박스 사이에 검색 박스 */}
+        {/* 검색 */}
         <div className="flex justify-center mb-6">
           <form onSubmit={handleSearch} className="w-[600px]">
             <div className="flex gap-2">
@@ -447,7 +436,7 @@ export default function VideoAuthorityPage() {
           </form>
         </div>
 
-        {/* 검색 아래 페이지네이션 */}
+        {/* 페이지네이션 */}
         {totalPages > 1 && (
           <div className="mt-4 mb-8 flex justify-center">
             <nav className="flex items-center gap-2">
@@ -508,7 +497,6 @@ export default function VideoAuthorityPage() {
                 </p>
               ) : (
                 <div className="space-y-6">
-                  {/* 캠프강의 권한 */}
                   <div>
                     <h3 className="text-sm font-medium text-gray-800 mb-2">
                       캠프강의 권한
@@ -531,15 +519,13 @@ export default function VideoAuthorityPage() {
                     </div>
                   </div>
 
-                  {/* 패키지 권한 */}
                   <div>
                     <h3 className="text-sm font-medium text-gray-800 mb-2">
                       패키지 권한
                     </h3>
 
-                    {/* 권한 없음 */}
                     <div className="mb-3">
-                      <label className="inline-flex items-center gap-2 text	sm">
+                      <label className="inline-flex items-center gap-2 text-sm">
                         <input
                           type="checkbox"
                           checked={selectedVideoTypes.includes('single')}
@@ -550,7 +536,6 @@ export default function VideoAuthorityPage() {
                       </label>
                     </div>
 
-                    {/* 실제 패키지들 */}
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                       {PACKAGE_TYPES.map((vt) => (
                         <label
