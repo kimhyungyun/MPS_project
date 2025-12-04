@@ -17,11 +17,11 @@ type ClassGroup = 'A' | 'B' | 'S';
 interface Course {
   id: number;
   title: string;
-  description: string;
+  description: string; // 🔥 영문 이름 포함 가능
   price: number;
   thumbnail_url: string;
-  video_folder?: string;
-  video_name?: string;
+  video_folder?: string;   // 🔥 복구
+  video_name?: string;     // 🔥 복구
   type: LectureType;
   classGroup: ClassGroup;
 }
@@ -35,6 +35,10 @@ interface User {
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
+// ------------------------------------------------------------
+// HLS Player
+// ------------------------------------------------------------
+
 function HlsPlayer({ src }: { src: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -44,13 +48,7 @@ function HlsPlayer({ src }: { src: string }) {
     if (!video) return;
 
     if (Hls.isSupported()) {
-      Hls.DefaultConfig.debug = false;
-      Hls.DefaultConfig.xhrSetup = function (xhr) {
-        xhr.withCredentials = true;
-      };
-
       const hls = new Hls();
-
       hls.on(Hls.Events.ERROR, (_evt, data) => {
         console.log('❌ [HLS ERROR]', data);
       });
@@ -69,15 +67,17 @@ function HlsPlayer({ src }: { src: string }) {
       ref={videoRef}
       controls
       playsInline
-      className="w-full rounded-xl border bg-black"
+      className="w-full rounded-lg shadow border bg-black"
     />
   );
 }
 
-// 상단 탭: A/B/C/D/E
+// ------------------------------------------------------------
+// 탭 UI
+// ------------------------------------------------------------
+
 type GroupKey = 'A' | 'B' | 'C' | 'D' | 'E';
 
-// 각 탭별 텍스트
 const GROUP_META: Record<
   GroupKey,
   { label: string; subtitle: string; description: string }
@@ -100,14 +100,18 @@ const GROUP_META: Record<
   D: {
     label: 'D 패키지',
     subtitle: 'PACKAGE D',
-    description: '허리, 대퇴부에 초점을 맞춘 패키지 강의입니다.',
+    description: '허리, 대퇴부에 초점을 맞춘 패키지입니다.',
   },
   E: {
     label: 'E 패키지',
     subtitle: 'PACKAGE E',
-    description: '상지, 가슴, 슬하부를 통합한 패키지 강의입니다.',
+    description: '상지, 가슴, 슬하부를 통합한 패키지 구성입니다.',
   },
 };
+
+// ------------------------------------------------------------
+// Main Component
+// ------------------------------------------------------------
 
 export default function Mpsvideo() {
   const router = useRouter();
@@ -119,17 +123,19 @@ export default function Mpsvideo() {
   const [loadingPlay, setLoadingPlay] = useState(false);
   const [streamUrl, setStreamUrl] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
-  const [selectedGroup, setSelectedGroup] = useState<GroupKey>('A'); // 기본 A반
+  const [selectedGroup, setSelectedGroup] = useState<GroupKey>('A');
 
   const listRef = useRef<HTMLDivElement | null>(null);
 
-  // 로그인 체크 + 강의 목록 로딩
+  // ------------------------------------------------------------
+  // 로그인 + 강의목록
+  // ------------------------------------------------------------
+
   useEffect(() => {
     const init = async () => {
       try {
         const raw = localStorage.getItem('user');
         if (!raw) {
-          alert('로그인이 필요합니다.');
           router.push('/form/login');
           return;
         }
@@ -138,8 +144,6 @@ export default function Mpsvideo() {
         try {
           parsedUser = JSON.parse(raw) as User;
         } catch (e) {
-          console.error('user parse error:', e);
-          alert('로그인 정보가 올바르지 않습니다. 다시 로그인 해주세요.');
           router.push('/form/login');
           return;
         }
@@ -154,7 +158,6 @@ export default function Mpsvideo() {
         const data = await res.json();
         setCourses(data);
       } catch (e) {
-        console.error(e);
         setErrorMsg('강의 목록을 불러오지 못했습니다.');
       } finally {
         setLoadingList(false);
@@ -164,22 +167,27 @@ export default function Mpsvideo() {
     init();
   }, [router]);
 
+  // ------------------------------------------------------------
+  // 탭 선택
+  // ------------------------------------------------------------
+
   const handleSelectGroup = (key: GroupKey) => {
     setSelectedGroup(key);
     setSelected(null);
     setStreamUrl('');
     setErrorMsg('');
 
-    // 탭 클릭 후 리스트로 스크롤
     setTimeout(() => {
-      if (listRef.current) {
-        listRef.current.scrollIntoView({
-          behavior: 'smooth',
-          block: 'start',
-        });
-      }
+      listRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
     }, 0);
   };
+
+  // ------------------------------------------------------------
+  // 재생 준비
+  // ------------------------------------------------------------
 
   const preparePlay = async (course: Course) => {
     setSelected(course);
@@ -190,7 +198,6 @@ export default function Mpsvideo() {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
-        alert('로그인이 필요합니다.');
         router.push('/form/login');
         return;
       }
@@ -210,21 +217,21 @@ export default function Mpsvideo() {
         return;
       }
 
-      if (!playAuth.ok) {
-        throw new Error('Auth failed');
-      }
+      if (!playAuth.ok) throw new Error('Auth failed');
 
       const data = await playAuth.json();
       setStreamUrl(data.streamUrl);
     } catch (err) {
-      console.error(err);
       setErrorMsg('영상 재생 중 오류가 발생했습니다.');
     } finally {
       setLoadingPlay(false);
     }
   };
 
-  // 선택된 탭 기준으로 필터링
+  // ------------------------------------------------------------
+  // 강의 필터링
+  // ------------------------------------------------------------
+
   const filteredCourses = courses.filter((c) => {
     if (selectedGroup === 'A') return c.classGroup === 'A';
     if (selectedGroup === 'B') return c.classGroup === 'B';
@@ -234,24 +241,20 @@ export default function Mpsvideo() {
     return false;
   });
 
-  if (!user && !loadingList) {
-    return null;
-  }
+  // ------------------------------------------------------------
+  // UI
+  // ------------------------------------------------------------
+
+  if (!user && !loadingList) return null;
 
   return (
     <main className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-5xl px-4 py-10 lg:py-12">
-        {/* 헤더 */}
-        <header className="mb-8 text-center">
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-            MPS 강의실
-          </h1>
-          <p className="mt-3 text-sm text-slate-600">
-            A/B반 캠프 강의와 C/D/E 패키지 강의를 선택해서 시청할 수 있습니다.
-          </p>
-        </header>
 
-        {/* 상단 탭 버튼들 (A/B/C/D/E) */}
+        {/* ------------------------------------------------------------ */}
+        {/* 탭 */}
+        {/* ------------------------------------------------------------ */}
+
         <section className="mb-6 flex flex-wrap items-center justify-center gap-3">
           {(Object.keys(GROUP_META) as GroupKey[]).map((key) => {
             const meta = GROUP_META[key];
@@ -273,93 +276,76 @@ export default function Mpsvideo() {
           })}
         </section>
 
-        {/* 선택된 구성 설명 박스 */}
-        <section className="mb-8">
-          <div className="rounded-3xl border border-slate-200 bg-white px-6 py-5 shadow-sm">
-            <p className="text-[11px] font-medium tracking-wide text-slate-400">
-              {GROUP_META[selectedGroup].subtitle}
-            </p>
-            <h2 className="mt-1 text-lg font-semibold text-slate-900">
-              {GROUP_META[selectedGroup].label} 강의 구성
-            </h2>
-            <p className="mt-2 text-sm text-slate-600">
-              {GROUP_META[selectedGroup].description}
+        {/* ------------------------------------------------------------ */}
+        {/* 강의 목록 */}
+        {/* ------------------------------------------------------------ */}
+
+        <section ref={listRef}>
+          <div className="mb-3 flex items-baseline justify-between">
+            <h3 className="text-base font-semibold text-slate-900">
+              {GROUP_META[selectedGroup].label} 강의 목록
+            </h3>
+            <p className="text-xs text-slate-500">
+              총 <span className="font-semibold">{filteredCourses.length}</span> 개 강의
             </p>
           </div>
-        </section>
 
-        {/* 목록 / 에러 / 로딩 */}
-        <section ref={listRef}>
-          {loadingList ? (
+          {filteredCourses.length === 0 ? (
             <p className="text-center text-sm text-slate-500">
-              강의 목록을 불러오는 중입니다…
+              선택한 구성에 해당하는 강의가 없습니다.
             </p>
-          ) : errorMsg && !selected ? (
-            <p className="text-center text-sm text-red-600">{errorMsg}</p>
           ) : (
-            <>
-              <div className="mb-3 flex items-baseline justify-between">
-                <h3 className="text-base font-semibold text-slate-900">
-                  {GROUP_META[selectedGroup].label} 강의 목록
-                </h3>
-                <p className="text-xs text-slate-500">
-                  총{' '}
-                  <span className="font-semibold">
-                    {filteredCourses.length}
-                  </span>
-                  개 강의
-                </p>
-              </div>
-
-              {filteredCourses.length === 0 ? (
-                <p className="text-center text-sm text-slate-500">
-                  선택한 구성에 해당하는 강의가 없습니다.
-                </p>
-              ) : (
-                <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                  <table className="min-w-full divide-y divide-slate-200">
-                    <thead className="bg-slate-50">
-                      <tr>
-                        <th className="w-16 px-4 py-3 text-center text-xs font-semibold text-slate-500">
-                          번호
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500">
-                          강의명
-                        </th>
-                        <th className="w-28 px-4 py-3 text-center text-xs font-semibold text-slate-500">
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <table className="min-w-full divide-y divide-slate-200">
+                <thead className="bg-slate-50">
+                  <tr>
+                    <th className="w-16 px-4 py-3 text-center text-xs font-semibold text-slate-500">
+                      번호
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500">
+                      강의명
+                    </th>
+                    <th className="w-28 px-4 py-3 text-center text-xs font-semibold text-slate-500">
+                      재생
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredCourses.map((c, idx) => (
+                    <tr key={c.id} className="hover:bg-slate-50/80">
+                      <td className="px-4 py-2.5 text-center text-xs text-slate-600">
+                        {idx + 1}
+                      </td>
+                      <td className="px-4 py-2.5 text-sm text-slate-800">
+                        {/* 🔥 title + (영문) */}
+                        {c.title}
+                        {c.description && (
+                          <span className="ml-1 text-xs text-slate-500">
+                            ({c.description})
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5 text-center">
+                        <button
+                          type="button"
+                          onClick={() => preparePlay(c)}
+                          className="inline-flex items-center justify-center rounded-full border border-indigo-500 px-3 py-1 text-xs font-medium text-indigo-600 hover:bg-indigo-50"
+                        >
                           재생
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {filteredCourses.map((c, idx) => (
-                        <tr key={c.id} className="hover:bg-slate-50/80">
-                          <td className="px-4 py-2.5 text-center text-xs text-slate-600">
-                            {idx + 1}
-                          </td>
-                          <td className="px-4 py-2.5 text-sm text-slate-800">
-                            {c.title}
-                          </td>
-                          <td className="px-4 py-2.5 text-center">
-                            <button
-                              type="button"
-                              onClick={() => preparePlay(c)}
-                              className="inline-flex items-center justify-center rounded-full border border-indigo-500 px-3 py-1 text-xs font-medium text-indigo-600 hover:bg-indigo-50"
-                            >
-                              재생
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </section>
 
+        {/* ------------------------------------------------------------ */}
         {/* 영상 모달 */}
+        {/* ------------------------------------------------------------ */}
+
         {selected && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4">
             <div className="relative w-full max-w-4xl rounded-2xl bg-white p-5 shadow-xl">
@@ -376,6 +362,11 @@ export default function Mpsvideo() {
 
               <h2 className="mb-4 pr-8 text-xl font-semibold text-slate-900">
                 {selected.title}
+                {selected.description && (
+                  <span className="ml-2 text-sm text-slate-500">
+                    ({selected.description})
+                  </span>
+                )}
               </h2>
 
               <div className="mb-4 overflow-hidden rounded-xl border">
@@ -406,6 +397,7 @@ export default function Mpsvideo() {
             </div>
           </div>
         )}
+
       </div>
     </main>
   );
