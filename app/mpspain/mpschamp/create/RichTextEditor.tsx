@@ -88,7 +88,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
         autolink: true,
         linkOnPaste: true,
       }),
-      // 🔥 커스텀 이미지 확장 (width/height를 HTML에 저장)
+      // ✅ 이미지 크기 보존용 커스텀 이미지
       CustomImage.configure({
         inline: false,
         allowBase64: true,
@@ -171,12 +171,17 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
 
       const imageUrl = `${baseUrl}/${key}`;
 
+      // ✅ 항상 문서 끝에 새 이미지 노드 추가 (기존 이미지 덮어쓰기 방지)
       editor
         .chain()
         .focus()
-        .setImage({
-          src: imageUrl,
-          alt: uploaded.fileName || file.name,
+        .setTextSelection(editor.state.doc.content.size) // 커서를 문서 끝으로
+        .insertContent({
+          type: 'image',
+          attrs: {
+            src: imageUrl,
+            alt: uploaded.fileName || file.name,
+          },
         })
         .run();
     } catch (err) {
