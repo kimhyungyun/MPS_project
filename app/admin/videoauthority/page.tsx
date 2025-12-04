@@ -193,7 +193,7 @@ export default function VideoAuthorityPage() {
     }
 
     // 권한 로딩
-    if (!member.mb_no) return;
+    if (member.mb_no == null) return;
 
     setAuthorityLoading(true);
     try {
@@ -257,10 +257,12 @@ export default function VideoAuthorityPage() {
       return;
     }
 
-    const userId = Number(selectedMember.mb_no);
+    // 🔹 mb_no 그대로 사용 (Number()로 다시 감싸지 않음)
+    const userId = selectedMember.mb_no;
 
-    if (Number.isNaN(userId)) {
-      setAuthorityMessage('회원 ID가 올바르지 않습니다.');
+    // null/undefined 체크
+    if (userId == null) {
+      setAuthorityMessage('회원 번호가 없습니다.');
       return;
     }
 
@@ -276,7 +278,7 @@ export default function VideoAuthorityPage() {
         },
         credentials: 'include',
         body: JSON.stringify({
-          userId,
+          userId, // 숫자 PK
           classGroups: selectedClassGroups,
           videoTypes: selectedVideoTypes,
         }),
@@ -305,65 +307,73 @@ export default function VideoAuthorityPage() {
         {/* 회원 목록 */}
         <div className="bg-white shadow rounded-lg overflow-hidden mb-6">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  {['번호', '아이디', '이름', '휴대폰', '학교', '권한'].map(
-                    (head) => (
-                      <th
-                        key={head}
-                        className="px-6 py-3 text-center text-sm font-semibold text-gray-600 tracking-wider"
-                      >
-                        {head}
-                      </th>
-                    ),
-                  )}
-                </tr>
-              </thead>
-
-              <tbody className="bg-white divide-y divide-gray-200">
-                {members.map((member, idx) => {
-                  const index = (currentPage - 1) * pageSize + (idx + 1);
-                  const isSelected = selectedMemberId === member.mb_no;
-
-                  return (
-                    <tr
-                      key={member.mb_no}
-                      className={isSelected ? 'bg-indigo-50/40' : ''}
-                    >
-                      <td className="px-6 py-4 text-sm text-center">
-                        {index}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-center">
-                        {member.mb_id}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-center">
-                        {member.mb_name}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-center">
-                        {member.mb_hp}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-center">
-                        {member.mb_school}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-center">
-                        <button
-                          type="button"
-                          onClick={() => handleSelectMember(member)}
-                          className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${
-                            isSelected
-                              ? 'bg-indigo-600 text-white border-indigo-600'
-                              : 'bg-white text-indigo-600 border-indigo-200 hover:bg-indigo-50'
-                          }`}
+            {loading ? (
+              <div className="p-6 text-center text-sm text-gray-500">
+                회원 목록을 불러오는 중...
+              </div>
+            ) : error ? (
+              <div className="p-6 text-center text-sm text-red-600">{error}</div>
+            ) : (
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    {['번호', '아이디', '이름', '휴대폰', '학교', '권한'].map(
+                      (head) => (
+                        <th
+                          key={head}
+                          className="px-6 py-3 text-center text-sm font-semibold text-gray-600 tracking-wider"
                         >
-                          {isSelected ? '선택됨' : '권한 관리'}
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                          {head}
+                        </th>
+                      ),
+                    )}
+                  </tr>
+                </thead>
+
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {members.map((member, idx) => {
+                    const index = (currentPage - 1) * pageSize + (idx + 1);
+                    const isSelected = selectedMemberId === member.mb_no;
+
+                    return (
+                      <tr
+                        key={member.mb_no}
+                        className={isSelected ? 'bg-indigo-50/40' : ''}
+                      >
+                        <td className="px-6 py-4 text-sm text-center">
+                          {index}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-center">
+                          {member.mb_id}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-center">
+                          {member.mb_name}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-center">
+                          {member.mb_hp}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-center">
+                          {member.mb_school}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-center">
+                          <button
+                            type="button"
+                            onClick={() => handleSelectMember(member)}
+                            className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${
+                              isSelected
+                                ? 'bg-indigo-600 text-white border-indigo-600'
+                                : 'bg-white text-indigo-600 border-indigo-200 hover:bg-indigo-50'
+                            }`}
+                          >
+                            {isSelected ? '선택됨' : '권한 관리'}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
 
