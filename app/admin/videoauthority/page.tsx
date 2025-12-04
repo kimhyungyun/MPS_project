@@ -4,7 +4,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface Member {
-  mb_no: number; // 🔹 권한 API에 넘길 PK
+  mb_no: number; // 권한 API에 넘길 PK
   mb_id: string;
   mb_name: string;
   mb_hp: string;
@@ -179,11 +179,10 @@ export default function VideoAuthorityPage() {
 
       const data = await response.json();
 
-      // 서버 응답을 mb_no에 매핑 (❗ idx + 1 제거)
       const raw = data.data.members as any[];
 
       const normalized: Member[] = raw.map((m) => ({
-        mb_no: m.mb_no ?? m.mbNo ?? m.id, // ← 여기 (idx + 1 없음)
+        mb_no: m.mb_no ?? m.mbNo ?? m.id, // idx + 1 없음
         mb_id: m.mb_id,
         mb_name: m.mb_name,
         mb_hp: m.mb_hp,
@@ -204,12 +203,6 @@ export default function VideoAuthorityPage() {
 
   // 특정 회원 선택 + 권한 로딩
   const handleSelectMember = async (member: Member) => {
-    // mb_no 없으면 선택 자체를 막는 게 안전
-    if (!member.mb_no) {
-      setAuthorityMessage('회원 번호가 없어 권한을 설정할 수 없습니다.');
-      return;
-    }
-
     setSelectedMember(member);
     setSelectedMemberId(member.mb_no ?? null);
 
@@ -224,7 +217,11 @@ export default function VideoAuthorityPage() {
       });
     }
 
-    if (member.mb_no == null) return;
+    // 진짜로 mb_no가 없으면 여기서만 막음
+    if (member.mb_no == null) {
+      setAuthorityMessage('회원 번호가 없어 권한을 불러올 수 없습니다.');
+      return;
+    }
 
     setAuthorityLoading(true);
     try {
@@ -386,7 +383,7 @@ export default function VideoAuthorityPage() {
 
                     return (
                       <tr
-                        key={member.mb_no}
+                        key={member.mb_no ?? `${member.mb_id}-${idx}`}
                         className={isSelected ? 'bg-indigo-50/40' : ''}
                       >
                         <td className="px-6 py-4 text-sm text-center">
@@ -542,7 +539,7 @@ export default function VideoAuthorityPage() {
 
                     {/* 권한 없음 */}
                     <div className="mb-3">
-                      <label className="inline-flex items-center gap-2 text-sm">
+                      <label className="inline-flex items-center gap-2 text	sm">
                         <input
                           type="checkbox"
                           checked={selectedVideoTypes.includes('single')}
