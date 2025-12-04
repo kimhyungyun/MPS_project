@@ -7,9 +7,9 @@ import axios from 'axios';
 
 import { noticeService } from '@/app/services/noticeService';
 import { uploadFileToServer } from '@/app/services/fileUpload';
-
 import RichTextEditor from './RichTextEditor';
 import AttachmentsUploader from './AttachmentsUploader';
+
 
 interface NoticeForm {
   title: string;
@@ -152,13 +152,13 @@ const CreateNoticePage = () => {
   };
 
   return (
-    <section className="w-full px-4 lg:px-24 py-12 bg-gradient-to-br from-indigo-50 via-white to-blue-50 min-h-screen mt-20">
-      <div className="max-w-4xl mx-auto bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl p-8 border border-white/20">
-        <h1 className="text-3xl font-bold text-gray-800 mb-8 border-b border-gray-100 pb-4">
+    <section className="w-full px-3 sm:px-4 lg:px-24 py-10 sm:py-12 bg-gradient-to-br from-indigo-50 via-white to-blue-50 min-h-screen mt-16 sm:mt-20">
+      <div className="max-w-4xl mx-auto bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl p-5 sm:p-8 border border-white/20">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-6 sm:mb-8 border-b border-gray-100 pb-3 sm:pb-4">
           공지사항 작성
         </h1>
 
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
           {/* 제목 */}
           <div className="group">
             <label
@@ -174,7 +174,7 @@ const CreateNoticePage = () => {
               onChange={(e) =>
                 setForm((prev) => ({ ...prev, title: e.target.value }))
               }
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 bg-white/50 backdrop-blur-sm shadow-sm hover:shadow-md"
+              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 bg-white/50 backdrop-blur-sm shadow-sm hover:shadow-md text-sm sm:text-base"
               required
             />
           </div>
@@ -188,7 +188,7 @@ const CreateNoticePage = () => {
           />
 
           {/* 첨부파일 */}
-          <div className="flex flex-col md:flex-row gap-6">
+          <div className="flex flex-col md:flex-row gap-4 sm:gap-6">
             <div className="flex-1">
               <AttachmentsUploader
                 files={form.attachments}
@@ -200,7 +200,7 @@ const CreateNoticePage = () => {
           </div>
 
           {/* 중요 공지 + 버튼 */}
-          <div className="flex items-center justify-between pt-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pt-3 sm:pt-4 gap-3 sm:gap-0">
             <div className="flex items-center">
               <input
                 type="checkbox"
@@ -212,27 +212,27 @@ const CreateNoticePage = () => {
                     isImportant: e.target.checked,
                   }))
                 }
-                className="h-5 w-5 text-blue-500 focus:ring-blue-400 border-gray-300 rounded-md transition-all duration-200"
+                className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500 focus:ring-blue-400 border-gray-300 rounded-md transition-all duration-200"
               />
               <label
                 htmlFor="isImportant"
-                className="ml-3 block text-sm font-medium text-gray-700"
+                className="ml-2 sm:ml-3 block text-sm sm:text-base font-medium text-gray-700"
               >
                 중요 공지로 설정
               </label>
             </div>
-            <div className="flex gap-4">
+            <div className="flex gap-3 sm:gap-4 self-end">
               <button
                 type="button"
                 onClick={() => router.push('/mpspain/mpschamp')}
-                className="px-6 py-3 border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 transition-all duration-200 font-medium shadow-sm hover:shadow-md"
+                className="px-4 sm:px-6 py-2.5 sm:py-3 border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 transition-all duration-200 font-medium shadow-sm hover:shadow-md text-sm sm:text-base"
               >
                 취소
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 font-medium shadow-sm hover:shadow-md disabled:opacity-60"
+                className="px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 font-medium shadow-sm hover:shadow-md disabled:opacity-60 text-sm sm:text-base"
               >
                 {isSubmitting ? '저장 중...' : '저장'}
               </button>

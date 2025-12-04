@@ -1,4 +1,3 @@
-// app/components/RichTextEditor.tsx
 'use client';
 
 import { useState, useRef } from 'react';
@@ -213,7 +212,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
       </label>
 
       {/* 툴바 */}
-      <div className="mb-2 rounded-t-xl border border-b-0 border-gray-200 bg-gray-50 px-3 py-2 flex flex-wrap items-center gap-3 text-xs sm:text-sm relative">
+      <div className="mb-2 rounded-t-xl border border-b-0 border-gray-200 bg-gray-50 px-2 sm:px-3 py-2 flex flex-wrap items-center gap-2 sm:gap-3 text-xs sm:text-sm relative">
         {/* 글꼴 / 크기 */}
         <div className="flex items-center gap-2">
           <select
@@ -256,7 +255,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
           </select>
         </div>
 
-        <span className="h-5 border-l border-gray-200" />
+        <span className="hidden sm:inline h-5 border-l border-gray-200" />
 
         {/* 굵기/기울임/밑줄/취소선/하이라이트 */}
         <div className="flex items-center gap-1">
@@ -317,7 +316,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
           </button>
         </div>
 
-        <span className="h-5 border-l border-gray-200" />
+        <span className="hidden sm:inline h-5 border-l border-gray-200" />
 
         {/* Heading */}
         <div className="flex items-center gap-1">
@@ -339,7 +338,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
           ))}
         </div>
 
-        <span className="h-5 border-l border-gray-200" />
+        <span className="hidden sm:inline h-5 border-l border-gray-200" />
 
         {/* 정렬 */}
         <div className="flex items-center gap-1">
@@ -380,7 +379,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
           </button>
         </div>
 
-        <span className="h-5 border-l border-gray-200" />
+        <span className="hidden sm:inline h-5 border-l border-gray-200" />
 
         {/* 리스트 / 블록 */}
         <div className="flex items-center gap-1">
@@ -441,7 +440,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
           </button>
         </div>
 
-        <span className="h-5 border-l border-gray-200" />
+        <span className="hidden sm:inline h-5 border-l border-gray-200" />
 
         {/* 링크 / 미디어 / 표 */}
         <div className="flex items-center gap-1 relative">
@@ -511,7 +510,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
                     ? `${tableHoverSize.rows} × ${tableHoverSize.cols}`
                     : '표 크기 선택'}
                 </div>
-                <div className="grid grid-cols-[repeat(18,1fr)] gap-0.5 w-[360px]">
+                <div className="grid grid-cols-[repeat(18,1fr)] gap-0.5 w-[260px] sm:w-[360px] max-w-[80vw]">
                   {Array.from({ length: 18 * 18 }).map((_, index) => {
                     const row = Math.floor(index / 18) + 1;
                     const col = (index % 18) + 1;
@@ -529,7 +528,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
                           insertTable(row, col);
                           setIsTablePickerOpen(false);
                         }}
-                        className={`h-5 w-5 border rounded-sm cursor-pointer ${
+                        className={`h-4 w-4 sm:h-5 sm:w-5 border rounded-sm cursor-pointer ${
                           active
                             ? 'bg-blue-500 border-blue-500'
                             : 'bg-white border-gray-300 hover:bg-gray-100'
@@ -543,7 +542,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
           </div>
         </div>
 
-        <span className="h-5 border-l border-gray-200" />
+        <span className="hidden sm:inline h-5 border-l border-gray-200" />
 
         {/* Undo / Redo */}
         <div className="flex items-center gap-1">
@@ -568,7 +567,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
           <button
             type="button"
             onClick={deleteTableHandler}
-            className="absolute right-3 top-1/2 -translate-y-1/2 px-2 py-1 rounded hover:bg-red-50 text-red-500 text-xs sm:text-sm"
+            className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 px-2 py-1 rounded hover:bg-red-50 text-red-500 text-xs sm:text-sm"
           >
             표 삭제
           </button>
@@ -576,12 +575,12 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
       </div>
 
       {/* 실제 에디터 영역 */}
-      <div className="bg-white rounded-b-xl border border-gray-200 p-2">
+      <div className="bg-white rounded-b-xl border border-gray-200 p-2 sm:p-3">
         <EditorContent editor={editor} className={styles.tiptap} />
       </div>
 
       {/* 글자 수 */}
-      <div className="mt-1 text-right text-xs text-gray-500">
+      <div className="mt-1 text-right text-[11px] sm:text-xs text-gray-500">
         글자 수: {editor.storage.characterCount.characters()}
       </div>
     </div>

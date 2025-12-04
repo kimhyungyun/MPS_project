@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { noticeService, Notice } from '@/app/services/noticeService';
+import AutoShrinkText from '../components/AutoShrinkText';
 
 // 👤 사용자 타입
 interface User {
@@ -114,12 +115,12 @@ const MpsChamp = () => {
   };
 
   return (
-    <section className="w-full px-4 lg:px-24 py-12 bg-gray-100">
+    <section className="w-full px-3 sm:px-4 lg:px-24 py-8 sm:py-12 bg-gray-100">
       {/* 상단 타이틀 & 버튼 */}
-      <div className="w-full flex justify-between items-center border-b border-gray-300 pb-6 mb-8 mt-8">
-        <div className="flex items-center gap-2">
+      <div className="w-full flex flex-col sm:flex-row sm:justify-between sm:items-center border-b border-gray-300 pb-4 sm:pb-6 mb-6 sm:mb-8 mt-6 sm:mt-8 gap-3">
+        <div className="flex items-center gap-2 min-w-0">
           <svg
-            className="w-8 h-8 text-blue-500"
+            className="w-7 h-7 sm:w-8 sm:h-8 text-blue-500 flex-shrink-0"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -131,110 +132,117 @@ const MpsChamp = () => {
               d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"
             />
           </svg>
-          <span className="text-2xl font-bold text-gray-800">
-            MPS 캠프 안내입니다
-          </span>
+          <div className="flex-1 min-w-0">
+            <AutoShrinkText
+              text="MPS 캠프 안내입니다"
+              maxFontSize={24}
+              minFontSize={16}
+              className="font-bold text-gray-800"
+            />
+          </div>
         </div>
         {user && user.mb_level >= 8 && (
           <button
             onClick={handleCreateNotice}
-            className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+            className="self-start sm:self-auto bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors text-sm sm:text-base"
           >
             글쓰기
           </button>
         )}
       </div>
 
-      <div className="bg-white rounded-xl shadow-md p-6">
-        {/* 게시판 헤더 */}
-        <div className="grid grid-cols-12 gap-4 border-b border-gray-200 pb-3 mb-4">
-          <div className="col-span-1 text-center text-sm font-semibold text-gray-600">
+      <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
+        {/* 게시판 헤더 - 모바일에서 살짝 줄이기 */}
+        <div className="hidden sm:grid grid-cols-12 gap-4 border-b border-gray-200 pb-3 mb-4 text-xs sm:text-sm">
+          <div className="col-span-1 text-center font-semibold text-gray-600">
             번호
           </div>
-          <div className="col-span-1 text-center text-sm font-semibold text-gray-600">
+          <div className="col-span-1 text-center font-semibold text-gray-600">
             중요
           </div>
-          <div className="col-span-6 text-center text-sm font-semibold text-gray-600">
+          <div className="col-span-6 text-center font-semibold text-gray-600">
             제목
           </div>
-          <div className="col-span-2 text-center text-sm font-semibold text-gray-600">
+          <div className="col-span-2 text-center font-semibold text-gray-600">
             작성일
           </div>
-          <div className="col-span-2 text-center text-sm font-semibold text-gray-600">
+          <div className="col-span-2 text-center font-semibold text-gray-600">
             작성자
           </div>
         </div>
 
         {sortedNotices.length === 0 ? (
-          <p className="text-gray-500 text-center py-8">
+          <p className="text-gray-500 text-center py-8 text-sm sm:text-base">
             등록된 공지사항이 없습니다.
           </p>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-1 sm:space-y-2">
             {sortedNotices.map((item, index) => {
               const isImportant =
                 (item as any).isImportant ??
                 (item as any).is_important ??
                 false;
 
+              const createdAt = formatDate(
+                (item as any).created_at ?? (item as any).date,
+              );
+              const writer = item.user?.mb_name || '관리자';
+
               return (
                 <div
                   key={item.id}
                   onClick={() => handleNoticeClick(item.id)}
-                  className="grid grid-cols-12 items-center gap-4 py-3 hover:bg-gray-50 transition cursor-pointer border-b border-gray-100"
+                  className="grid grid-cols-12 items-center gap-2 sm:gap-4 py-3 hover:bg-gray-50 transition cursor-pointer border-b border-gray-100 text-xs sm:text-sm"
                 >
                   {/* 번호 */}
-                  <div className="col-span-1 text-center text-sm text-gray-600">
+                  <div className="col-span-2 sm:col-span-1 text-center text-gray-600">
                     {sortedNotices.length - index}
                   </div>
 
-                  {/* 중요 (이미지) */}
-                  <div className="col-span-1 flex items-center justify-center">
+                  {/* 중요 (뱃지) */}
+                  <div className="col-span-2 sm:col-span-1 flex items-center justify-center">
                     {isImportant && (
-                      <div className="h-5 flex items-center justify-center">
-                        <Image
-                          src="/중요.png" // public/중요.png
-                          alt="중요 공지"
-                          width={40}
-                          height={16}
-                          className="object-contain"
-                        />
-                      </div>
+                      <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-red-100 text-[11px] sm:text-xs font-medium text-red-600">
+                        중요
+                      </span>
                     )}
                   </div>
 
                   {/* 제목 + 첨부 아이콘 */}
-                  <div className="col-span-6 text-left">
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-800">{item.title}</span>
-                      {item.attachments && item.attachments.length > 0 && (
-                        <svg
-                          className="w-4 h-4 text-gray-400"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
-                          />
-                        </svg>
-                      )}
+                  <div className="col-span-8 sm:col-span-6 text-left flex items-center gap-1 sm:gap-2 min-w-0">
+                    <div className="flex-1 min-w-0">
+                      <AutoShrinkText
+                        text={item.title}
+                        maxFontSize={14}
+                        minFontSize={10}
+                        className="text-gray-800"
+                      />
                     </div>
-                  </div>
-
-                  {/* 작성일 */}
-                  <div className="col-span-2 text-center text-sm text-gray-500">
-                    {formatDate(
-                      (item as any).created_at ?? (item as any).date,
+                    {item.attachments && item.attachments.length > 0 && (
+                      <svg
+                        className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
+                        />
+                      </svg>
                     )}
                   </div>
 
+                  {/* 작성일 */}
+                  <div className="col-span-6 sm:col-span-2 text-left sm:text-center text-gray-500 mt-1 sm:mt-0">
+                    {createdAt}
+                  </div>
+
                   {/* 작성자 */}
-                  <div className="col-span-2 text-center text-sm text-gray-500">
-                    {item.user?.mb_name || '관리자'}
+                  <div className="col-span-6 sm:col-span-2 text-right sm:text-center text-gray-500 mt-1 sm:mt-0">
+                    {writer}
                   </div>
                 </div>
               );
