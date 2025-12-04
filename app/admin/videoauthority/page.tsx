@@ -95,8 +95,25 @@ export default function VideoAuthorityPage() {
 
   // 관리자 권한 체크 + 목록 가져오기
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    if (!user || user.mb_level < 8) {
+    const stored = localStorage.getItem('user');
+    if (!stored) {
+      router.push('/');
+      return;
+    }
+
+    let user: any;
+    try {
+      user = JSON.parse(stored);
+    } catch {
+      router.push('/');
+      return;
+    }
+
+    if (
+      !user.mb_id ||
+      typeof user.mb_level !== 'number' ||
+      user.mb_level < 8
+    ) {
       router.push('/');
       return;
     }
@@ -162,15 +179,11 @@ export default function VideoAuthorityPage() {
 
       const data = await response.json();
 
-      // 서버 응답을 mb_no에 매핑
+      // 서버 응답을 mb_no에 매핑 (❗ idx + 1 제거)
       const raw = data.data.members as any[];
 
-      const normalized: Member[] = raw.map((m, idx) => ({
-        mb_no:
-          m.mb_no ??
-          m.mbNo ??
-          m.id ?? // 혹시 id 쓰고 있으면
-          idx + 1, // 최악의 경우라도 undefined 방지 (임시 번호)
+      const normalized: Member[] = raw.map((m) => ({
+        mb_no: m.mb_no ?? m.mbNo ?? m.id, // ← 여기 (idx + 1 없음)
         mb_id: m.mb_id,
         mb_name: m.mb_name,
         mb_hp: m.mb_hp,
@@ -191,6 +204,12 @@ export default function VideoAuthorityPage() {
 
   // 특정 회원 선택 + 권한 로딩
   const handleSelectMember = async (member: Member) => {
+    // mb_no 없으면 선택 자체를 막는 게 안전
+    if (!member.mb_no) {
+      setAuthorityMessage('회원 번호가 없어 권한을 설정할 수 없습니다.');
+      return;
+    }
+
     setSelectedMember(member);
     setSelectedMemberId(member.mb_no ?? null);
 
