@@ -17,11 +17,11 @@ type ClassGroup = 'A' | 'B' | 'S';
 interface Course {
   id: number;
   title: string;
-  description: string;
+  description: string; // 🔥 영문 이름 포함 가능
   price: number;
   thumbnail_url: string;
-  video_folder?: string;
-  video_name?: string;
+  video_folder?: string;   // 🔥 복구
+  video_name?: string;     // 🔥 복구
   type: LectureType;
   classGroup: ClassGroup;
 }
@@ -40,7 +40,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 // ------------------------------------------------------------
 
 function HlsPlayer({ src }: { src: string }) {
-  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     if (!src) return;
@@ -50,9 +50,8 @@ function HlsPlayer({ src }: { src: string }) {
     if (Hls.isSupported()) {
       const hls = new Hls();
 
-      // 🔥 여기서 CloudFront 서명 쿠키 포함해서 보내도록 설정
+      // 🔑 여기서 CloudFront 서명 쿠키 같이 보내도록 설정
       hls.config.xhrSetup = (xhr, url) => {
-        console.log('[HLS xhrSetup] url =', url);
         xhr.withCredentials = true;
       };
 
@@ -60,12 +59,10 @@ function HlsPlayer({ src }: { src: string }) {
         console.log('❌ [HLS ERROR]', data);
       });
 
-      hls.attachMedia(video);
       hls.loadSource(src);
+      hls.attachMedia(video);
 
-      return () => {
-        hls.destroy();
-      };
+      return () => hls.destroy();
     } else {
       video.src = src;
     }
@@ -76,7 +73,7 @@ function HlsPlayer({ src }: { src: string }) {
       ref={videoRef}
       controls
       playsInline
-      crossOrigin="use-credentials"
+      crossOrigin="use-credentials"   // 🔑 서명 쿠키 쓰는 구조면 이게 안전함
       className="w-full rounded-lg shadow border bg-black"
     />
   );
@@ -153,7 +150,7 @@ export default function Mpsvideo() {
         let parsedUser: User;
         try {
           parsedUser = JSON.parse(raw) as User;
-        } catch {
+        } catch (e) {
           router.push('/form/login');
           return;
         }
@@ -167,7 +164,7 @@ export default function Mpsvideo() {
 
         const data = await res.json();
         setCourses(data);
-      } catch {
+      } catch (e) {
         setErrorMsg('강의 목록을 불러오지 못했습니다.');
       } finally {
         setLoadingList(false);
@@ -231,7 +228,7 @@ export default function Mpsvideo() {
 
       const data = await playAuth.json();
       setStreamUrl(data.streamUrl);
-    } catch {
+    } catch (err) {
       setErrorMsg('영상 재생 중 오류가 발생했습니다.');
     } finally {
       setLoadingPlay(false);
@@ -260,6 +257,7 @@ export default function Mpsvideo() {
   return (
     <main className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-5xl mt-40 px-4 py-10 lg:py-12">
+
         {/* ------------------------------------------------------------ */}
         {/* 탭 */}
         {/* ------------------------------------------------------------ */}
@@ -295,8 +293,7 @@ export default function Mpsvideo() {
               {GROUP_META[selectedGroup].label} 강의 목록
             </h3>
             <p className="text-xs text-slate-500">
-              총 <span className="font-semibold">{filteredCourses.length}</span>{' '}
-              개 강의
+              총 <span className="font-semibold">{filteredCourses.length}</span> 개 강의
             </p>
           </div>
 
@@ -327,6 +324,7 @@ export default function Mpsvideo() {
                         {idx + 1}
                       </td>
                       <td className="px-4 py-2.5 text-sm text-slate-800">
+                        {/* 🔥 title + (영문) */}
                         {c.title}
                         {c.description && (
                           <span className="ml-1 text-xs text-slate-500">
@@ -406,6 +404,7 @@ export default function Mpsvideo() {
             </div>
           </div>
         )}
+
       </div>
     </main>
   );
