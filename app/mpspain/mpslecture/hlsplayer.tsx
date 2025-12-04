@@ -4,8 +4,12 @@
 import { useEffect, useRef } from 'react';
 import Hls from 'hls.js';
 
-export default function HlsPlayer({ src }: { src: string }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
+type HlsPlayerProps = {
+  src: string; // m3u8 URL (CloudFront / S3 등)
+};
+
+export default function HlsPlayer({ src }: HlsPlayerProps) {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
     if (!src) return;
@@ -13,20 +17,34 @@ export default function HlsPlayer({ src }: { src: string }) {
     const video = videoRef.current;
     if (!video) return;
 
+    // Hls.js 지원 브라우저 (대부분 Chrome/Edge 등)
     if (Hls.isSupported()) {
-      Hls.DefaultConfig.debug = false;
-      Hls.DefaultConfig.xhrSetup = function (xhr) {
-        xhr.withCredentials = true;
-      };
+      const hls = new Hls({
+        // ❗ 여기서 withCredentials 설정해서 CloudFront 서명 쿠키 같이 보내기
+        xhrSetup: (xhr /*, url*/) => {
+          xhr.withCredentials = true;
+        },
+      });
 
-      const hls = new Hls();
-      hls.loadSource(src);
       hls.attachMedia(video);
+      hls.loadSource(src);
 
-      return () => hls.destroy();
-    } else {
-      video.src = src;
+      // 선택 사항: manifest 파싱 후 자동 재생
+      // hls.on(Hls.Events.MANIFEST_PARSED, () => {
+      //   video.play().catch(() => {});
+      // });
+
+      return () => {
+        hls.destroy();
+      };
     }
+
+    // iOS Safari / 일부 브라우저는 video 태그에서 HLS 직접 지원
+    video.src = src;
+
+    return () => {
+      // fallback 경로에서는 별도 정리할 건 없음
+    };
   }, [src]);
 
   return (
@@ -37,9 +55,7 @@ export default function HlsPlayer({ src }: { src: string }) {
           <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
           <span className="uppercase tracking-wide">Player</span>
         </div>
-        <span className="text-xs font-medium text-slate-300">
-          MPS Video
-        </span>
+        <span className="text-xs font-medium text-slate-300">MPS Video</span>
       </div>
 
       {/* 비디오 영역 */}
@@ -54,6 +70,8 @@ export default function HlsPlayer({ src }: { src: string }) {
           ref={videoRef}
           controls
           playsInline
+          // ❗ 서명 쿠키를 함께 쓰는 구조면 이거 걸어두는 게 안전함
+          crossOrigin="use-credentials"
           className="h-full w-full object-contain"
         />
       </div>
