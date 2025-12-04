@@ -9,7 +9,7 @@ import TextAlign from '@tiptap/extension-text-align';
 import TextStyle from '@tiptap/extension-text-style';
 import Color from '@tiptap/extension-color';
 import Link from '@tiptap/extension-link';
-import ImageExt from '@tiptap/extension-image';
+
 import YouTube from '@tiptap/extension-youtube';
 import Table from '@tiptap/extension-table';
 import TableRow from '@tiptap/extension-table-row';
@@ -19,9 +19,10 @@ import CharacterCount from '@tiptap/extension-character-count';
 import FontFamily from '@tiptap/extension-font-family';
 import ResizeImage from 'tiptap-extension-resize-image';
 
-import FontSize from './extensions/fontSize';
+import FontSize from '../../components/extensions/fontSize';
 import styles from './CreateNotice.module.css';
 import { uploadNoticeImageToServer } from '@/app/services/fileUpload';
+import CustomImage from '../../components/extensions/customImage';
 
 interface RichTextEditorProps {
   value: string;
@@ -87,7 +88,8 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
         autolink: true,
         linkOnPaste: true,
       }),
-      ImageExt.configure({
+      // 🔥 커스텀 이미지 확장 (width/height를 HTML에 저장)
+      CustomImage.configure({
         inline: false,
         allowBase64: true,
       }),

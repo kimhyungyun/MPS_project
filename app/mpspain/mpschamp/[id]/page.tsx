@@ -23,7 +23,7 @@ import TableHeader from '@tiptap/extension-table-header';
 import TableCell from '@tiptap/extension-table-cell';
 import FontFamily from '@tiptap/extension-font-family';
 import ResizeImage from 'tiptap-extension-resize-image';
-import FontSize from '../create/extensions/fontSize';
+import FontSize from '../../components/extensions/fontSize';
 import AutoShrinkText from '../../components/AutoShrinkText';
 
 // 1순위: NEXT_PUBLIC_FILE_BASE_URL
