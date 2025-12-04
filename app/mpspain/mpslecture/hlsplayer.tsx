@@ -5,68 +5,76 @@ import { useEffect, useRef } from 'react';
 import Hls from 'hls.js';
 
 type HlsPlayerProps = {
+  /** CloudFront 등에서 내려오는 m3u8 URL */
   src: string;
+  /** true면 manifest 파싱 후 자동 재생 */
+  autoPlay?: boolean;
+  /** className 커스터마이징 */
+  className?: string;
 };
 
-export default function HlsPlayer({ src }: HlsPlayerProps) {
+export default function HlsPlayer({
+  src,
+  autoPlay = false,
+  className = '',
+}: HlsPlayerProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
     if (!src) return;
-
     const video = videoRef.current;
     if (!video) return;
 
-    if (Hls.isSupported()) {
-      const hls = new Hls();
+    let hls: Hls | null = null;
 
-      // ❗ 인스턴스 생성 후 config에 직접 박기
-      hls.config.xhrSetup = (xhr, url) => {
-        console.log('[HLS] xhrSetup 적용됨?', url);
+    // 대부분 브라우저 (Chrome, Edge 등)
+    if (Hls.isSupported()) {
+      hls = new Hls();
+
+      // 🔑 CloudFront Signed Cookie 같이 보내기
+      hls.config.xhrSetup = (xhr, _url) => {
         xhr.withCredentials = true;
       };
-
-      console.log('[HLS] config.xhrSetup 존재?', !!hls.config.xhrSetup);
 
       hls.attachMedia(video);
       hls.loadSource(src);
 
-      return () => {
-        hls.destroy();
-      };
+      if (autoPlay) {
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          video
+            .play()
+            .catch(() => {
+              // 자동재생 막힌 경우 무시
+            });
+        });
+      }
+    } else {
+      // iOS Safari 등: video 태그가 HLS 직접 지원
+      video.src = src;
+      if (autoPlay) {
+        video
+          .play()
+          .catch(() => {
+            // 자동재생 막힌 경우 무시
+          });
+      }
     }
 
-    // iOS Safari 등 native HLS
-    video.src = src;
-
-    return () => {};
-  }, [src]);
+    return () => {
+      if (hls) {
+        hls.destroy();
+        hls = null;
+      }
+    };
+  }, [src, autoPlay]);
 
   return (
-    <div className="w-full max-w-4xl mx-auto rounded-2xl border border-slate-800 bg-gradient-to-b from-slate-900 to-slate-950 shadow-xl overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-slate-800 text-[11px] text-slate-400">
-        <div className="flex items-center gap-2">
-          <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="uppercase tracking-wide">Player</span>
-        </div>
-        <span className="text-xs font-medium text-slate-300">MPS Video</span>
-      </div>
-
-      <div className="relative aspect-video bg-black">
-        {!src && (
-          <div className="absolute inset-0 flex items-center justify-center text-xs text-slate-500">
-            동영상 준비 중입니다…
-          </div>
-        )}
-
-        <video
-          ref={videoRef}
-          controls
-          playsInline
-          crossOrigin="use-credentials"
-          className="h-full w-full object-contain"
-        />
-      </div>
-    </div>
+    <video
+      ref={videoRef}
+      controls
+      playsInline
+      crossOrigin="use-credentials"
+      className={className || 'w-full rounded-lg shadow border bg-black'}
+    />
   );
 }
