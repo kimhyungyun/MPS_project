@@ -1,8 +1,10 @@
+// app/mpspain/mpslecture/mpsvideo.tsx
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import Hls from 'hls.js';
+import HlsPlayer from './hlsplayer';
+
 
 type LectureType =
   | 'single'
@@ -17,11 +19,11 @@ type ClassGroup = 'A' | 'B' | 'S';
 interface Course {
   id: number;
   title: string;
-  description: string; // 🔥 영문 이름 포함 가능
+  description: string;
   price: number;
   thumbnail_url: string;
-  video_folder?: string;   // 🔥 복구
-  video_name?: string;     // 🔥 복구
+  video_folder?: string;
+  video_name?: string;
   type: LectureType;
   classGroup: ClassGroup;
 }
@@ -36,51 +38,7 @@ interface User {
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 // ------------------------------------------------------------
-// HLS Player
-// ------------------------------------------------------------
-
-function HlsPlayer({ src }: { src: string }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-
-  useEffect(() => {
-    if (!src) return;
-    const video = videoRef.current;
-    if (!video) return;
-
-    if (Hls.isSupported()) {
-      const hls = new Hls();
-
-      // 🔑 여기서 CloudFront 서명 쿠키 같이 보내도록 설정
-      hls.config.xhrSetup = (xhr, url) => {
-        xhr.withCredentials = true;
-      };
-
-      hls.on(Hls.Events.ERROR, (_evt, data) => {
-        console.log('❌ [HLS ERROR]', data);
-      });
-
-      hls.loadSource(src);
-      hls.attachMedia(video);
-
-      return () => hls.destroy();
-    } else {
-      video.src = src;
-    }
-  }, [src]);
-
-  return (
-    <video
-      ref={videoRef}
-      controls
-      playsInline
-      crossOrigin="use-credentials"   // 🔑 서명 쿠키 쓰는 구조면 이게 안전함
-      className="w-full rounded-lg shadow border bg-black"
-    />
-  );
-}
-
-// ------------------------------------------------------------
-// 탭 UI
+// 탭 메타
 // ------------------------------------------------------------
 
 type GroupKey = 'A' | 'B' | 'C' | 'D' | 'E';
@@ -116,10 +74,6 @@ const GROUP_META: Record<
   },
 };
 
-// ------------------------------------------------------------
-// Main Component
-// ------------------------------------------------------------
-
 export default function Mpsvideo() {
   const router = useRouter();
 
@@ -135,7 +89,7 @@ export default function Mpsvideo() {
   const listRef = useRef<HTMLDivElement | null>(null);
 
   // ------------------------------------------------------------
-  // 로그인 + 강의목록
+  // 로그인 체크 + 강의 목록 불러오기
   // ------------------------------------------------------------
 
   useEffect(() => {
@@ -150,7 +104,7 @@ export default function Mpsvideo() {
         let parsedUser: User;
         try {
           parsedUser = JSON.parse(raw) as User;
-        } catch (e) {
+        } catch {
           router.push('/form/login');
           return;
         }
@@ -162,9 +116,10 @@ export default function Mpsvideo() {
         });
         if (!res.ok) throw new Error('강의 목록 API 실패');
 
-        const data = await res.json();
+        const data: Course[] = await res.json();
         setCourses(data);
       } catch (e) {
+        console.error(e);
         setErrorMsg('강의 목록을 불러오지 못했습니다.');
       } finally {
         setLoadingList(false);
@@ -193,7 +148,7 @@ export default function Mpsvideo() {
   };
 
   // ------------------------------------------------------------
-  // 재생 준비
+  // 재생 준비 (Signed URL + 권한 체크)
   // ------------------------------------------------------------
 
   const preparePlay = async (course: Course) => {
@@ -219,16 +174,21 @@ export default function Mpsvideo() {
       );
 
       if (playAuth.status === 403) {
+        // 🔥 백엔드에서 ForbiddenException 던진 경우 → 권한 없음
         setErrorMsg('이 강의를 시청할 권한이 없습니다.');
-        setLoadingPlay(false);
         return;
       }
 
-      if (!playAuth.ok) throw new Error('Auth failed');
+      if (!playAuth.ok) {
+        throw new Error('재생 인증 API 실패');
+      }
 
-      const data = await playAuth.json();
+      const data: { ok?: boolean; streamUrl: string } =
+        await playAuth.json();
+
       setStreamUrl(data.streamUrl);
     } catch (err) {
+      console.error(err);
       setErrorMsg('영상 재생 중 오류가 발생했습니다.');
     } finally {
       setLoadingPlay(false);
@@ -236,7 +196,7 @@ export default function Mpsvideo() {
   };
 
   // ------------------------------------------------------------
-  // 강의 필터링
+  // 강의 필터링 (UI용 – 실제 권한 체크는 백엔드에서)
   // ------------------------------------------------------------
 
   const filteredCourses = courses.filter((c) => {
@@ -248,20 +208,24 @@ export default function Mpsvideo() {
     return false;
   });
 
+  // 로그인 안 됐고, 목록 로딩도 끝났으면 아무것도 렌더 안 함
+  if (!user && !loadingList) return null;
+
   // ------------------------------------------------------------
   // UI
   // ------------------------------------------------------------
 
-  if (!user && !loadingList) return null;
-
   return (
     <main className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-5xl mt-40 px-4 py-10 lg:py-12">
+        {/* 상단 에러 (목록 불러오기 실패 등) */}
+        {errorMsg && !selected && (
+          <div className="mb-4 rounded-md bg-red-50 px-4 py-3 text-sm text-red-700">
+            {errorMsg}
+          </div>
+        )}
 
-        {/* ------------------------------------------------------------ */}
         {/* 탭 */}
-        {/* ------------------------------------------------------------ */}
-
         <section className="mb-6 flex flex-wrap items-center justify-center gap-3">
           {(Object.keys(GROUP_META) as GroupKey[]).map((key) => {
             const meta = GROUP_META[key];
@@ -283,21 +247,26 @@ export default function Mpsvideo() {
           })}
         </section>
 
-        {/* ------------------------------------------------------------ */}
         {/* 강의 목록 */}
-        {/* ------------------------------------------------------------ */}
-
         <section ref={listRef}>
           <div className="mb-3 flex items-baseline justify-between">
             <h3 className="text-base font-semibold text-slate-900">
               {GROUP_META[selectedGroup].label} 강의 목록
             </h3>
             <p className="text-xs text-slate-500">
-              총 <span className="font-semibold">{filteredCourses.length}</span> 개 강의
+              총{' '}
+              <span className="font-semibold">
+                {filteredCourses.length}
+              </span>{' '}
+              개 강의
             </p>
           </div>
 
-          {filteredCourses.length === 0 ? (
+          {loadingList ? (
+            <p className="text-center text-sm text-slate-500">
+              강의 목록을 불러오는 중입니다…
+            </p>
+          ) : filteredCourses.length === 0 ? (
             <p className="text-center text-sm text-slate-500">
               선택한 구성에 해당하는 강의가 없습니다.
             </p>
@@ -324,7 +293,6 @@ export default function Mpsvideo() {
                         {idx + 1}
                       </td>
                       <td className="px-4 py-2.5 text-sm text-slate-800">
-                        {/* 🔥 title + (영문) */}
                         {c.title}
                         {c.description && (
                           <span className="ml-1 text-xs text-slate-500">
@@ -349,10 +317,7 @@ export default function Mpsvideo() {
           )}
         </section>
 
-        {/* ------------------------------------------------------------ */}
         {/* 영상 모달 */}
-        {/* ------------------------------------------------------------ */}
-
         {selected && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4">
             <div className="relative w-full max-w-4xl rounded-2xl bg-white p-5 shadow-xl">
@@ -378,15 +343,21 @@ export default function Mpsvideo() {
 
               <div className="mb-4 overflow-hidden rounded-xl border">
                 <div className="aspect-video w-full bg-black">
-                  <HlsPlayer src={streamUrl} />
+                  {streamUrl ? (
+                    <HlsPlayer
+                      src={streamUrl}
+                      autoPlay
+                      className="w-full h-full"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-sm text-slate-200">
+                      {errorMsg
+                        ? '재생할 수 없습니다.'
+                        : '스트림 URL 준비중...'}
+                    </div>
+                  )}
                 </div>
               </div>
-
-              {!streamUrl && !errorMsg && (
-                <p className="mb-3 text-center text-xs text-slate-500">
-                  🔄 스트림 URL 준비중...
-                </p>
-              )}
 
               {loadingPlay && (
                 <p className="mb-2 text-center text-xs text-slate-500">
@@ -400,11 +371,12 @@ export default function Mpsvideo() {
                 </p>
               )}
 
-              <p className="text-sm text-slate-700">{selected.description}</p>
+              <p className="text-sm text-slate-700">
+                {selected.description}
+              </p>
             </div>
           </div>
         )}
-
       </div>
     </main>
   );

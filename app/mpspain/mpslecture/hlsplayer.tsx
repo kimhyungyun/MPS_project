@@ -56,6 +56,7 @@ export default function HlsPlayer({
           .play()
           .catch(() => {
             // 자동재생 막힌 경우 무시
+            return;
           });
       }
     }
