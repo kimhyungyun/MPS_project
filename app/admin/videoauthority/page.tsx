@@ -1,10 +1,12 @@
+// app/admin/video-authority/page.tsx (경로는 너 프로젝트에 맞게)
+
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface Member {
-  mb_no: number; // 권한 API에 넘길 PK
+  mb_no: number; // 권한 API에 넘길 PK (userId 로 사용)
   mb_id: string;
   mb_name: string;
   mb_hp: string;
@@ -87,9 +89,9 @@ export default function VideoAuthorityPage() {
   const startPage = (currentPageGroup - 1) * pageGroupSize + 1;
   const endPage = Math.min(startPage + pageGroupSize - 1, totalPages);
 
-  // ------------------------------------------------------------
-  // 관리자 로그인 체크 + 회원 목록
-  // ------------------------------------------------------------
+  // -----------------------------
+  // 로그인 / 권한 체크
+  // -----------------------------
   useEffect(() => {
     const stored = localStorage.getItem('user');
     if (!stored) {
@@ -114,11 +116,10 @@ export default function VideoAuthorityPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, sortKey, sortOrder, search]);
 
-  const sortMembers = (
-    list: Member[],
-    key: SortKey | null,
-    order: SortOrder,
-  ) => {
+  // -----------------------------
+  // 회원 목록 가져오기
+  // -----------------------------
+  const sortMembers = (list: Member[], key: SortKey | null, order: SortOrder) => {
     if (!key) return list;
 
     const sorted = [...list].sort((a, b) => {
@@ -138,9 +139,7 @@ export default function VideoAuthorityPage() {
 
   const fetchMembers = async () => {
     try {
-      if (!isSearching) {
-        setLoading(true);
-      }
+      if (!isSearching) setLoading(true);
       setError(null);
 
       const params = new URLSearchParams();
@@ -173,11 +172,7 @@ export default function VideoAuthorityPage() {
       const raw = data.data.members as any[];
 
       const normalized: Member[] = raw.map((m, idx) => ({
-        mb_no:
-          m.mb_no ??
-          m.mbNo ??
-          m.id ??
-          idx + 1,
+        mb_no: m.mb_no ?? m.mbNo ?? m.id ?? idx + 1,
         mb_id: m.mb_id,
         mb_name: m.mb_name,
         mb_hp: m.mb_hp,
@@ -196,14 +191,14 @@ export default function VideoAuthorityPage() {
     }
   };
 
-  // ------------------------------------------------------------
+  // -----------------------------
   // 회원 선택 + 권한 불러오기
-  // ------------------------------------------------------------
+  // -----------------------------
   const handleSelectMember = async (member: Member) => {
     setSelectedMember(member);
     setSelectedMemberId(member.mb_no ?? null);
 
-    // ✅ 기본값: 아무 권한도 체크되지 않게 초기화
+    // 선택할 때마다 기본값은 "모두 해제"
     setAuthorityMessage(null);
     setSelectedClassGroups([]);
     setSelectedVideoTypes([]);
@@ -240,34 +235,31 @@ export default function VideoAuthorityPage() {
       }
 
       const data: VideoAuthority[] = await res.json();
+      console.log('🔎 권한 조회 결과:', data);
 
       if (!data || data.length === 0) {
-        // ✅ DB에 아무 권한도 없으면 그대로 빈 상태 유지
+        // 권한 없으면 그냥 모두 해제 상태 유지
         setSelectedClassGroups([]);
         setSelectedVideoTypes([]);
         return;
       }
 
-      const cg = data
-        .filter((a) => a.classGroup)
-        .map((a) => a.classGroup!);
-      const vt = data
-        .filter((a) => a.type)
-        .map((a) => a.type!);
+      const cg = data.filter((a) => a.classGroup).map((a) => a.classGroup!) as ClassGroup[];
+      const vt = data.filter((a) => a.type).map((a) => a.type!) as LectureType[];
 
-      setSelectedClassGroups(cg ?? []);
-      setSelectedVideoTypes(vt ?? []);
-    } catch (e) {
-      console.error(e);
+      setSelectedClassGroups(cg);
+      setSelectedVideoTypes(vt);
+    } catch (err) {
+      console.error(err);
       setAuthorityMessage('권한 정보를 불러오는데 실패했습니다.');
     } finally {
       setAuthorityLoading(false);
     }
   };
 
-  // ------------------------------------------------------------
-  // 체크 토글
-  // ------------------------------------------------------------
+  // -----------------------------
+  // 체크 박스 토글
+  // -----------------------------
   const toggleClassGroup = (cg: ClassGroup) => {
     setSelectedClassGroups((prev) =>
       prev.includes(cg) ? prev.filter((v) => v !== cg) : [...prev, cg],
@@ -277,21 +269,19 @@ export default function VideoAuthorityPage() {
   const toggleVideoType = (vt: LectureType) => {
     setSelectedVideoTypes((prev) => {
       if (vt === 'single') {
-        // "권한 없음" 체크하면 나머지 싹 해제
+        // "권한 없음" 체크 시 나머지 해제
         return prev.includes('single') ? [] : ['single'];
       }
 
       const after = prev.filter((v) => v !== 'single');
-
       if (after.includes(vt)) return after.filter((v) => v !== vt);
-
       return [...after, vt];
     });
   };
 
-  // ------------------------------------------------------------
-  // 권한 저장
-  // ------------------------------------------------------------
+  // -----------------------------
+  // 저장
+  // -----------------------------
   const handleSaveAuthority = async () => {
     if (!selectedMember) {
       setAuthorityMessage('회원이 선택되지 않았습니다.');
@@ -299,11 +289,18 @@ export default function VideoAuthorityPage() {
     }
 
     const userId = selectedMember.mb_no;
-
     if (userId == null) {
       setAuthorityMessage('회원 번호가 없습니다.');
       return;
     }
+
+    const payload = {
+      userId,
+      classGroups: selectedClassGroups,
+      videoTypes: selectedVideoTypes,
+    };
+
+    console.log('🚀 권한 저장 요청 payload:', payload);
 
     setAuthoritySaving(true);
     setAuthorityMessage(null);
@@ -316,24 +313,20 @@ export default function VideoAuthorityPage() {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify({
-          userId,
-          classGroups: selectedClassGroups,
-          videoTypes: selectedVideoTypes,
-        }),
+        body: JSON.stringify(payload),
       });
+
+      const text = await res.text();
+      console.log('📥 권한 저장 응답 status:', res.status, 'body:', text);
 
       if (!res.ok) {
         setAuthorityMessage('권한 저장에 실패했습니다.');
         return;
       }
 
-      // ✅ 저장 후 다시 불러와서 체크 상태 싱크 맞추기
-      await handleSelectMember(selectedMember);
-
       setAuthorityMessage('권한이 성공적으로 저장되었습니다.');
-    } catch (e) {
-      console.error(e);
+    } catch (err) {
+      console.error(err);
       setAuthorityMessage('권한 저장 중 오류가 발생했습니다.');
     } finally {
       setAuthoritySaving(false);
@@ -356,15 +349,13 @@ export default function VideoAuthorityPage() {
     setCurrentPage(Math.min(startPage + pageGroupSize, totalPages));
   };
 
-  // ------------------------------------------------------------
-  // UI 렌더
-  // ------------------------------------------------------------
+  // -----------------------------
+  // UI
+  // -----------------------------
   return (
     <div className="min-h-screen bg-gray-50 py-8 mt-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">
-          동영상 권한 관리
-        </h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-8">동영상 권한 관리</h1>
 
         {/* 회원 목록 박스 */}
         <div className="bg-white shadow rounded-lg overflow-hidden mb-6">
@@ -374,23 +365,19 @@ export default function VideoAuthorityPage() {
                 회원 목록을 불러오는 중...
               </div>
             ) : error ? (
-              <div className="p-6 text-center text-sm text-red-600">
-                {error}
-              </div>
+              <div className="p-6 text-center text-sm text-red-600">{error}</div>
             ) : (
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    {['번호', '아이디', '이름', '휴대폰', '학교', '권한'].map(
-                      (head) => (
-                        <th
-                          key={head}
-                          className="px-6 py-3 text-center text-sm font-semibold text-gray-600 tracking-wider"
-                        >
-                          {head}
-                        </th>
-                      ),
-                    )}
+                    {['번호', '아이디', '이름', '휴대폰', '학교', '권한'].map((head) => (
+                      <th
+                        key={head}
+                        className="px-6 py-3 text-center text-sm font-semibold text-gray-600 tracking-wider"
+                      >
+                        {head}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
 
@@ -404,21 +391,11 @@ export default function VideoAuthorityPage() {
                         key={member.mb_no ?? `${member.mb_id}-${idx}`}
                         className={isSelected ? 'bg-indigo-50/40' : ''}
                       >
-                        <td className="px-6 py-4 text-sm text-center">
-                          {index}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-center">
-                          {member.mb_id}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-center">
-                          {member.mb_name}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-center">
-                          {member.mb_hp}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-center">
-                          {member.mb_school}
-                        </td>
+                        <td className="px-6 py-4 text-sm text-center">{index}</td>
+                        <td className="px-6 py-4 text-sm text-center">{member.mb_id}</td>
+                        <td className="px-6 py-4 text-sm text-center">{member.mb_name}</td>
+                        <td className="px-6 py-4 text-sm text-center">{member.mb_hp}</td>
+                        <td className="px-6 py-4 text-sm text-center">{member.mb_school}</td>
                         <td className="px-6 py-4 text-sm text-center">
                           <button
                             type="button"
@@ -476,23 +453,22 @@ export default function VideoAuthorityPage() {
               >
                 &lt;
               </button>
-              {Array.from(
-                { length: endPage - startPage + 1 },
-                (_, i) => startPage + i,
-              ).map((page) => (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  disabled={loading}
-                  className={`w-9 h-9 flex items-center justify-center rounded-md text-sm font-medium transition-colors ${
-                    currentPage === page
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
-                  } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                >
-                  {page}
-                </button>
-              ))}
+              {Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i).map(
+                (page) => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    disabled={loading}
+                    className={`w-9 h-9 flex items-center justify-center rounded-md text-sm font-medium transition-colors ${
+                      currentPage === page
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+                    } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    {page}
+                  </button>
+                ),
+              )}
               <button
                 onClick={handleNextGroup}
                 disabled={endPage === totalPages || loading}
@@ -521,21 +497,14 @@ export default function VideoAuthorityPage() {
               )}
 
               {authorityLoading ? (
-                <p className="text-sm text-gray-500">
-                  권한 정보를 불러오는 중...
-                </p>
+                <p className="text-sm text-gray-500">권한 정보를 불러오는 중...</p>
               ) : (
                 <div className="space-y-6">
                   <div>
-                    <h3 className="text-sm font-medium text-gray-800 mb-2">
-                      캠프강의 권한
-                    </h3>
+                    <h3 className="text-sm font-medium text-gray-800 mb-2">캠프강의 권한</h3>
                     <div className="flex gap-4">
                       {(['A', 'B'] as ClassGroup[]).map((cg) => (
-                        <label
-                          key={cg}
-                          className="inline-flex items-center gap-2 text-sm"
-                        >
+                        <label key={cg} className="inline-flex items-center gap-2 text-sm">
                           <input
                             type="checkbox"
                             checked={selectedClassGroups.includes(cg)}
@@ -549,9 +518,7 @@ export default function VideoAuthorityPage() {
                   </div>
 
                   <div>
-                    <h3 className="text-sm font-medium text-gray-800 mb-2">
-                      패키지 권한
-                    </h3>
+                    <h3 className="text-sm font-medium text-gray-800 mb-2">패키지 권한</h3>
 
                     <div className="mb-3">
                       <label className="inline-flex items-center gap-2 text-sm">
@@ -567,10 +534,7 @@ export default function VideoAuthorityPage() {
 
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                       {PACKAGE_TYPES.map((vt) => (
-                        <label
-                          key={vt}
-                          className="inline-flex items-center gap-2 text-sm"
-                        >
+                        <label key={vt} className="inline-flex items-center gap-2 text-sm">
                           <input
                             type="checkbox"
                             checked={selectedVideoTypes.includes(vt)}
