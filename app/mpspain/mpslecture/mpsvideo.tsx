@@ -5,7 +5,6 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import HlsPlayer from './hlsplayer';
 
-
 type LectureType =
   | 'single'
   | 'packageA'
@@ -149,10 +148,12 @@ export default function Mpsvideo() {
 
   // ------------------------------------------------------------
   // 재생 준비 (Signed URL + 권한 체크)
+  //  - 403 이면 alert로만 안내하고 모달은 안 띄움
   // ------------------------------------------------------------
 
   const preparePlay = async (course: Course) => {
-    setSelected(course);
+    // 일단 초기화
+    setSelected(null);
     setStreamUrl('');
     setErrorMsg('');
     setLoadingPlay(true);
@@ -175,7 +176,10 @@ export default function Mpsvideo() {
 
       if (playAuth.status === 403) {
         // 🔥 백엔드에서 ForbiddenException 던진 경우 → 권한 없음
-        setErrorMsg('이 강의를 시청할 권한이 없습니다.');
+        setLoadingPlay(false);
+        if (typeof window !== 'undefined') {
+          alert('이 강의를 시청할 권한이 없습니다.');
+        }
         return;
       }
 
@@ -183,9 +187,10 @@ export default function Mpsvideo() {
         throw new Error('재생 인증 API 실패');
       }
 
-      const data: { ok?: boolean; streamUrl: string } =
-        await playAuth.json();
+      const data: { ok?: boolean; streamUrl: string } = await playAuth.json();
 
+      // ✅ 여기서만 모달 오픈 + 플레이어 렌더
+      setSelected(course);
       setStreamUrl(data.streamUrl);
     } catch (err) {
       console.error(err);
