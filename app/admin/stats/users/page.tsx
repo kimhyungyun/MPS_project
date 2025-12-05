@@ -91,31 +91,36 @@ export default function UserStatsPage() {
   }[range];
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 mt-24">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between mb-6">
+    <div className="min-h-screen bg-gray-50 py-6 sm:py-8 mt-20 sm:mt-24">
+      <div className="max-w-6xl mx-auto px-3 sm:px-6 lg:px-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">회원 통계</h1>
-            <p className="mt-2 text-sm text-gray-500">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+              회원 통계
+            </h1>
+            <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-gray-500">
               {rangeLabel} 가입자 수 / 방문자 수 추이를 확인할 수 있습니다.
             </p>
           </div>
           <button
             onClick={() => router.push('/admin')}
-            className="text-sm text-indigo-600 hover:text-indigo-800"
+            className="text-xs sm:text-sm text-indigo-600 hover:text-indigo-800 self-start sm:self-auto"
           >
             ← 대시보드로 돌아가기
           </button>
         </div>
 
         {/* 기간 선택 탭 */}
-        <div className="inline-flex rounded-md shadow-sm mb-6" role="group">
+        <div
+          className="inline-flex rounded-md shadow-sm mb-6 w-full sm:w-auto"
+          role="group"
+        >
           {(['month', 'week', 'day'] as Range[]).map((r) => (
             <button
               key={r}
               type="button"
               onClick={() => handleRangeChange(r)}
-              className={`px-4 py-2 text-sm font-medium border ${
+              className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium border ${
                 range === r
                   ? 'bg-indigo-600 text-white border-indigo-600'
                   : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
@@ -129,38 +134,42 @@ export default function UserStatsPage() {
         </div>
 
         {loading ? (
-          <div className="flex justify-center items-center py-20">
-            <span className="text-gray-500">통계 데이터를 불러오는 중입니다...</span>
+          <div className="flex justify-center items-center py-16 sm:py-20">
+            <span className="text-sm sm:text-base text-gray-500">
+              통계 데이터를 불러오는 중입니다...
+            </span>
           </div>
         ) : error ? (
-          <div className="p-4 bg-red-50 text-red-700 rounded-md">{error}</div>
+          <div className="p-3 sm:p-4 bg-red-50 text-red-700 rounded-md text-sm">
+            {error}
+          </div>
         ) : !stats ? (
-          <div className="p-4 bg-yellow-50 text-yellow-700 rounded-md">
+          <div className="p-3 sm:p-4 bg-yellow-50 text-yellow-700 rounded-md text-sm">
             통계 데이터가 없습니다.
           </div>
         ) : (
           <>
             {/* 요약 카드 */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-              <div className="bg-white rounded-lg shadow p-5">
-                <h2 className="text-sm font-medium text-gray-500 mb-1">
+              <div className="bg-white rounded-lg shadow p-4 sm:p-5">
+                <h2 className="text-xs sm:text-sm font-medium text-gray-500 mb-1">
                   전체 가입자 수
                 </h2>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">
                   {stats.totalSignups.toLocaleString()}명
                 </p>
-                <p className="mt-1 text-xs text-gray-400">
+                <p className="mt-1 text-[11px] sm:text-xs text-gray-400">
                   사이트에 가입한 전체 회원 수
                 </p>
               </div>
-              <div className="bg-white rounded-lg shadow p-5">
-                <h2 className="text-sm font-medium text-gray-500 mb-1">
+              <div className="bg-white rounded-lg shadow p-4 sm:p-5">
+                <h2 className="text-xs sm:text-sm font-medium text-gray-500 mb-1">
                   전체 방문자 수
                 </h2>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">
                   {stats.totalVisits.toLocaleString()}명
                 </p>
-                <p className="mt-1 text-xs text-gray-400">
+                <p className="mt-1 text-[11px] sm:text-xs text-gray-400">
                   방문 로그 연동 시 실제 방문자 수가 표시됩니다.
                 </p>
               </div>
@@ -168,22 +177,22 @@ export default function UserStatsPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* 가입자 수 통계 */}
-              <div className="bg-white rounded-lg shadow p-5">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">
+              <div className="bg-white rounded-lg shadow p-4 sm:p-5">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">
                   {rangeLabel} 가입자 수
                 </h3>
                 {stats.signups.length === 0 ? (
-                  <p className="text-sm text-gray-500">
+                  <p className="text-xs sm:text-sm text-gray-500">
                     통계 기간 내 가입자가 없습니다.
                   </p>
                 ) : (
-                  <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                  <div className="space-y-2 max-h-[360px] sm:max-h-[400px] overflow-y-auto">
                     {stats.signups.map((item) => (
                       <div
                         key={item.label}
-                        className="flex items-center justify-between gap-3"
+                        className="flex items-center justify-between gap-2 sm:gap-3"
                       >
-                        <span className="w-24 text-xs text-gray-500">
+                        <span className="w-20 sm:w-24 text-[11px] sm:text-xs text-gray-500 whitespace-nowrap truncate">
                           {item.label}
                         </span>
                         <div className="flex-1">
@@ -199,7 +208,7 @@ export default function UserStatsPage() {
                             />
                           </div>
                         </div>
-                        <span className="w-10 text-right text-sm text-gray-700">
+                        <span className="w-8 sm:w-10 text-right text-xs sm:text-sm text-gray-700">
                           {item.count}
                         </span>
                       </div>
@@ -209,22 +218,22 @@ export default function UserStatsPage() {
               </div>
 
               {/* 방문자 수 통계 */}
-              <div className="bg-white rounded-lg shadow p-5">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">
+              <div className="bg-white rounded-lg shadow p-4 sm:p-5">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">
                   {rangeLabel} 방문자 수
                 </h3>
                 {stats.visits.length === 0 ? (
-                  <p className="text-sm text-gray-500">
+                  <p className="text-xs sm:text-sm text-gray-500">
                     방문 로그가 아직 연동되어 있지 않습니다. (현재는 0으로 표시)
                   </p>
                 ) : (
-                  <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                  <div className="space-y-2 max-h-[360px] sm:max-h-[400px] overflow-y-auto">
                     {stats.visits.map((item) => (
                       <div
                         key={item.label}
-                        className="flex items-center justify-between gap-3"
+                        className="flex items-center justify-between gap-2 sm:gap-3"
                       >
-                        <span className="w-24 text-xs text-gray-500">
+                        <span className="w-20 sm:w-24 text-[11px] sm:text-xs text-gray-500 whitespace-nowrap truncate">
                           {item.label}
                         </span>
                         <div className="flex-1">
@@ -240,7 +249,7 @@ export default function UserStatsPage() {
                             />
                           </div>
                         </div>
-                        <span className="w-10 text-right text-sm text-gray-700">
+                        <span className="w-8 sm:w-10 text-right text-xs sm:text-sm text-gray-700">
                           {item.count}
                         </span>
                       </div>

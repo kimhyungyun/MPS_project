@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface Member {
@@ -38,16 +38,13 @@ export default function MemberDevicePage() {
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
 
-  // 선택된 회원
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
 
-  // 기기 관련 상태
   const [devices, setDevices] = useState<UserDevice[]>([]);
   const [deviceLoading, setDeviceLoading] = useState(false);
   const [deviceSaving, setDeviceSaving] = useState(false);
   const [deviceMessage, setDeviceMessage] = useState<string | null>(null);
 
-  // 패널 스크롤용
   const devicePanelRef = useRef<HTMLDivElement | null>(null);
 
   const pageSize = 10;
@@ -66,7 +63,6 @@ export default function MemberDevicePage() {
       if (key === 'name') {
         comp = a.mb_name.localeCompare(b.mb_name);
       } else if (key === 'latest') {
-        // 최신순: mb_no DESC 기준이라고 가정
         comp = a.mb_no - b.mb_no;
       }
 
@@ -228,8 +224,6 @@ export default function MemberDevicePage() {
       }
 
       const data: UserDevice[] = await res.json();
-
-      // 최대 2개만 사용
       setDevices(data.slice(0, 2));
     } catch (err) {
       console.error('기기 조회 오류:', err);
@@ -312,26 +306,26 @@ export default function MemberDevicePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 mt-24">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">
+    <div className="min-h-screen bg-gray-50 py-6 sm:py-8 mt-20 sm:mt-24">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6 sm:mb-8">
           회원 기기 관리
         </h1>
 
         {error && (
-          <div className="mb-4 p-4 bg-red-50 text-red-700 rounded-md">
+          <div className="mb-4 p-3 sm:p-4 bg-red-50 text-red-700 rounded-md text-xs sm:text-sm">
             {error}
           </div>
         )}
 
         {/* 정렬 + 검색 */}
-        <div className="flex justify-between items-center mb-4 gap-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3 sm:gap-4">
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">정렬:</span>
+            <span className="text-xs sm:text-sm text-gray-600">정렬:</span>
             <button
               type="button"
               onClick={() => handleSortClick('name')}
-              className={`px-3 py-1.5 rounded-md text-sm border transition-colors ${
+              className={`px-3 py-1.5 rounded-md text-xs sm:text-sm border transition-colors ${
                 sortKey === 'name'
                   ? 'bg-indigo-600 text-white border-indigo-600'
                   : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
@@ -342,7 +336,7 @@ export default function MemberDevicePage() {
             <button
               type="button"
               onClick={() => handleSortClick('latest')}
-              className={`px-3 py-1.5 rounded-md text-sm border transition-colors ${
+              className={`px-3 py-1.5 rounded-md text-xs sm:text-sm border transition-colors ${
                 sortKey === 'latest'
                   ? 'bg-indigo-600 text-white border-indigo-600'
                   : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
@@ -352,19 +346,22 @@ export default function MemberDevicePage() {
             </button>
           </div>
 
-          <form onSubmit={handleSearch} className="w-[360px]">
+          <form
+            onSubmit={handleSearch}
+            className="w-full sm:w-[360px]"
+          >
             <div className="flex gap-2">
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="아이디, 이름 검색"
-                className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 px-3 py-2 text-sm"
+                className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 px-3 py-2 text-xs sm:text-sm"
               />
               <button
                 type="submit"
                 disabled={isSearching}
-                className={`bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 text-sm ${
+                className={`bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 text-xs sm:text-sm ${
                   isSearching ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
               >
@@ -374,16 +371,16 @@ export default function MemberDevicePage() {
           </form>
         </div>
 
-        {/* 회원 리스트 테이블 (아이디/이름만) */}
+        {/* 회원 리스트 테이블 */}
         <div className="bg-white shadow rounded-lg overflow-hidden mb-6">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+          <div className="overflow-x-auto w-full">
+            <table className="min-w-full divide-y divide-gray-200 text-xs sm:text-sm">
               <thead className="bg-gray-50">
                 <tr>
                   {['번호', '아이디', '이름', '기기'].map((head) => (
                     <th
                       key={head}
-                      className="px-6 py-3 text-center text-sm font-semibold text-gray-600 tracking-wider"
+                      className="px-3 sm:px-6 py-2 sm:py-3 text-center text-[11px] sm:text-xs font-semibold text-gray-600 tracking-wider whitespace-nowrap"
                     >
                       {head}
                     </th>
@@ -395,7 +392,7 @@ export default function MemberDevicePage() {
                   <tr>
                     <td
                       colSpan={4}
-                      className="px-6 py-4 text-center text-sm text-gray-500"
+                      className="px-3 sm:px-6 py-4 text-center text-xs sm:text-sm text-gray-500"
                     >
                       로딩 중...
                     </td>
@@ -404,7 +401,7 @@ export default function MemberDevicePage() {
                   <tr>
                     <td
                       colSpan={4}
-                      className="px-6 py-4 text-center text-sm text-gray-500"
+                      className="px-3 sm:px-6 py-4 text-center text-xs sm:text-sm text-gray-500"
                     >
                       {search ? '검색 결과가 없습니다.' : '회원이 없습니다.'}
                     </td>
@@ -420,20 +417,20 @@ export default function MemberDevicePage() {
                         key={member.mb_no}
                         className={isSelected ? 'bg-indigo-50/40' : ''}
                       >
-                        <td className="px-6 py-4 text-sm text-center text-gray-700 whitespace-nowrap">
+                        <td className="px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm text-center text-gray-700 whitespace-nowrap">
                           {index}
                         </td>
-                        <td className="px-6 py-4 text-sm whitespace-nowrap text-center">
+                        <td className="px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm whitespace-nowrap text-center max-w-[120px] sm:max-w-[160px] truncate">
                           {member.mb_id}
                         </td>
-                        <td className="px-6 py-4 text-sm whitespace-nowrap text-center">
+                        <td className="px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm whitespace-nowrap text-center max-w-[90px] sm:max-w-[120px] truncate">
                           {member.mb_name}
                         </td>
-                        <td className="px-6 py-4 text-sm whitespace-nowrap text-center">
+                        <td className="px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm whitespace-nowrap text-center">
                           <button
                             type="button"
                             onClick={() => handleSelectMember(member)}
-                            className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${
+                            className={`px-3 py-1.5 rounded-md text-[11px] sm:text-xs font-medium border transition-colors ${
                               isSelected
                                 ? 'bg-indigo-600 text-white border-indigo-600'
                                 : 'bg-white text-indigo-600 border-indigo-200 hover:bg-indigo-50'
@@ -454,11 +451,11 @@ export default function MemberDevicePage() {
         {/* 페이지네이션 */}
         {totalPages > 1 && (
           <div className="mt-4 flex justify-center mb-8">
-            <nav className="flex items-center gap-2">
+            <nav className="flex items-center gap-1.5 sm:gap-2">
               <button
                 onClick={handlePrevGroup}
                 disabled={startPage === 1 || loading}
-                className="px-3 py-2 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-md border border-gray-300 bg-white text-xs sm:text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 &lt;
               </button>
@@ -470,7 +467,7 @@ export default function MemberDevicePage() {
                   key={page}
                   onClick={() => setCurrentPage(page)}
                   disabled={loading}
-                  className={`w-9 h-9 flex items-center justify-center rounded-md text-sm font-medium transition-colors ${
+                  className={`w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-md text-xs sm:text-sm font-medium transition-colors ${
                     currentPage === page
                       ? 'bg-indigo-600 text-white'
                       : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
@@ -482,7 +479,7 @@ export default function MemberDevicePage() {
               <button
                 onClick={handleNextGroup}
                 disabled={endPage === totalPages || loading}
-                className="px-3 py-2 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-md border border-gray-300 bg-white text-xs sm:text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 &gt;
               </button>
@@ -490,12 +487,12 @@ export default function MemberDevicePage() {
           </div>
         )}
 
-        {/* 🔹 선택한 회원 기기 관리 패널 (기기 2개 란 + 해제 버튼) */}
+        {/* 선택한 회원 기기 관리 패널 */}
         <div
           ref={devicePanelRef}
-          className="bg-white shadow rounded-lg p-6"
+          className="bg-white shadow rounded-lg p-4 sm:p-6"
         >
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+          <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">
             {selectedMember
               ? `선택한 회원: ${selectedMember.mb_name} (${selectedMember.mb_id})`
               : '회원 선택 후 기기를 관리할 수 있습니다.'}
@@ -504,17 +501,19 @@ export default function MemberDevicePage() {
           {selectedMember && (
             <>
               {deviceMessage && (
-                <div className="mb-3 text-sm text-indigo-700 bg-indigo-50 px-3 py-2 rounded">
+                <div className="mb-3 text-xs sm:text-sm text-indigo-700 bg-indigo-50 px-3 py-2 rounded">
                   {deviceMessage}
                 </div>
               )}
 
               {deviceLoading ? (
-                <p className="text-sm text-gray-500">기기 정보를 불러오는 중...</p>
+                <p className="text-xs sm:text-sm text-gray-500">
+                  기기 정보를 불러오는 중...
+                </p>
               ) : (
                 <div className="space-y-6">
                   <div>
-                    <h3 className="text-sm font-medium text-gray-800 mb-3">
+                    <h3 className="text-xs sm:text-sm font-medium text-gray-800 mb-3">
                       등록된 기기 (최대 2대)
                     </h3>
 
@@ -527,11 +526,11 @@ export default function MemberDevicePage() {
                             className="border rounded-lg p-4 flex flex-col justify-between min-h-[120px]"
                           >
                             <div>
-                              <h4 className="text-sm font-semibold text-gray-800 mb-2">
+                              <h4 className="text-xs sm:text-sm font-semibold text-gray-800 mb-2">
                                 기기 {idx + 1}
                               </h4>
                               {device ? (
-                                <div className="space-y-1 text-sm text-gray-700">
+                                <div className="space-y-1 text-xs sm:text-sm text-gray-700">
                                   <p>
                                     <span className="font-medium">이름:</span>{' '}
                                     {device.deviceName || '-'}
@@ -542,7 +541,7 @@ export default function MemberDevicePage() {
                                   </p>
                                 </div>
                               ) : (
-                                <p className="text-sm text-gray-400">
+                                <p className="text-xs sm:text-sm text-gray-400">
                                   등록된 기기가 없습니다.
                                 </p>
                               )}
@@ -554,8 +553,10 @@ export default function MemberDevicePage() {
                                   type="button"
                                   onClick={() => handleReleaseDevice(device.deviceId)}
                                   disabled={deviceSaving}
-                                  className={`w-full px-3 py-2 rounded-md text-sm font-medium text-white bg-rose-600 hover:bg-rose-700 ${
-                                    deviceSaving ? 'opacity-50 cursor-not-allowed' : ''
+                                  className={`w-full px-3 py-2 rounded-md text-xs sm:text-sm font-medium text-white bg-rose-600 hover:bg-rose-700 ${
+                                    deviceSaving
+                                      ? 'opacity-50 cursor-not-allowed'
+                                      : ''
                                   }`}
                                 >
                                   기기 해제
@@ -573,7 +574,7 @@ export default function MemberDevicePage() {
                       type="button"
                       onClick={handleResetDevices}
                       disabled={deviceSaving || devices.length === 0}
-                      className={`px-4 py-2 rounded-md text-sm font-medium text-white bg-gray-700 hover:bg-gray-800 ${
+                      className={`px-4 py-2 rounded-md text-xs sm:text-sm font-medium text-white bg-gray-700 hover:bg-gray-800 ${
                         deviceSaving || devices.length === 0
                           ? 'opacity-50 cursor-not-allowed'
                           : ''

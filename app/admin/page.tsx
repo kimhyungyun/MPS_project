@@ -62,29 +62,31 @@ export default function AdminPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-lg text-gray-600">로딩 중...</div>
+        <div className="text-base sm:text-lg text-gray-600">로딩 중...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-30">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">관리자 대시보드</h1>
+    <div className="min-h-screen bg-gray-50 py-6 sm:py-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-24 sm:pt-30">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6 sm:mb-8">
+          관리자 대시보드
+        </h1>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:gap-5 sm:grid-cols-2 lg:grid-cols-2">
           {/* ✅ 총 회원 수 카드 → 버튼화 */}
           <button
             type="button"
             onClick={() => router.push('/admin/stats/users')}
             className="bg-white overflow-hidden shadow rounded-lg text-left hover:shadow-lg transition-shadow focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
-            <div className="p-5">
+            <div className="p-4 sm:p-5">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
                   <svg
-                    className="h-6 w-6 text-gray-400"
+                    className="h-5 w-5 sm:h-6 sm:w-6 text-gray-400"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -97,18 +99,18 @@ export default function AdminPage() {
                     />
                   </svg>
                 </div>
-                <div className="ml-5 w-0 flex-1">
+                <div className="ml-4 sm:ml-5 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">
+                    <dt className="text-xs sm:text-sm font-medium text-gray-500 truncate">
                       총 회원 수 (통계 보기)
                     </dt>
-                    <dd className="text-lg font-medium text-gray-900">
+                    <dd className="text-base sm:text-lg font-medium text-gray-900">
                       {stats.totalUsers}
                     </dd>
                   </dl>
                 </div>
               </div>
-              <p className="mt-2 text-xs text-gray-400">
+              <p className="mt-2 text-[11px] sm:text-xs text-gray-400">
                 클릭하면 월/주/일 단위 가입자/방문자 통계를 볼 수 있습니다.
               </p>
             </div>
@@ -116,11 +118,11 @@ export default function AdminPage() {
 
           {/* 총 결제 건수 */}
           <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5">
+            <div className="p-4 sm:p-5">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
                   <svg
-                    className="h-6 w-6 text-gray-400"
+                    className="h-5 w-5 sm:h-6 sm:w-6 text-gray-400"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -133,12 +135,12 @@ export default function AdminPage() {
                     />
                   </svg>
                 </div>
-                <div className="ml-5 w-0 flex-1">
+                <div className="ml-4 sm:ml-5 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">
+                    <dt className="text-xs sm:text-sm font-medium text-gray-500 truncate">
                       총 결제 건수
                     </dt>
-                    <dd className="text-lg font-medium text-gray-900">
+                    <dd className="text-base sm:text-lg font-medium text-gray-900">
                       {stats.totalPayments}
                     </dd>
                   </dl>
@@ -150,51 +152,69 @@ export default function AdminPage() {
 
         {/* Quick Actions */}
         <div className="mt-8">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">빠른 작업</h2>
+          <h2 className="text-base sm:text-lg font-medium text-gray-900 mb-4">
+            빠른 작업
+          </h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <button
               onClick={() => router.push('/admin/members')}
-              className="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow"
+              className="bg-white p-4 sm:p-6 rounded-lg shadow hover:shadow-md transition-shadow text-left"
             >
-              <h3 className="text-lg font-medium text-gray-900">회원 관리</h3>
-              <p className="mt-2 text-sm text-gray-500">회원 목록 조회 및 관리</p>
+              <h3 className="text-base sm:text-lg font-medium text-gray-900">
+                회원 관리
+              </h3>
+              <p className="mt-2 text-xs sm:text-sm text-gray-500">
+                회원 목록 조회 및 관리
+              </p>
             </button>
 
             <button
               onClick={() => router.push('/admin/lectures')}
-              className="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow"
+              className="bg-white p-4 sm:p-6 rounded-lg shadow hover:shadow-md transition-shadow text-left"
             >
-              <h3 className="text-lg font-medium text-gray-900">강의 관리</h3>
-              <p className="mt-2 text-sm text-gray-500">강의 등록 및 관리</p>
+              <h3 className="text-base sm:text-lg font-medium text-gray-900">
+                강의 관리
+              </h3>
+              <p className="mt-2 text-xs sm:text-sm text-gray-500">
+                강의 등록 및 관리
+              </p>
             </button>
 
             <button
               onClick={() => router.push('/admin/inquiries')}
-              className="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow"
+              className="bg-white p-4 sm:p-6 rounded-lg shadow hover:shadow-md transition-shadow text-left"
             >
-              <h3 className="text-lg font-medium text-gray-900">문의 관리</h3>
-              <p className="mt-2 text-sm text-gray-500">문의사항 답변 관리</p>
+              <h3 className="text-base sm:text-lg font-medium text-gray-900">
+                문의 관리
+              </h3>
+              <p className="mt-2 text-xs sm:text-sm text-gray-500">
+                문의사항 답변 관리
+              </p>
             </button>
 
-              <button
-                onClick={() => router.push('/admin/authority')}
-                className="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow"
-              >
-                <h3 className="text-lg font-medium text-gray-900">기기 관리</h3>
-                <p className="mt-2 text-sm text-gray-500">
-                  계정별 등록된 기기 확인 및 초기화
-                </p>
-              </button>
+            <button
+              onClick={() => router.push('/admin/authority')}
+              className="bg-white p-4 sm:p-6 rounded-lg shadow hover:shadow-md transition-shadow text-left"
+            >
+              <h3 className="text-base sm:text-lg font-medium text-gray-900">
+                기기 관리
+              </h3>
+              <p className="mt-2 text-xs sm:text-sm text-gray-500">
+                계정별 등록된 기기 확인 및 초기화
+              </p>
+            </button>
 
-                <button
-                onClick={() => router.push('/admin/videoauthority')}
-                className="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow"
-              >
-                <h3 className="text-lg font-medium text-gray-900">동영상 권한 관리</h3>
-                <p className="mt-2 text-sm text-gray-500">
-                  회원별 동영상 권한 관리
-                </p>
-              </button>
+            <button
+              onClick={() => router.push('/admin/videoauthority')}
+              className="bg-white p-4 sm:p-6 rounded-lg shadow hover:shadow-md transition-shadow text-left"
+            >
+              <h3 className="text-base sm:text-lg font-medium text-gray-900">
+                동영상 권한 관리
+              </h3>
+              <p className="mt-2 text-xs sm:text-sm text-gray-500">
+                회원별 동영상 권한 관리
+              </p>
+            </button>
           </div>
         </div>
       </div>

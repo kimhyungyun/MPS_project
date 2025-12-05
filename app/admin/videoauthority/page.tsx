@@ -1,5 +1,3 @@
-// app/admin/video-authority/page.tsx (경로는 너 프로젝트에 맞게)
-
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
@@ -198,7 +196,6 @@ export default function VideoAuthorityPage() {
     setSelectedMember(member);
     setSelectedMemberId(member.mb_no ?? null);
 
-    // 선택할 때마다 기본값은 "모두 해제"
     setAuthorityMessage(null);
     setSelectedClassGroups([]);
     setSelectedVideoTypes([]);
@@ -238,13 +235,14 @@ export default function VideoAuthorityPage() {
       console.log('🔎 권한 조회 결과:', data);
 
       if (!data || data.length === 0) {
-        // 권한 없으면 그냥 모두 해제 상태 유지
         setSelectedClassGroups([]);
         setSelectedVideoTypes([]);
         return;
       }
 
-      const cg = data.filter((a) => a.classGroup).map((a) => a.classGroup!) as ClassGroup[];
+      const cg = data
+        .filter((a) => a.classGroup)
+        .map((a) => a.classGroup!) as ClassGroup[];
       const vt = data.filter((a) => a.type).map((a) => a.type!) as LectureType[];
 
       setSelectedClassGroups(cg);
@@ -269,7 +267,6 @@ export default function VideoAuthorityPage() {
   const toggleVideoType = (vt: LectureType) => {
     setSelectedVideoTypes((prev) => {
       if (vt === 'single') {
-        // "권한 없음" 체크 시 나머지 해제
         return prev.includes('single') ? [] : ['single'];
       }
 
@@ -353,27 +350,31 @@ export default function VideoAuthorityPage() {
   // UI
   // -----------------------------
   return (
-    <div className="min-h-screen bg-gray-50 py-8 mt-24">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">동영상 권한 관리</h1>
+    <div className="min-h-screen bg-gray-50 py-6 sm:py-8 mt-20 sm:mt-24">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6 sm:mb-8">
+          동영상 권한 관리
+        </h1>
 
         {/* 회원 목록 박스 */}
         <div className="bg-white shadow rounded-lg overflow-hidden mb-6">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto w-full">
             {loading ? (
-              <div className="p-6 text-center text-sm text-gray-500">
+              <div className="p-4 sm:p-6 text-center text-xs sm:text-sm text-gray-500">
                 회원 목록을 불러오는 중...
               </div>
             ) : error ? (
-              <div className="p-6 text-center text-sm text-red-600">{error}</div>
+              <div className="p-4 sm:p-6 text-center text-xs sm:text-sm text-red-600">
+                {error}
+              </div>
             ) : (
-              <table className="min-w-full divide-y divide-gray-200">
+              <table className="min-w-full divide-y divide-gray-200 text-xs sm:text-sm">
                 <thead className="bg-gray-50">
                   <tr>
                     {['번호', '아이디', '이름', '휴대폰', '학교', '권한'].map((head) => (
                       <th
                         key={head}
-                        className="px-6 py-3 text-center text-sm font-semibold text-gray-600 tracking-wider"
+                        className="px-3 sm:px-6 py-2 sm:py-3 text-center text-[11px] sm:text-xs font-semibold text-gray-600 tracking-wider whitespace-nowrap"
                       >
                         {head}
                       </th>
@@ -391,16 +392,26 @@ export default function VideoAuthorityPage() {
                         key={member.mb_no ?? `${member.mb_id}-${idx}`}
                         className={isSelected ? 'bg-indigo-50/40' : ''}
                       >
-                        <td className="px-6 py-4 text-sm text-center">{index}</td>
-                        <td className="px-6 py-4 text-sm text-center">{member.mb_id}</td>
-                        <td className="px-6 py-4 text-sm text-center">{member.mb_name}</td>
-                        <td className="px-6 py-4 text-sm text-center">{member.mb_hp}</td>
-                        <td className="px-6 py-4 text-sm text-center">{member.mb_school}</td>
-                        <td className="px-6 py-4 text-sm text-center">
+                        <td className="px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm text-center">
+                          {index}
+                        </td>
+                        <td className="px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm text-center whitespace-nowrap max-w-[120px] sm:max-w-[160px] truncate">
+                          {member.mb_id}
+                        </td>
+                        <td className="px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm text-center whitespace-nowrap max-w-[90px] sm:max-w-[120px] truncate">
+                          {member.mb_name}
+                        </td>
+                        <td className="px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm text-center whitespace-nowrap max-w-[120px] sm:max-w-[150px] truncate">
+                          {member.mb_hp}
+                        </td>
+                        <td className="px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm text-center whitespace-nowrap max-w-[120px] sm:max-w-[150px] truncate">
+                          {member.mb_school}
+                        </td>
+                        <td className="px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm text-center">
                           <button
                             type="button"
                             onClick={() => handleSelectMember(member)}
-                            className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${
+                            className={`px-3 py-1.5 rounded-md text-[11px] sm:text-xs font-medium border transition-colors ${
                               isSelected
                                 ? 'bg-indigo-600 text-white border-indigo-600'
                                 : 'bg-white text-indigo-600 border-indigo-200 hover:bg-indigo-50'
@@ -420,19 +431,22 @@ export default function VideoAuthorityPage() {
 
         {/* 검색 */}
         <div className="flex justify-center mb-6">
-          <form onSubmit={handleSearch} className="w-[600px]">
+          <form
+            onSubmit={handleSearch}
+            className="w-full max-w-[600px] px-1 sm:px-0"
+          >
             <div className="flex gap-2">
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="   아이디, 이름, 휴대폰, 학교 검색"
-                className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 px-4 py-2"
+                className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 px-3 sm:px-4 py-2 text-sm"
               />
               <button
                 type="submit"
                 disabled={isSearching}
-                className={`bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700 ${
+                className={`bg-indigo-600 text-white px-4 sm:px-6 py-2 rounded-md hover:bg-indigo-700 text-sm ${
                   isSearching ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
               >
@@ -445,11 +459,11 @@ export default function VideoAuthorityPage() {
         {/* 페이지네이션 */}
         {totalPages > 1 && (
           <div className="mt-4 mb-8 flex justify-center">
-            <nav className="flex items-center gap-2">
+            <nav className="flex items-center gap-1.5 sm:gap-2">
               <button
                 onClick={handlePrevGroup}
                 disabled={startPage === 1 || loading}
-                className="px-3 py-2 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-md border border-gray-300 bg-white text-xs sm:text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 &lt;
               </button>
@@ -459,7 +473,7 @@ export default function VideoAuthorityPage() {
                     key={page}
                     onClick={() => setCurrentPage(page)}
                     disabled={loading}
-                    className={`w-9 h-9 flex items-center justify-center rounded-md text-sm font-medium transition-colors ${
+                    className={`w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-md text-xs sm:text-sm font-medium transition-colors ${
                       currentPage === page
                         ? 'bg-indigo-600 text-white'
                         : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
@@ -472,7 +486,7 @@ export default function VideoAuthorityPage() {
               <button
                 onClick={handleNextGroup}
                 disabled={endPage === totalPages || loading}
-                className="px-3 py-2 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-md border border-gray-300 bg-white text-xs sm:text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 &gt;
               </button>
@@ -481,8 +495,8 @@ export default function VideoAuthorityPage() {
         )}
 
         {/* 동영상 권한 박스 */}
-        <div ref={authorityPanelRef} className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+        <div ref={authorityPanelRef} className="bg-white shadow rounded-lg p-4 sm:p-6">
+          <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">
             {selectedMember
               ? `선택한 회원: ${selectedMember.mb_name} (${selectedMember.mb_id})`
               : '회원 선택 후 권한을 관리할 수 있습니다.'}
@@ -491,20 +505,27 @@ export default function VideoAuthorityPage() {
           {selectedMember && (
             <>
               {authorityMessage && (
-                <div className="mb-3 text-sm text-indigo-700 bg-indigo-50 px-3 py-2 rounded">
+                <div className="mb-3 text-xs sm:text-sm text-indigo-700 bg-indigo-50 px-3 py-2 rounded">
                   {authorityMessage}
                 </div>
               )}
 
               {authorityLoading ? (
-                <p className="text-sm text-gray-500">권한 정보를 불러오는 중...</p>
+                <p className="text-xs sm:text-sm text-gray-500">
+                  권한 정보를 불러오는 중...
+                </p>
               ) : (
-                <div className="space-y-6">
+                <div className="space-y-5 sm:space-y-6">
                   <div>
-                    <h3 className="text-sm font-medium text-gray-800 mb-2">캠프강의 권한</h3>
-                    <div className="flex gap-4">
+                    <h3 className="text-xs sm:text-sm font-medium text-gray-800 mb-2">
+                      캠프강의 권한
+                    </h3>
+                    <div className="flex flex-wrap gap-3">
                       {(['A', 'B'] as ClassGroup[]).map((cg) => (
-                        <label key={cg} className="inline-flex items-center gap-2 text-sm">
+                        <label
+                          key={cg}
+                          className="inline-flex items-center gap-2 text-xs sm:text-sm"
+                        >
                           <input
                             type="checkbox"
                             checked={selectedClassGroups.includes(cg)}
@@ -518,10 +539,12 @@ export default function VideoAuthorityPage() {
                   </div>
 
                   <div>
-                    <h3 className="text-sm font-medium text-gray-800 mb-2">패키지 권한</h3>
+                    <h3 className="text-xs sm:text-sm font-medium text-gray-800 mb-2">
+                      패키지 권한
+                    </h3>
 
                     <div className="mb-3">
-                      <label className="inline-flex items-center gap-2 text-sm">
+                      <label className="inline-flex items-center gap-2 text-xs sm:text-sm">
                         <input
                           type="checkbox"
                           checked={selectedVideoTypes.includes('single')}
@@ -534,7 +557,10 @@ export default function VideoAuthorityPage() {
 
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                       {PACKAGE_TYPES.map((vt) => (
-                        <label key={vt} className="inline-flex items-center gap-2 text-sm">
+                        <label
+                          key={vt}
+                          className="inline-flex items-center gap-2 text-xs sm:text-sm"
+                        >
                           <input
                             type="checkbox"
                             checked={selectedVideoTypes.includes(vt)}
@@ -552,7 +578,7 @@ export default function VideoAuthorityPage() {
                       type="button"
                       onClick={handleSaveAuthority}
                       disabled={authoritySaving}
-                      className={`px-4 py-2 rounded-md text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 ${
+                      className={`px-4 py-2 rounded-md text-xs sm:text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 ${
                         authoritySaving ? 'opacity-50 cursor-not-allowed' : ''
                       }`}
                     >

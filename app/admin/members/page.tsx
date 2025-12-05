@@ -207,28 +207,32 @@ export default function AdminMembersPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 mt-24">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">회원 관리</h1>
+    <div className="min-h-screen bg-gray-50 py-6 sm:py-8 mt-20 sm:mt-24">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6 sm:mb-8">
+          회원 관리
+        </h1>
 
         {error && (
-          <div className="mb-4 p-4 bg-red-50 text-red-700 rounded-md">
+          <div className="mb-4 p-3 sm:p-4 bg-red-50 text-red-700 rounded-md text-sm">
             {error}
           </div>
         )}
         {success && (
-          <div className="mb-4 p-4 bg-green-50 text-green-700 rounded-md">
+          <div className="mb-4 p-3 sm:p-4 bg-green-50 text-green-700 rounded-md text-sm">
             {success}
           </div>
         )}
 
         {/* 정렬 버튼 */}
-        <div className="flex justify-end mb-4 gap-2">
-          <span className="text-sm text-gray-600 self-center">정렬:</span>
+        <div className="flex flex-wrap justify-end mb-3 sm:mb-4 gap-2">
+          <span className="text-xs sm:text-sm text-gray-600 self-center">
+            정렬:
+          </span>
           <button
             type="button"
             onClick={() => handleSortClick('name')}
-            className={`px-3 py-1.5 rounded-md text-sm border transition-colors ${
+            className={`px-2.5 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm border transition-colors ${
               sortKey === 'name'
                 ? 'bg-indigo-600 text-white border-indigo-600'
                 : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
@@ -239,7 +243,7 @@ export default function AdminMembersPage() {
           <button
             type="button"
             onClick={() => handleSortClick('latest')}
-            className={`px-3 py-1.5 rounded-md text-sm border transition-colors ${
+            className={`px-2.5 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm border transition-colors ${
               sortKey === 'latest'
                 ? 'bg-indigo-600 text-white border-indigo-600'
                 : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
@@ -250,9 +254,9 @@ export default function AdminMembersPage() {
         </div>
 
         <div className="bg-white shadow rounded-lg overflow-hidden mb-6">
-          {/* 가로 스크롤 허용 + 테이블 넓게 */}
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+          {/* 가로 스크롤 허용 + 테이블 넓게 (모바일에서 좌우 스크롤) */}
+          <div className="w-full overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 text-xs sm:text-sm">
               <thead className="bg-gray-50">
                 <tr>
                   {[
@@ -268,7 +272,7 @@ export default function AdminMembersPage() {
                   ].map((head) => (
                     <th
                       key={head}
-                      className="px-6 py-3 text-center text-sm font-semibold text-gray-600 tracking-wider"
+                      className="px-3 sm:px-6 py-2 sm:py-3 text-center whitespace-nowrap text-[11px] sm:text-xs font-semibold text-gray-600 tracking-wider"
                     >
                       {head}
                     </th>
@@ -280,7 +284,7 @@ export default function AdminMembersPage() {
                   <tr>
                     <td
                       colSpan={9}
-                      className="px-6 py-4 text-center text-sm text-gray-500"
+                      className="px-3 sm:px-6 py-4 text-center text-xs sm:text-sm text-gray-500"
                     >
                       로딩 중...
                     </td>
@@ -289,7 +293,7 @@ export default function AdminMembersPage() {
                   <tr>
                     <td
                       colSpan={9}
-                      className="px-6 py-4 text-center text-sm text-gray-500"
+                      className="px-3 sm:px-6 py-4 text-center text-xs sm:text-sm text-gray-500"
                     >
                       {search ? '검색 결과가 없습니다.' : '회원이 없습니다.'}
                     </td>
@@ -297,38 +301,42 @@ export default function AdminMembersPage() {
                 ) : (
                   members.map((member, idx) => {
                     const index = (currentPage - 1) * pageSize + (idx + 1);
+                    const fullAddress = [member.mb_addr1, member.mb_addr2]
+                      .filter(Boolean)
+                      .join(' ');
+
                     return (
                       <tr key={member.mb_id}>
                         {/* 번호 */}
-                        <td className="px-6 py-4 text-sm text-center text-gray-700 whitespace-nowrap">
+                        <td className="px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm text-center text-gray-700 whitespace-nowrap">
                           {index}
                         </td>
-                        <td className="px-6 py-4 text-sm whitespace-nowrap">
+                        <td className="px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm whitespace-nowrap max-w-[120px] sm:max-w-[160px] truncate">
                           {member.mb_id}
                         </td>
-                        <td className="px-6 py-4 text-sm whitespace-nowrap">
+                        <td className="px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm whitespace-nowrap max-w-[90px] sm:max-w-[120px] truncate">
                           {member.mb_name}
                         </td>
-                        <td className="px-6 py-4 text-sm whitespace-nowrap">
+                        <td className="px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm whitespace-nowrap max-w-[100px] sm:max-w-[140px] truncate">
                           {member.mb_nick}
                         </td>
-                        <td className="px-6 py-4 text-sm whitespace-nowrap">
+                        <td className="px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm whitespace-nowrap max-w-[150px] sm:max-w-[200px] truncate">
                           {member.mb_email}
                         </td>
-                        <td className="px-6 py-4 text-sm whitespace-nowrap">
+                        <td className="px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm whitespace-nowrap max-w-[120px] sm:max-w-[150px] truncate">
                           {member.mb_school}
                         </td>
-                        {/* 주소는 길어질 수 있어서 줄바꿈 허용 */}
-                        <td className="px-6 py-4 text-sm">
-                          {[member.mb_addr1, member.mb_addr2]
-                            .filter(Boolean)
-                            .join(' ')}
+                        {/* 주소: 길면 ... 처리 + 한 줄 유지 */}
+                        <td
+                          className="px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm max-w-[160px] sm:max-w-[220px] whitespace-nowrap overflow-hidden text-ellipsis"
+                          title={fullAddress}
+                        >
+                          {fullAddress}
                         </td>
-                        <td className="px-6 py-4 text-sm whitespace-nowrap">
+                        <td className="px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm whitespace-nowrap max-w-[120px] sm:max-w-[150px] truncate">
                           {member.mb_hp}
                         </td>
-                        <td className="px-6 py-4 text-sm">
-                          {/* 레벨: 거의 정사각형 + 가운데 정렬 */}
+                        <td className="px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm">
                           <div className="flex justify-center">
                             <select
                               value={member.mb_level}
@@ -338,7 +346,7 @@ export default function AdminMembersPage() {
                                   Number(e.target.value),
                                 )
                               }
-                              className="w-12 h-8 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm font-semibold text-center"
+                              className="w-11 sm:w-12 h-8 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-xs sm:text-sm font-semibold text-center"
                               style={{
                                 textAlignLast: 'center' as any,
                                 paddingLeft: 0,
@@ -368,19 +376,22 @@ export default function AdminMembersPage() {
 
         {/* 검색 */}
         <div className="flex justify-center mb-6">
-          <form onSubmit={handleSearch} className="w-[600px]">
+          <form
+            onSubmit={handleSearch}
+            className="w-full max-w-[600px] px-1 sm:px-0"
+          >
             <div className="flex gap-2">
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="   아이디, 이름, 닉네임 검색"
-                className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 px-4 py-2"
+                className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 px-3 sm:px-4 py-2 text-sm"
               />
               <button
                 type="submit"
                 disabled={isSearching}
-                className={`bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700 ${
+                className={`bg-indigo-600 text-white px-4 sm:px-6 py-2 rounded-md hover:bg-indigo-700 text-sm ${
                   isSearching ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
               >
@@ -393,11 +404,11 @@ export default function AdminMembersPage() {
         {/* 페이지네이션: 10개 단위 이동 */}
         {totalPages > 1 && (
           <div className="mt-4 flex justify-center">
-            <nav className="flex items-center gap-2">
+            <nav className="flex items-center gap-1.5 sm:gap-2">
               <button
                 onClick={handlePrevGroup}
                 disabled={startPage === 1 || loading}
-                className="px-3 py-2 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-md border border-gray-300 bg-white text-xs sm:text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 &lt;
               </button>
@@ -409,7 +420,7 @@ export default function AdminMembersPage() {
                   key={page}
                   onClick={() => setCurrentPage(page)}
                   disabled={loading}
-                  className={`w-9 h-9 flex items-center justify-center rounded-md text-sm font-medium transition-colors ${
+                  className={`w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-md text-xs sm:text-sm font-medium transition-colors ${
                     currentPage === page
                       ? 'bg-indigo-600 text-white'
                       : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
@@ -421,7 +432,7 @@ export default function AdminMembersPage() {
               <button
                 onClick={handleNextGroup}
                 disabled={endPage === totalPages || loading}
-                className="px-3 py-2 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-md border border-gray-300 bg-white text-xs sm:text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 &gt;
               </button>

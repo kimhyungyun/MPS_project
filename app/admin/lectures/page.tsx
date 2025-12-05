@@ -28,12 +28,12 @@ export default function LectureManagementPage() {
   const fetchLectures = async () => {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-      if (!apiUrl) throw new Error("API URL is not defined");
+      if (!apiUrl) throw new Error('API URL is not defined');
 
       const response = await fetch(`${apiUrl}/api/lectures`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
       });
 
       if (response.ok) {
@@ -53,57 +53,63 @@ export default function LectureManagementPage() {
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-      if (!apiUrl) throw new Error("API URL is not defined");
+      if (!apiUrl) throw new Error('API URL is not defined');
 
       // 1️⃣ VdoCipher 업로드 권한 및 videoId 요청
       const uploadRes = await fetch(`${apiUrl}/api/vdocipher/upload-url`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
       });
       const { videoId, uploadLink } = await uploadRes.json();
 
       // 2️⃣ VdoCipher에 직접 영상 업로드
       await fetch(uploadLink, {
-        method: "PUT",
+        method: 'PUT',
         body: file,
-        headers: { "Content-Type": "application/octet-stream" }
+        headers: { 'Content-Type': 'application/octet-stream' },
       });
 
       // 3️⃣ 백엔드에 강의 등록 (videoId 전달)
       const lectureData = {
-        title: file.name.replace(/\.[^/.]+$/, ""),
-        description: "Uploaded via VdoCipher",
+        title: file.name.replace(/\.[^/.]+$/, ''),
+        description: 'Uploaded via VdoCipher',
         video_url: `https://player.vdocipher.com/v2/?video=${videoId}`,
-        thumbnail_url: "/default-thumbnail.jpg",
+        thumbnail_url: '/default-thumbnail.jpg',
         price: 0,
-        type: "PAID",
-        categoryId: 1
+        type: 'PAID',
+        categoryId: 1,
       };
 
-      const lectureRes = await axios.post(`${apiUrl}/api/lectures`, lectureData, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
+      const lectureRes = await axios.post(
+        `${apiUrl}/api/lectures`,
+        lectureData,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        },
+      );
 
       if (lectureRes.data) await fetchLectures();
     } catch (error) {
       console.error('Upload failed:', error);
     } finally {
       setIsUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 mt-30">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">강의 관리</h1>
-          <div className="flex items-center space-x-4">
-            <label className="bg-blue-600 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-blue-700 transition-colors">
-              <span>{isUploading ? "업로드 중..." : "강의 업로드"}</span>
+    <div className="min-h-screen bg-gray-50 py-6 sm:py-8 mt-24">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 sm:mb-8 gap-3 sm:gap-0">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+            강의 관리
+          </h1>
+          <div className="flex items-center space-x-3 sm:space-x-4">
+            <label className="bg-blue-600 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-blue-700 transition-colors text-sm">
+              <span>{isUploading ? '업로드 중...' : '강의 업로드'}</span>
               <input
                 type="file"
                 ref={fileInputRef}
@@ -120,32 +126,42 @@ export default function LectureManagementPage() {
           <ul className="divide-y divide-gray-200">
             {lectures.map((lecture) => (
               <li key={lecture.id}>
-                <div className="px-4 py-4 sm:px-6">
-                  <div className="flex items-center justify-between">
+                <div className="px-3 sm:px-4 py-3 sm:py-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-blue-600 truncate">
+                      <p className="text-sm sm:text-base font-medium text-blue-600 truncate max-w-full">
                         {lecture.title}
                       </p>
-                      <p className="mt-2 flex items-center text-sm text-gray-500">
-                        <span className="truncate">{lecture.description}</span>
+                      <p className="mt-1 flex items-center text-xs sm:text-sm text-gray-500">
+                        <span className="truncate max-w-full">
+                          {lecture.description}
+                        </span>
                       </p>
                     </div>
-                    <div className="ml-4 flex-shrink-0 flex space-x-4">
+                    <div className="flex-shrink-0 flex flex-wrap gap-2 sm:space-x-3">
                       <button
-                        onClick={() => router.push(`/admin/lectures/${lecture.id}`)}
-                        className="bg-white text-gray-600 hover:text-gray-900 px-3 py-1 rounded-md text-sm font-medium"
+                        onClick={() =>
+                          router.push(`/admin/lectures/${lecture.id}`)
+                        }
+                        className="bg-white text-gray-600 hover:text-gray-900 px-3 py-1 rounded-md text-xs sm:text-sm font-medium border border-gray-200"
                       >
                         수정
                       </button>
                       <button
-                        onClick={() => router.push(`/mpslecture/testroom?lectureId=${lecture.id}`)}
-                        className="bg-green-100 text-green-600 hover:text-green-900 px-3 py-1 rounded-md text-sm font-medium"
+                        onClick={() =>
+                          router.push(
+                            `/mpslecture/testroom?lectureId=${lecture.id}`,
+                          )
+                        }
+                        className="bg-green-100 text-green-600 hover:text-green-900 px-3 py-1 rounded-md text-xs sm:text-sm font-medium"
                       >
                         보기
                       </button>
                       <button
-                        onClick={() => {/* Handle delete */}}
-                        className="bg-red-100 text-red-600 hover:text-red-900 px-3 py-1 rounded-md text-sm font-medium"
+                        onClick={() => {
+                          /* Handle delete */
+                        }}
+                        className="bg-red-100 text-red-600 hover:text-red-900 px-3 py-1 rounded-md text-xs sm:text-sm font-medium"
                       >
                         삭제
                       </button>
