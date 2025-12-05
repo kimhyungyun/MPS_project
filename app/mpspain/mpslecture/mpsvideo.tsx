@@ -1,20 +1,11 @@
+// app/mpspain/mpslecture/mpsvideo.tsx
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import HlsPlayer from './hlsplayer';
 
-interface Member {
-  mb_no: number;
-  mb_id: string;
-  mb_name: string;
-  mb_hp: string;
-  mb_school: string;
-}
 
-type SortKey = 'name' | 'latest';
-type SortOrder = 'asc' | 'desc';
-
-type ClassGroup = 'A' | 'B' | 'S';
 type LectureType =
   | 'single'
   | 'packageA'
@@ -23,543 +14,370 @@ type LectureType =
   | 'packageD'
   | 'packageE';
 
-interface VideoAuthority {
+type ClassGroup = 'A' | 'B' | 'S';
+
+interface Course {
   id: number;
-  userId: number;
-  classGroup: ClassGroup | null;
-  type: LectureType | null;
+  title: string;
+  description: string;
+  price: number;
+  thumbnail_url: string;
+  video_folder?: string;
+  video_name?: string;
+  type: LectureType;
+  classGroup: ClassGroup;
 }
 
-const CLASS_GROUP_LABELS: Record<ClassGroup, string> = {
-  A: 'A반',
-  B: 'B반',
-  S: 'S',
+interface User {
+  mb_id: string;
+  mb_name: string;
+  mb_nick: string;
+  mb_level: number;
+}
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+
+// ------------------------------------------------------------
+// 탭 메타
+// ------------------------------------------------------------
+
+type GroupKey = 'A' | 'B' | 'C' | 'D' | 'E';
+
+const GROUP_META: Record<
+  GroupKey,
+  { label: string; subtitle: string; description: string }
+> = {
+  A: {
+    label: 'A반',
+    subtitle: 'CLASS GROUP A',
+    description: 'A반 캠프 수강생을 위한 강의 모음입니다.',
+  },
+  B: {
+    label: 'B반',
+    subtitle: 'CLASS GROUP B',
+    description: 'B반 캠프 수강생을 위한 강의 모음입니다.',
+  },
+  C: {
+    label: 'C 패키지',
+    subtitle: 'PACKAGE C',
+    description: '안면부, 어깨, 경추 영역을 묶은 패키지 강의입니다.',
+  },
+  D: {
+    label: 'D 패키지',
+    subtitle: 'PACKAGE D',
+    description: '허리, 대퇴부에 초점을 맞춘 패키지입니다.',
+  },
+  E: {
+    label: 'E 패키지',
+    subtitle: 'PACKAGE E',
+    description: '상지, 가슴, 슬하부를 통합한 패키지 구성입니다.',
+  },
 };
 
-const VIDEO_TYPE_LABELS: Record<LectureType, string> = {
-  single: '권한 없음',
-  packageA: '패키지 A',
-  packageB: '패키지 B',
-  packageC: '패키지 C',
-  packageD: '패키지 D',
-  packageE: '패키지 E',
-};
-
-const PACKAGE_TYPES: LectureType[] = [
-  'packageA',
-  'packageB',
-  'packageC',
-  'packageD',
-  'packageE',
-];
-
-export default function VideoAuthorityPage() {
+export default function Mpsvideo() {
   const router = useRouter();
-  const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-  const [members, setMembers] = useState<Member[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [selected, setSelected] = useState<Course | null>(null);
+  const [loadingList, setLoadingList] = useState(true);
+  const [loadingPlay, setLoadingPlay] = useState(false);
+  const [streamUrl, setStreamUrl] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+  const [selectedGroup, setSelectedGroup] = useState<GroupKey>('A');
 
-  const [search, setSearch] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalMembers, setTotalMembers] = useState(0);
-  const [isSearching, setIsSearching] = useState(false);
+  const listRef = useRef<HTMLDivElement | null>(null);
 
-  const [sortKey, setSortKey] = useState<SortKey | null>(null);
-  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+  // ------------------------------------------------------------
+  // 로그인 체크 + 강의 목록 불러오기
+  // ------------------------------------------------------------
 
-  const [selectedMember, setSelectedMember] = useState<Member | null>(null);
-  const [selectedMemberId, setSelectedMemberId] = useState<number | null>(null);
-
-  const [authorityLoading, setAuthorityLoading] = useState(false);
-  const [authoritySaving, setAuthoritySaving] = useState(false);
-  const [selectedClassGroups, setSelectedClassGroups] = useState<ClassGroup[]>([]);
-  const [selectedVideoTypes, setSelectedVideoTypes] = useState<LectureType[]>([]);
-  const [authorityMessage, setAuthorityMessage] = useState<string | null>(null);
-
-  const authorityPanelRef = useRef<HTMLDivElement | null>(null);
-
-  const pageSize = 10;
-  const pageGroupSize = 10;
-  const totalPages = Math.ceil(totalMembers / pageSize);
-  const currentPageGroup = Math.ceil(currentPage / pageGroupSize);
-  const startPage = (currentPageGroup - 1) * pageGroupSize + 1;
-  const endPage = Math.min(startPage + pageGroupSize - 1, totalPages);
-
-  // ---------------------------------------------
-  // 로그인 체크
-  // ---------------------------------------------
   useEffect(() => {
-    const stored = localStorage.getItem('user');
-    if (!stored) {
-      router.push('/');
-      return;
-    }
+    const init = async () => {
+      try {
+        const raw = localStorage.getItem('user');
+        if (!raw) {
+          router.push('/form/login');
+          return;
+        }
 
-    let user: any;
-    try {
-      user = JSON.parse(stored);
-    } catch {
-      router.push('/');
-      return;
-    }
+        let parsedUser: User;
+        try {
+          parsedUser = JSON.parse(raw) as User;
+        } catch {
+          router.push('/form/login');
+          return;
+        }
 
-    if (!user.mb_id || typeof user.mb_level !== 'number' || user.mb_level < 8) {
-      router.push('/');
-      return;
-    }
+        setUser(parsedUser);
 
-    fetchMembers();
-  }, [currentPage, sortKey, sortOrder, search]);
-
-  // ---------------------------------------------
-  // 멤버 목록 fetch
-  // ---------------------------------------------
-  const fetchMembers = async () => {
-    try {
-      if (!isSearching) setLoading(true);
-      setError(null);
-
-      const params = new URLSearchParams();
-      params.set('page', String(currentPage));
-      params.set('pageSize', String(pageSize));
-      if (search) params.set('search', search);
-      if (sortKey) {
-        params.set('sortKey', sortKey);
-        params.set('sortOrder', sortOrder);
-      }
-
-      const response = await fetch(
-        `${API_URL}/api/admin/members?${params.toString()}`,
-        {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json',
-          },
+        const res = await fetch(`${API_BASE_URL}/api/lectures`, {
           credentials: 'include',
-        },
-      );
+        });
+        if (!res.ok) throw new Error('강의 목록 API 실패');
 
-      if (!response.ok) {
-        setError('회원 목록을 불러오는데 실패했습니다.');
-        return;
+        const data: Course[] = await res.json();
+        setCourses(data);
+      } catch (e) {
+        console.error(e);
+        setErrorMsg('강의 목록을 불러오지 못했습니다.');
+      } finally {
+        setLoadingList(false);
       }
+    };
 
-      const data = await response.json();
-      const raw = data.data.members;
+    init();
+  }, [router]);
 
-      const normalized: Member[] = raw.map((m: any, idx: number) => ({
-        mb_no: m.mb_no ?? m.mbNo ?? m.id ?? idx + 1,
-        mb_id: m.mb_id,
-        mb_name: m.mb_name,
-        mb_hp: m.mb_hp,
-        mb_school: m.mb_school,
-      }));
+  // ------------------------------------------------------------
+  // 탭 선택
+  // ------------------------------------------------------------
 
-      setTotalMembers(data.data.total);
-      setMembers(normalized);
-    } catch (e) {
-      console.error(e);
-      setError('회원 목록을 불러오는데 실패했습니다.');
-    } finally {
-      setLoading(false);
-      setIsSearching(false);
-    }
-  };
+  const handleSelectGroup = (key: GroupKey) => {
+    setSelectedGroup(key);
+    setSelected(null);
+    setStreamUrl('');
+    setErrorMsg('');
 
-  // ---------------------------------------------
-  // 회원 선택
-  // ---------------------------------------------
-  const handleSelectMember = async (member: Member) => {
-    setSelectedMember(member);
-    setSelectedMemberId(member.mb_no);
-
-    setAuthorityMessage(null);
-    setSelectedClassGroups([]);
-    setSelectedVideoTypes([]);
-
-    if (authorityPanelRef.current) {
-      authorityPanelRef.current.scrollIntoView({
+    setTimeout(() => {
+      listRef.current?.scrollIntoView({
         behavior: 'smooth',
         block: 'start',
       });
-    }
+    }, 0);
+  };
 
-    setAuthorityLoading(true);
+  // ------------------------------------------------------------
+  // 재생 준비 (Signed URL + 권한 체크)
+  // ------------------------------------------------------------
+
+  const preparePlay = async (course: Course) => {
+    setSelected(course);
+    setStreamUrl('');
+    setErrorMsg('');
+    setLoadingPlay(true);
 
     try {
-      const res = await fetch(
-        `${API_URL}/api/video-authorities?userId=${member.mb_no}`,
+      const token = localStorage.getItem('token');
+      if (!token) {
+        router.push('/form/login');
+        return;
+      }
+
+      const playAuth = await fetch(
+        `${API_BASE_URL}/api/signed-urls/lecture/${course.id}`,
         {
           method: 'GET',
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json',
-          },
           credentials: 'include',
+          headers: { Authorization: `Bearer ${token}` },
         },
       );
 
-      if (!res.ok) {
-        setAuthorityMessage('권한 정보를 불러오지 못했습니다.');
+      if (playAuth.status === 403) {
+        // 🔥 백엔드에서 ForbiddenException 던진 경우 → 권한 없음
+        setErrorMsg('이 강의를 시청할 권한이 없습니다.');
         return;
       }
 
-      const data: VideoAuthority[] = await res.json();
-
-      if (!data || data.length === 0) {
-        setSelectedClassGroups([]);
-        setSelectedVideoTypes([]);
-        return;
+      if (!playAuth.ok) {
+        throw new Error('재생 인증 API 실패');
       }
 
-      const cg = data.filter((a) => a.classGroup).map((a) => a.classGroup!);
-      const vt = data.filter((a) => a.type).map((a) => a.type!);
+      const data: { ok?: boolean; streamUrl: string } =
+        await playAuth.json();
 
-      setSelectedClassGroups(cg);
-      setSelectedVideoTypes(vt);
-    } catch (e) {
-      console.error(e);
-      setAuthorityMessage('권한 정보를 불러오는데 실패했습니다.');
+      setStreamUrl(data.streamUrl);
+    } catch (err) {
+      console.error(err);
+      setErrorMsg('영상 재생 중 오류가 발생했습니다.');
     } finally {
-      setAuthorityLoading(false);
+      setLoadingPlay(false);
     }
   };
 
-  // ---------------------------------------------
-  // 토글
-  // ---------------------------------------------
-  const toggleClassGroup = (cg: ClassGroup) => {
-    setSelectedClassGroups((prev) =>
-      prev.includes(cg) ? prev.filter((v) => v !== cg) : [...prev, cg],
-    );
-  };
+  // ------------------------------------------------------------
+  // 강의 필터링 (UI용 – 실제 권한 체크는 백엔드에서)
+  // ------------------------------------------------------------
 
-  const toggleVideoType = (vt: LectureType) => {
-    setSelectedVideoTypes((prev) => {
-      if (vt === 'single') return prev.includes('single') ? [] : ['single'];
+  const filteredCourses = courses.filter((c) => {
+    if (selectedGroup === 'A') return c.classGroup === 'A';
+    if (selectedGroup === 'B') return c.classGroup === 'B';
+    if (selectedGroup === 'C') return c.type === 'packageC';
+    if (selectedGroup === 'D') return c.type === 'packageD';
+    if (selectedGroup === 'E') return c.type === 'packageE';
+    return false;
+  });
 
-      const after = prev.filter((v) => v !== 'single');
+  // 로그인 안 됐고, 목록 로딩도 끝났으면 아무것도 렌더 안 함
+  if (!user && !loadingList) return null;
 
-      return after.includes(vt)
-        ? after.filter((v) => v !== vt)
-        : [...after, vt];
-    });
-  };
-
-  // ---------------------------------------------
-  // 저장
-  // ---------------------------------------------
-  const handleSaveAuthority = async () => {
-    if (!selectedMember) {
-      setAuthorityMessage('회원이 선택되지 않았습니다.');
-      return;
-    }
-
-    const userId = selectedMember.mb_no;
-
-    setAuthoritySaving(true);
-    setAuthorityMessage(null);
-
-    try {
-      const res = await fetch(`${API_URL}/api/video-authorities`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          userId,
-          classGroups: selectedClassGroups,
-          videoTypes: selectedVideoTypes,
-        }),
-      });
-
-      if (!res.ok) {
-        setAuthorityMessage('권한 저장에 실패했습니다.');
-        return;
-      }
-
-      setAuthorityMessage('권한이 성공적으로 저장되었습니다.');
-
-      await handleSelectMember(selectedMember);
-    } catch {
-      setAuthorityMessage('권한 저장 중 오류가 발생했습니다.');
-    } finally {
-      setAuthoritySaving(false);
-    }
-  };
-
-  // ---------------------------------------------
-  // 검색
-  // ---------------------------------------------
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSearching(true);
-    setCurrentPage(1);
-  };
-
-  const handlePrevGroup = () => {
-    if (startPage === 1 || loading) return;
-    setCurrentPage(Math.max(startPage - pageGroupSize, 1));
-  };
-
-  const handleNextGroup = () => {
-    if (endPage === totalPages || loading) return;
-    setCurrentPage(Math.min(startPage + pageGroupSize, totalPages));
-  };
-
-  // ---------------------------------------------
+  // ------------------------------------------------------------
   // UI
-  // ---------------------------------------------
+  // ------------------------------------------------------------
+
   return (
-    <div className="min-h-screen bg-gray-50 py-8 mt-24">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">
-          동영상 권한 관리
-        </h1>
-
-        {/* 회원 목록 박스 */}
-        <div className="bg-white shadow rounded-lg overflow-hidden mb-6">
-          <div className="overflow-x-auto">
-            {loading ? (
-              <div className="p-6 text-center text-sm text-gray-500">
-                회원 목록을 불러오는 중...
-              </div>
-            ) : error ? (
-              <div className="p-6 text-center text-sm text-red-600">
-                {error}
-              </div>
-            ) : (
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    {['번호', '아이디', '이름', '휴대폰', '학교', '권한'].map(
-                      (head) => (
-                        <th
-                          key={head}
-                          className="px-6 py-3 text-center text-sm font-semibold text-gray-600 tracking-wider"
-                        >
-                          {head}
-                        </th>
-                      ),
-                    )}
-                  </tr>
-                </thead>
-
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {members.map((member, idx) => {
-                    const index = (currentPage - 1) * pageSize + (idx + 1);
-                    const isSelected = selectedMemberId === member.mb_no;
-
-                    return (
-                      <tr
-                        key={member.mb_no}
-                        className={isSelected ? 'bg-indigo-50/40' : ''}
-                      >
-                        <td className="px-6 py-4 text-sm text-center">
-                          {index}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-center">
-                          {member.mb_id}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-center">
-                          {member.mb_name}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-center">
-                          {member.mb_hp}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-center">
-                          {member.mb_school}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-center">
-                          <button
-                            type="button"
-                            onClick={() => handleSelectMember(member)}
-                            className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${
-                              isSelected
-                                ? 'bg-indigo-600 text-white border-indigo-600'
-                                : 'bg-white text-indigo-600 border-indigo-200 hover:bg-indigo-50'
-                            }`}
-                          >
-                            {isSelected ? '선택됨' : '권한 관리'}
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </div>
-
-        {/* 검색 */}
-        <div className="flex justify-center mb-6">
-          <form onSubmit={handleSearch} className="w-[600px]">
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="   아이디, 이름, 휴대폰, 학교 검색"
-                className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 px-4 py-2"
-              />
-              <button
-                type="submit"
-                disabled={isSearching}
-                className={`bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700 ${
-                  isSearching ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
-              >
-                {isSearching ? '검색 중...' : '검색'}
-              </button>
-            </div>
-          </form>
-        </div>
-
-        {/* 페이지네이션 */}
-        {totalPages > 1 && (
-          <div className="mt-4 mb-8 flex justify-center">
-            <nav className="flex items-center gap-2">
-              <button
-                onClick={handlePrevGroup}
-                disabled={startPage === 1 || loading}
-                className="px-3 py-2 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                &lt;
-              </button>
-
-              {Array.from(
-                { length: endPage - startPage + 1 },
-                (_, i) => startPage + i,
-              ).map((page) => (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  disabled={loading}
-                  className={`w-9 h-9 flex items-center justify-center rounded-md text-sm font-medium transition-colors ${
-                    currentPage === page
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
-                  } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                >
-                  {page}
-                </button>
-              ))}
-
-              <button
-                onClick={handleNextGroup}
-                disabled={endPage === totalPages || loading}
-                className="px-3 py-2 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                &gt;
-              </button>
-            </nav>
+    <main className="min-h-screen bg-slate-50">
+      <div className="mx-auto max-w-5xl mt-40 px-4 py-10 lg:py-12">
+        {/* 상단 에러 (목록 불러오기 실패 등) */}
+        {errorMsg && !selected && (
+          <div className="mb-4 rounded-md bg-red-50 px-4 py-3 text-sm text-red-700">
+            {errorMsg}
           </div>
         )}
 
-        {/* 동영상 권한 박스 */}
-        <div ref={authorityPanelRef} className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            {selectedMember
-              ? `선택한 회원: ${selectedMember.mb_name} (${selectedMember.mb_id})`
-              : '회원 선택 후 권한을 관리할 수 있습니다.'}
-          </h2>
+        {/* 탭 */}
+        <section className="mb-6 flex flex-wrap items-center justify-center gap-3">
+          {(Object.keys(GROUP_META) as GroupKey[]).map((key) => {
+            const meta = GROUP_META[key];
+            const active = selectedGroup === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => handleSelectGroup(key)}
+                className={`flex h-10 items-center justify-center rounded-full border px-5 text-sm font-medium transition ${
+                  active
+                    ? 'border-indigo-600 bg-indigo-600 text-white shadow'
+                    : 'border-slate-300 bg-white text-slate-700 hover:border-indigo-400 hover:text-indigo-700'
+                }`}
+              >
+                {meta.label}
+              </button>
+            );
+          })}
+        </section>
 
-          {selectedMember && (
-            <>
-              {authorityMessage && (
-                <div className="mb-3 text-sm text-indigo-700 bg-indigo-50 px-3 py-2 rounded">
-                  {authorityMessage}
-                </div>
-              )}
+        {/* 강의 목록 */}
+        <section ref={listRef}>
+          <div className="mb-3 flex items-baseline justify-between">
+            <h3 className="text-base font-semibold text-slate-900">
+              {GROUP_META[selectedGroup].label} 강의 목록
+            </h3>
+            <p className="text-xs text-slate-500">
+              총{' '}
+              <span className="font-semibold">
+                {filteredCourses.length}
+              </span>{' '}
+              개 강의
+            </p>
+          </div>
 
-              {authorityLoading ? (
-                <p className="text-sm text-gray-500">
-                  권한 정보를 불러오는 중...
-                </p>
-              ) : (
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-800 mb-2">
-                      캠프강의 권한
-                    </h3>
-                    <div className="flex gap-4">
-                      {(['A', 'B'] as ClassGroup[]).map((cg) => (
-                        <label
-                          key={cg}
-                          className="inline-flex items-center gap-2 text-sm"
+          {loadingList ? (
+            <p className="text-center text-sm text-slate-500">
+              강의 목록을 불러오는 중입니다…
+            </p>
+          ) : filteredCourses.length === 0 ? (
+            <p className="text-center text-sm text-slate-500">
+              선택한 구성에 해당하는 강의가 없습니다.
+            </p>
+          ) : (
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <table className="min-w-full divide-y divide-slate-200">
+                <thead className="bg-slate-50">
+                  <tr>
+                    <th className="w-16 px-4 py-3 text-center text-xs font-semibold text-slate-500">
+                      번호
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500">
+                      강의명
+                    </th>
+                    <th className="w-28 px-4 py-3 text-center text-xs font-semibold text-slate-500">
+                      재생
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredCourses.map((c, idx) => (
+                    <tr key={c.id} className="hover:bg-slate-50/80">
+                      <td className="px-4 py-2.5 text-center text-xs text-slate-600">
+                        {idx + 1}
+                      </td>
+                      <td className="px-4 py-2.5 text-sm text-slate-800">
+                        {c.title}
+                        {c.description && (
+                          <span className="ml-1 text-xs text-slate-500">
+                            ({c.description})
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5 text-center">
+                        <button
+                          type="button"
+                          onClick={() => preparePlay(c)}
+                          className="inline-flex items-center justify-center rounded-full border border-indigo-500 px-3 py-1 text-xs font-medium text-indigo-600 hover:bg-indigo-50"
                         >
-                          <input
-                            type="checkbox"
-                            checked={selectedClassGroups.includes(cg)}
-                            onChange={() => toggleClassGroup(cg)}
-                            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                          />
-                          <span>{CLASS_GROUP_LABELS[cg]}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-800 mb-2">
-                      패키지 권한
-                    </h3>
-
-                    <div className="mb-3">
-                      <label className="inline-flex items-center gap-2 text-sm">
-                        <input
-                          type="checkbox"
-                          checked={selectedVideoTypes.includes('single')}
-                          onChange={() => toggleVideoType('single')}
-                          className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                        />
-                        <span>{VIDEO_TYPE_LABELS.single}</span>
-                      </label>
-                    </div>
-
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                      {PACKAGE_TYPES.map((vt) => (
-                        <label
-                          key={vt}
-                          className="inline-flex items-center gap-2 text-sm"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={selectedVideoTypes.includes(vt)}
-                            onChange={() => toggleVideoType(vt)}
-                            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                          />
-                          <span>{VIDEO_TYPE_LABELS[vt]}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end">
-                    <button
-                      type="button"
-                      onClick={handleSaveAuthority}
-                      disabled={authoritySaving}
-                      className={`px-4 py-2 rounded-md text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 ${
-                        authoritySaving ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
-                    >
-                      {authoritySaving ? '저장 중...' : '권한 저장'}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </>
+                          재생
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
-        </div>
+        </section>
+
+        {/* 영상 모달 */}
+        {selected && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4">
+            <div className="relative w-full max-w-4xl rounded-2xl bg-white p-5 shadow-xl">
+              <button
+                className="absolute right-4 top-4 text-slate-400 hover:text-slate-700"
+                onClick={() => {
+                  setSelected(null);
+                  setStreamUrl('');
+                  setErrorMsg('');
+                }}
+              >
+                ✕
+              </button>
+
+              <h2 className="mb-4 pr-8 text-xl font-semibold text-slate-900">
+                {selected.title}
+                {selected.description && (
+                  <span className="ml-2 text-sm text-slate-500">
+                    ({selected.description})
+                  </span>
+                )}
+              </h2>
+
+              <div className="mb-4 overflow-hidden rounded-xl border">
+                <div className="aspect-video w-full bg-black">
+                  {streamUrl ? (
+                    <HlsPlayer
+                      src={streamUrl}
+                      autoPlay
+                      className="w-full h-full"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-sm text-slate-200">
+                      {errorMsg
+                        ? '재생할 수 없습니다.'
+                        : '스트림 URL 준비중...'}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {loadingPlay && (
+                <p className="mb-2 text-center text-xs text-slate-500">
+                  재생 인증 처리 중입니다…
+                </p>
+              )}
+
+              {errorMsg && (
+                <p className="mb-2 text-center text-xs text-red-600">
+                  {errorMsg}
+                </p>
+              )}
+
+              <p className="text-sm text-slate-700">
+                {selected.description}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
-    </div>
+    </main>
   );
 }
