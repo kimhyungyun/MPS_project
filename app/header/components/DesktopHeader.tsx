@@ -156,8 +156,7 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
 
             {/* MPS 강좌 */}
             <li className="relative group whitespace-nowrap">
-              {/* <Link href="/mpspain/mpslecture">MPS 강좌</Link> */}
-                <p>MPS 강좌</p>
+              <Link href="/mpspain/mpslecture">MPS 강좌</Link>
 
               {lectureMenu && (
                 <div className="absolute left-1/2 top-full -translate-x-1/2 pt-4">
