@@ -129,7 +129,7 @@ const MobileMenu = ({ user, isOpen, onClose, onLogout }: MobileMenuProps) => {
                 px-3 py-2 text-gray-800 shadow-sm
                 active:scale-[0.98] transition
               "
-              onClick={() => handleLink("/mpspain/lecture")}
+              // onClick={() => handleLink("/mpspain/lecture")}
             >
               <span className="text-[clamp(11px,3.3vw,13px)] truncate max-w-full">
                 MPS 강의 듣기
