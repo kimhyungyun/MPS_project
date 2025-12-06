@@ -57,8 +57,6 @@ const fontSizes = [
 ];
 
 // 🔥 공지 이미지용 기본 도메인 / 버킷 설정
-const CLOUDFRONT_DOMAIN =
-  process.env.NEXT_PUBLIC_CLOUDFRONT_DOMAIN || '';
 const S3_BUCKET = process.env.NEXT_PUBLIC_S3_BUCKET_NAME || 'mpsnotices';
 const S3_REGION = process.env.NEXT_PUBLIC_S3_REGION || 'ap-northeast-2';
 
@@ -165,11 +163,9 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
         return;
       }
 
-      const baseUrl = CLOUDFRONT_DOMAIN
-        ? `https://${CLOUDFRONT_DOMAIN}`
-        : `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com`;
+        const baseUrl = `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com`;
+        const imageUrl = `${baseUrl}/${key}`;
 
-      const imageUrl = `${baseUrl}/${key}`;
 
       // ✅ 항상 문서 끝에 새 이미지 노드 추가 (기존 이미지 덮어쓰기 방지)
       editor
