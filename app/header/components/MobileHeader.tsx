@@ -97,5 +97,4 @@ const MobileHeader = ({ user, handleLogout }: MobileHeaderProps) => {
     </header>
   );
 };
-
 export default MobileHeader;
