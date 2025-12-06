@@ -58,7 +58,7 @@ const fontSizes = [
 
 // 🔥 공지 이미지용 기본 도메인 / 버킷 설정
 const CLOUDFRONT_DOMAIN =
-  process.env.NEXT_PUBLIC_CLOUDFRONT_DOMAIN || 'media.mpspain.co.kr';
+  process.env.NEXT_PUBLIC_CLOUDFRONT_DOMAIN || '';
 const S3_BUCKET = process.env.NEXT_PUBLIC_S3_BUCKET_NAME || 'mpsnotices';
 const S3_REGION = process.env.NEXT_PUBLIC_S3_REGION || 'ap-northeast-2';
 
