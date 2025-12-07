@@ -35,7 +35,7 @@ interface User {
   mb_level: number;
 }
 
-const ROOM = 'data2'; // 🔥 이 페이지는 DATA1 자료실
+const ROOM = 'data1'; // 🔥 이 페이지는 DATA1 자료실
 // DATA2 페이지 만들 땐 'data2' 로 바꾸면 됨
 
 const UploadButton = ({
@@ -59,7 +59,7 @@ const isAdmin = (user: User | null): user is User => {
   return user !== null && user.mb_level >= 8;
 };
 
-const Dataroom2Page = () => {
+const Dataroom1Page = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -419,7 +419,7 @@ const Dataroom2Page = () => {
     <section className="w-full min-h-screen bg-slate-50 p-8 mt-8 mb-20">
       <div className="max-w-6xl mx-auto">
         <h1 className="text-3xl font-bold text-slate-800 mb-8">
-          강의 자료실
+          캠프 자료실
         </h1>
 
         {/* 검색 + 업로드 */}
@@ -517,4 +517,4 @@ const Dataroom2Page = () => {
   );
 };
 
-export default Dataroom2Page;
+export default Dataroom1Page;
