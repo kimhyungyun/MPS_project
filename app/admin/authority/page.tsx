@@ -1,510 +1,594 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
-
-// ----------------------------
-// 타입 정의
-// ----------------------------
-interface UserProfile {
-  mb_no: number;
+interface Member {
+  mb_no: number; // 🔹 기기 API에 넘길 PK
   mb_id: string;
   mb_name: string;
-  mb_nick: string;
-  mb_level: number;
+  mb_hp: string;
+  mb_school: string;
 }
 
-interface VideoAuthority {
-  id: number;
-  userId: number;
-  classGroup: 'A' | 'B' | 'S' | null;
-  type: 'single' | 'packageA' | 'packageB' | 'packageC' | 'packageD' | 'packageE';
-  createdAt?: string;
-}
+type SortKey = 'name' | 'latest';
+type SortOrder = 'asc' | 'desc';
 
-interface VideoDevice {
+type UserDevice = {
   id: number;
   userId: number;
   deviceId: string;
-  deviceName: string | null;
-  registeredAt: string;
-}
+  deviceName?: string;
+  createdAt: string;
+  lastUsedAt: string;
+};
 
-// ----------------------------
-// 컴포넌트
-// ----------------------------
-export default function AuthorityAdminPage() {
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+export default function MemberDevicePage() {
+  const router = useRouter();
+  const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-  const [searchUserId, setSearchUserId] = useState<string>('');
-  const [targetUser, setTargetUser] = useState<UserProfile | null>(null);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalMembers, setTotalMembers] = useState(0);
+  const [isSearching, setIsSearching] = useState(false);
 
-  const [authorities, setAuthorities] = useState<VideoAuthority[]>([]);
-  const [devices, setDevices] = useState<VideoDevice[]>([]);
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
 
-  const [loading, setLoading] = useState(false);
-  const [msg, setMsg] = useState<string>('');
-  const [error, setError] = useState<string>('');
+  const [selectedMember, setSelectedMember] = useState<Member | null>(null);
 
-  // 권한 편집용
-  const [classGroups, setClassGroups] = useState<string[]>([]);
-  const [videoTypes, setVideoTypes] = useState<string[]>([]);
+  const [devices, setDevices] = useState<UserDevice[]>([]);
+  const [deviceLoading, setDeviceLoading] = useState(false);
+  const [deviceSaving, setDeviceSaving] = useState(false);
+  const [deviceMessage, setDeviceMessage] = useState<string | null>(null);
 
-  // ----------------------------
-  // 로그인한 관리자 정보 확인
-  // ----------------------------
+  const devicePanelRef = useRef<HTMLDivElement | null>(null);
+
+  const pageSize = 10;
+  const pageGroupSize = 10;
+  const totalPages = Math.ceil(totalMembers / pageSize);
+  const currentPageGroup = Math.ceil(currentPage / pageGroupSize);
+  const startPage = (currentPageGroup - 1) * pageGroupSize + 1;
+  const endPage = Math.min(startPage + pageGroupSize - 1, totalPages);
+
+  const sortMembers = (list: Member[], key: SortKey | null, order: SortOrder) => {
+    if (!key) return list;
+
+    const sorted = [...list].sort((a, b) => {
+      let comp = 0;
+
+      if (key === 'name') {
+        comp = a.mb_name.localeCompare(b.mb_name);
+      } else if (key === 'latest') {
+        comp = a.mb_no - b.mb_no;
+      }
+
+      return order === 'asc' ? comp : -comp;
+    });
+
+    return sorted;
+  };
+
+  // 관리자 권한 체크 + 목록 가져오기
   useEffect(() => {
-    const init = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        if (!token) return;
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    if (!user || user.mb_level < 8) {
+      router.push('/');
+      return;
+    }
 
-        const res = await fetch(`${API_BASE_URL}/api/auth/profile`, {
+    fetchMembers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, sortKey, sortOrder, search]);
+
+  const fetchMembers = async () => {
+    try {
+      if (!isSearching) {
+        setLoading(true);
+      }
+      setError(null);
+
+      const params = new URLSearchParams();
+      params.set('page', String(currentPage));
+      params.set('pageSize', String(pageSize));
+      if (search) params.set('search', search);
+      if (sortKey) {
+        params.set('sortKey', sortKey);
+        params.set('sortOrder', sortOrder);
+      }
+
+      const response = await fetch(
+        `${API_URL}/api/admin/members?${params.toString()}`,
+        {
           method: 'GET',
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json',
           },
           credentials: 'include',
-        });
+        },
+      );
 
-        if (!res.ok) return;
+      if (!response.ok) {
+        let body: any = null;
+        try {
+          body = await response.json();
+        } catch {}
 
-        const json = await res.json();
-        console.log('🔥 profile json:', json);
+        console.error(
+          '[회원 목록 API 실패]',
+          'status =',
+          response.status,
+          'body =',
+          body,
+        );
 
-        if (!json?.success || !json.data) return;
-
-        const profile: UserProfile = json.data;
-
-        setCurrentUser(profile);
-      } catch (e) {
-        console.error(e);
+        setError(
+          body?.message
+            ? `회원 목록 조회 실패: ${body.message}`
+            : '회원 목록을 불러오는데 실패했습니다.',
+        );
+        return;
       }
-    };
 
-    init();
-  }, []);
+      const data = await response.json();
+      const rawMembers: Member[] = data.data.members;
+      setTotalMembers(data.data.total);
 
-  // ----------------------------
-  // 유저 검색 (mb_no 기준)
-  // ----------------------------
-  const handleSearchUser = async () => {
-    setMsg('');
-    setError('');
-    setAuthorities([]);
+      const processed = sortMembers(rawMembers, sortKey, sortOrder);
+      setMembers(processed);
+    } catch (err) {
+      console.error('🔥 getMembers() 오류 발생:', err);
+      setError('회원 목록을 불러오는데 실패했습니다.');
+    } finally {
+      setLoading(false);
+      setIsSearching(false);
+    }
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSearching(true);
+    setCurrentPage(1);
+  };
+
+  const handleSortClick = (key: SortKey) => {
+    setCurrentPage(1);
+
+    if (sortKey !== key) {
+      const initialOrder: SortOrder = key === 'latest' ? 'desc' : 'asc';
+      setSortKey(key);
+      setSortOrder(initialOrder);
+      return;
+    }
+
+    if (sortOrder === 'asc') {
+      setSortOrder('desc');
+    } else if (sortOrder === 'desc') {
+      setSortKey(null);
+      setSortOrder('asc');
+    }
+  };
+
+  const handlePrevGroup = () => {
+    if (startPage === 1 || loading) return;
+    setCurrentPage(Math.max(startPage - pageGroupSize, 1));
+  };
+
+  const handleNextGroup = () => {
+    if (endPage === totalPages || loading) return;
+    setCurrentPage(Math.min(startPage + pageGroupSize, totalPages));
+  };
+
+  const renderSortLabel = (label: string, key: SortKey) => {
+    if (sortKey !== key) return label;
+    return `${label} ${sortOrder === 'asc' ? '▲' : '▼'}`;
+  };
+
+  // 🔹 특정 회원 선택 + 기기 정보 로딩
+  const handleSelectMember = async (member: Member) => {
+    setSelectedMember(member);
+    setDeviceMessage(null);
     setDevices([]);
-    setTargetUser(null);
 
-    const idNum = Number(searchUserId);
-    if (!idNum || Number.isNaN(idNum)) {
-      setError('mb_no(회원번호)를 숫자로 입력해 주세요.');
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setError('로그인 토큰이 없습니다.');
-        return;
-      }
-
-      // 1) 프로필 대신, mb_no로 조회하는 간단한 API가 따로 있으면 그걸 쓰는 게 베스트고,
-      //    없다면 일단 auth/profile을 재사용해서 현재 로그인 정보를 기준으로만 관리하도록 사용해도 됨.
-      //    여기서는 "해당 mb_no의 권한/기기만 불러온다"에 집중.
-      const userProfile: UserProfile = {
-        mb_no: idNum,
-        mb_id: `user#${idNum}`,
-        mb_name: '',
-        mb_nick: '',
-        mb_level: 0,
-      };
-      setTargetUser(userProfile);
-
-      // 2) 권한 목록
-      const authRes = await fetch(
-        `${API_BASE_URL}/api/video-authorities?userId=${idNum}`,
-        {
-          credentials: 'include',
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-
-      if (authRes.ok) {
-        const authJson = await authRes.json();
-        setAuthorities(authJson || []);
-      } else {
-        console.error('Failed to load authorities', authRes.status);
-      }
-
-      // 3) 기기 목록
-      const devRes = await fetch(
-        `${API_BASE_URL}/api/video-authorities/devices?userId=${idNum}`,
-        {
-          credentials: 'include',
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-
-      if (devRes.ok) {
-        const devJson = await devRes.json();
-        setDevices(devJson || []);
-      } else {
-        console.error('Failed to load devices', devRes.status);
-      }
-
-      setMsg('회원 정보를 불러왔습니다.');
-    } catch (e: any) {
-      console.error(e);
-      setError('회원 정보 조회 중 오류가 발생했습니다.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // ----------------------------
-  // 체크박스 토글 유틸
-  // ----------------------------
-  const toggleInArray = (list: string[], value: string) => {
-    if (list.includes(value)) {
-      return list.filter((v) => v !== value);
-    }
-    return [...list, value];
-  };
-
-  // ----------------------------
-  // 권한 저장
-  // ----------------------------
-  const handleSaveAuthorities = async () => {
-    if (!targetUser) {
-      setError('먼저 회원을 조회해 주세요.');
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setMsg('');
-      setError('');
-
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setError('로그인 토큰이 없습니다.');
-        return;
-      }
-
-      const res = await fetch(`${API_BASE_URL}/api/video-authorities`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId: targetUser.mb_no,
-          classGroups,
-          videoTypes,
-        }),
+    if (devicePanelRef.current) {
+      devicePanelRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
       });
+    }
+
+    if (!member.mb_no) return;
+
+    setDeviceLoading(true);
+    try {
+      const res = await fetch(
+        `${API_URL}/api/admin/devices/${member.mb_no}`,
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+        },
+      );
 
       if (!res.ok) {
-        console.error('save authorities failed', res.status);
-        setError('권한 저장에 실패했습니다.');
+        console.error('기기 조회 실패', res.status);
+        setDeviceMessage('기기 정보를 불러오지 못했습니다.');
         return;
       }
 
-      await handleSearchUser();
-      setMsg('권한이 저장되었습니다.');
-    } catch (e: any) {
-      console.error(e);
-      setError('권한 저장 중 오류가 발생했습니다.');
+      const data: UserDevice[] = await res.json();
+      setDevices(data.slice(0, 2));
+    } catch (err) {
+      console.error('기기 조회 오류:', err);
+      setDeviceMessage('기기 정보를 불러오는데 실패했습니다.');
     } finally {
-      setLoading(false);
+      setDeviceLoading(false);
     }
   };
 
-  // ----------------------------
-  // 기기 초기화
-  // ----------------------------
+  const handleReleaseDevice = async (deviceId: string) => {
+    if (!selectedMember) return;
+    if (!confirm(`이 기기를 해제할까요? (${deviceId})`)) return;
+
+    setDeviceSaving(true);
+    setDeviceMessage(null);
+
+    try {
+      const res = await fetch(
+        `${API_URL}/admin/devices/${selectedMember.mb_no}/${deviceId}`,
+        {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+        },
+      );
+
+      if (!res.ok) {
+        console.error('기기 해제 실패', res.status);
+        setDeviceMessage('기기 해제에 실패했습니다.');
+        return;
+      }
+
+      setDevices((prev) => prev.filter((d) => d.deviceId !== deviceId));
+      setDeviceMessage('기기를 해제했습니다.');
+    } catch (err) {
+      console.error('기기 해제 오류:', err);
+      setDeviceMessage('기기 해제 중 오류가 발생했습니다.');
+    } finally {
+      setDeviceSaving(false);
+    }
+  };
+
   const handleResetDevices = async () => {
-    if (!targetUser) {
-      setError('먼저 회원을 조회해 주세요.');
-      return;
-    }
+    if (!selectedMember) return;
+    if (!confirm('이 회원의 모든 기기를 초기화할까요?')) return;
 
-    if (!confirm('정말 이 사용자의 등록 기기를 모두 초기화하시겠습니까?')) {
-      return;
-    }
+    setDeviceSaving(true);
+    setDeviceMessage(null);
 
     try {
-      setLoading(true);
-      setMsg('');
-      setError('');
-
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setError('로그인 토큰이 없습니다.');
-        return;
-      }
-
-      const res = await fetch(`${API_BASE_URL}/api/video-authorities/devices/reset`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
+      const res = await fetch(
+        `${API_URL}/admin/devices/${selectedMember.mb_no}`,
+        {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
         },
-        body: JSON.stringify({
-          userId: targetUser.mb_no,
-        }),
-      });
+      );
 
       if (!res.ok) {
-        console.error('reset devices failed', res.status);
-        setError('기기 초기화에 실패했습니다.');
+        console.error('전체 기기 초기화 실패', res.status);
+        setDeviceMessage('전체 기기 초기화에 실패했습니다.');
         return;
       }
 
-      setMsg('기기 등록 내역을 초기화했습니다.');
       setDevices([]);
-    } catch (e: any) {
-      console.error(e);
-      setError('기기 초기화 중 오류가 발생했습니다.');
+      setDeviceMessage('모든 기기를 초기화했습니다.');
+    } catch (err) {
+      console.error('전체 기기 초기화 오류:', err);
+      setDeviceMessage('전체 기기 초기화 중 오류가 발생했습니다.');
     } finally {
-      setLoading(false);
+      setDeviceSaving(false);
     }
   };
-
-  // ----------------------------
-  // UI
-  // ----------------------------
-  const isAdmin = currentUser && currentUser.mb_level >= 8;
-
-  if (!isAdmin) {
-    return (
-      <main className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="bg-white rounded-2xl shadow p-6">
-          <p className="text-slate-800 text-sm">
-            관리자만 접근할 수 있는 페이지입니다.
-          </p>
-        </div>
-      </main>
-    );
-  }
 
   return (
-    <main className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-5xl mt-24 px-4 py-10">
-        <header className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">
-              수강 권한 &amp; 기기 관리
-            </h1>
-            <p className="mt-1 text-sm text-slate-600">
-              회원별 강의 수강 권한과 등록 기기를 관리합니다.
-            </p>
-          </div>
-          <div className="text-right text-xs text-slate-500">
-            <div>관리자: {currentUser?.mb_id}</div>
-            <div>레벨: {currentUser?.mb_level}</div>
-          </div>
-        </header>
+    <div className="min-h-screen bg-gray-50 py-6 sm:py-8 mt-20 sm:mt-24">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6 sm:mb-8">
+          회원 기기 관리
+        </h1>
 
-        {/* 메시지 영역 */}
-        {msg && (
-          <div className="mb-4 rounded-md bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-            {msg}
-          </div>
-        )}
         {error && (
-          <div className="mb-4 rounded-md bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="mb-4 p-3 sm:p-4 bg-red-50 text-red-700 rounded-md text-xs sm:text-sm">
             {error}
           </div>
         )}
 
-        {/* 검색 영역 */}
-        <section className="mb-6 rounded-2xl bg-white p-4 shadow-sm border border-slate-200">
-          <h2 className="text-sm font-semibold text-slate-900 mb-3">
-            회원 조회 (mb_no 기준)
-          </h2>
-          <div className="flex flex-wrap items-center gap-3">
-            <input
-              type="number"
-              value={searchUserId}
-              onChange={(e) => setSearchUserId(e.target.value)}
-              placeholder="회원번호(mb_no)를 입력하세요"
-              className="w-40 rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-            />
+        {/* 정렬 + 검색 */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3 sm:gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-xs sm:text-sm text-gray-600">정렬:</span>
             <button
               type="button"
-              onClick={handleSearchUser}
-              className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
-              disabled={loading}
+              onClick={() => handleSortClick('name')}
+              className={`px-3 py-1.5 rounded-md text-xs sm:text-sm border transition-colors ${
+                sortKey === 'name'
+                  ? 'bg-indigo-600 text-white border-indigo-600'
+                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+              }`}
             >
-              {loading ? '조회 중…' : '조회'}
+              {renderSortLabel('이름순', 'name')}
             </button>
-            {targetUser && (
-              <div className="text-xs text-slate-600">
-                현재 대상 회원번호: <b>{targetUser.mb_no}</b>
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* 권한 편집 */}
-        <section className="mb-6 rounded-2xl bg-white p-4 shadow-sm border border-slate-200">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-slate-900">
-              수강 권한 설정
-            </h2>
             <button
               type="button"
-              onClick={handleSaveAuthorities}
-              className="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700"
-              disabled={loading || !targetUser}
+              onClick={() => handleSortClick('latest')}
+              className={`px-3 py-1.5 rounded-md text-xs sm:text-sm border transition-colors ${
+                sortKey === 'latest'
+                  ? 'bg-indigo-600 text-white border-indigo-600'
+                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+              }`}
             >
-              권한 저장
+              {renderSortLabel('최신순', 'latest')}
             </button>
           </div>
 
-          {!targetUser ? (
-            <p className="text-xs text-slate-500">
-              먼저 회원을 조회해 주세요.
-            </p>
-          ) : (
-            <>
-              <div className="mb-4">
-                <p className="mb-1 text-xs font-medium text-slate-700">
-                  클래스 그룹 (A / B / S)
-                </p>
-                <div className="flex flex-wrap gap-3 text-xs text-slate-700">
-                  {['A', 'B', 'S'].map((g) => (
-                    <label key={g} className="inline-flex items-center gap-1">
-                      <input
-                        type="checkbox"
-                        checked={classGroups.includes(g)}
-                        onChange={() =>
-                          setClassGroups((prev) => toggleInArray(prev, g))
-                        }
-                      />
-                      <span>{g}반</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
+          <form
+            onSubmit={handleSearch}
+            className="w-full sm:w-[360px]"
+          >
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="아이디, 이름 검색"
+                className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 px-3 py-2 text-xs sm:text-sm"
+              />
+              <button
+                type="submit"
+                disabled={isSearching}
+                className={`bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 text-xs sm:text-sm ${
+                  isSearching ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+              >
+                {isSearching ? '검색 중...' : '검색'}
+              </button>
+            </div>
+          </form>
+        </div>
 
-              <div>
-                <p className="mb-1 text-xs font-medium text-slate-700">
-                  패키지 권한
-                </p>
-                <div className="flex flex-wrap gap-3 text-xs text-slate-700">
-                  {['packageC', 'packageD', 'packageE'].map((t) => (
-                    <label key={t} className="inline-flex items-center gap-1">
-                      <input
-                        type="checkbox"
-                        checked={videoTypes.includes(t)}
-                        onChange={() =>
-                          setVideoTypes((prev) => toggleInArray(prev, t))
-                        }
-                      />
-                      <span>{t}</span>
-                    </label>
+        {/* 회원 리스트 테이블 */}
+        <div className="bg-white shadow rounded-lg overflow-hidden mb-6">
+          <div className="overflow-x-auto w-full">
+            <table className="min-w-full divide-y divide-gray-200 text-xs sm:text-sm">
+              <thead className="bg-gray-50">
+                <tr>
+                  {['번호', '아이디', '이름', '기기'].map((head) => (
+                    <th
+                      key={head}
+                      className="px-3 sm:px-6 py-2 sm:py-3 text-center text-[11px] sm:text-xs font-semibold text-gray-600 tracking-wider whitespace-nowrap"
+                    >
+                      {head}
+                    </th>
                   ))}
-                </div>
-              </div>
-
-              {/* 기존 저장된 권한 리스트 간단히 보여주기 */}
-              <div className="mt-4">
-                <p className="mb-1 text-xs font-semibold text-slate-700">
-                  현재 저장된 권한 목록
-                </p>
-                {authorities.length === 0 ? (
-                  <p className="text-xs text-slate-400">
-                    저장된 권한이 없습니다.
-                  </p>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {loading ? (
+                  <tr>
+                    <td
+                      colSpan={4}
+                      className="px-3 sm:px-6 py-4 text-center text-xs sm:text-sm text-gray-500"
+                    >
+                      로딩 중...
+                    </td>
+                  </tr>
+                ) : members.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={4}
+                      className="px-3 sm:px-6 py-4 text-center text-xs sm:text-sm text-gray-500"
+                    >
+                      {search ? '검색 결과가 없습니다.' : '회원이 없습니다.'}
+                    </td>
+                  </tr>
                 ) : (
-                  <ul className="text-xs text-slate-700 list-disc pl-4 space-y-0.5">
-                    {authorities.map((a) => (
-                      <li key={a.id}>
-                        #{a.id} / userId: {a.userId} / classGroup:{' '}
-                        {a.classGroup ?? '-'} / type: {a.type}
-                      </li>
-                    ))}
-                  </ul>
+                  members.map((member, idx) => {
+                    const index = (currentPage - 1) * pageSize + (idx + 1);
+                    const isSelected =
+                      selectedMember && selectedMember.mb_no === member.mb_no;
+
+                    return (
+                      <tr
+                        key={member.mb_no}
+                        className={isSelected ? 'bg-indigo-50/40' : ''}
+                      >
+                        <td className="px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm text-center text-gray-700 whitespace-nowrap">
+                          {index}
+                        </td>
+                        <td className="px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm whitespace-nowrap text-center max-w-[120px] sm:max-w-[160px] truncate">
+                          {member.mb_id}
+                        </td>
+                        <td className="px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm whitespace-nowrap text-center max-w-[90px] sm:max-w-[120px] truncate">
+                          {member.mb_name}
+                        </td>
+                        <td className="px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm whitespace-nowrap text-center">
+                          <button
+                            type="button"
+                            onClick={() => handleSelectMember(member)}
+                            className={`px-3 py-1.5 rounded-md text-[11px] sm:text-xs font-medium border transition-colors ${
+                              isSelected
+                                ? 'bg-indigo-600 text-white border-indigo-600'
+                                : 'bg-white text-indigo-600 border-indigo-200 hover:bg-indigo-50'
+                            }`}
+                          >
+                            {isSelected ? '선택됨' : '기기 관리'}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
-              </div>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* 페이지네이션 */}
+        {totalPages > 1 && (
+          <div className="mt-4 flex justify-center mb-8">
+            <nav className="flex items-center gap-1.5 sm:gap-2">
+              <button
+                onClick={handlePrevGroup}
+                disabled={startPage === 1 || loading}
+                className="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-md border border-gray-300 bg-white text-xs sm:text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                &lt;
+              </button>
+              {Array.from(
+                { length: endPage - startPage + 1 },
+                (_, i) => startPage + i,
+              ).map((page) => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  disabled={loading}
+                  className={`w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-md text-xs sm:text-sm font-medium transition-colors ${
+                    currentPage === page
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+                  } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  {page}
+                </button>
+              ))}
+              <button
+                onClick={handleNextGroup}
+                disabled={endPage === totalPages || loading}
+                className="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-md border border-gray-300 bg-white text-xs sm:text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                &gt;
+              </button>
+            </nav>
+          </div>
+        )}
+
+        {/* 선택한 회원 기기 관리 패널 */}
+        <div
+          ref={devicePanelRef}
+          className="bg-white shadow rounded-lg p-4 sm:p-6"
+        >
+          <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">
+            {selectedMember
+              ? `선택한 회원: ${selectedMember.mb_name} (${selectedMember.mb_id})`
+              : '회원 선택 후 기기를 관리할 수 있습니다.'}
+          </h2>
+
+          {selectedMember && (
+            <>
+              {deviceMessage && (
+                <div className="mb-3 text-xs sm:text-sm text-indigo-700 bg-indigo-50 px-3 py-2 rounded">
+                  {deviceMessage}
+                </div>
+              )}
+
+              {deviceLoading ? (
+                <p className="text-xs sm:text-sm text-gray-500">
+                  기기 정보를 불러오는 중...
+                </p>
+              ) : (
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-xs sm:text-sm font-medium text-gray-800 mb-3">
+                      등록된 기기 (최대 2대)
+                    </h3>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {[0, 1].map((idx) => {
+                        const device = devices[idx];
+                        return (
+                          <div
+                            key={idx}
+                            className="border rounded-lg p-4 flex flex-col justify-between min-h-[120px]"
+                          >
+                            <div>
+                              <h4 className="text-xs sm:text-sm font-semibold text-gray-800 mb-2">
+                                기기 {idx + 1}
+                              </h4>
+                              {device ? (
+                                <div className="space-y-1 text-xs sm:text-sm text-gray-700">
+                                  <p>
+                                    <span className="font-medium">이름:</span>{' '}
+                                    {device.deviceName || '-'}
+                                  </p>
+                                  <p className="break-all">
+                                    <span className="font-medium">ID:</span>{' '}
+                                    {device.deviceId}
+                                  </p>
+                                </div>
+                              ) : (
+                                <p className="text-xs sm:text-sm text-gray-400">
+                                  등록된 기기가 없습니다.
+                                </p>
+                              )}
+                            </div>
+
+                            <div className="mt-3">
+                              {device && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleReleaseDevice(device.deviceId)}
+                                  disabled={deviceSaving}
+                                  className={`w-full px-3 py-2 rounded-md text-xs sm:text-sm font-medium text-white bg-rose-600 hover:bg-rose-700 ${
+                                    deviceSaving
+                                      ? 'opacity-50 cursor-not-allowed'
+                                      : ''
+                                  }`}
+                                >
+                                  기기 해제
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={handleResetDevices}
+                      disabled={deviceSaving || devices.length === 0}
+                      className={`px-4 py-2 rounded-md text-xs sm:text-sm font-medium text-white bg-gray-700 hover:bg-gray-800 ${
+                        deviceSaving || devices.length === 0
+                          ? 'opacity-50 cursor-not-allowed'
+                          : ''
+                      }`}
+                    >
+                      전체 기기 초기화
+                    </button>
+                  </div>
+                </div>
+              )}
             </>
           )}
-        </section>
-
-        {/* 기기 관리 */}
-        <section className="rounded-2xl bg-white p-4 shadow-sm border border-slate-200">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-slate-900">
-              등록 기기 관리 (최대 2대)
-            </h2>
-            <button
-              type="button"
-              onClick={handleResetDevices}
-              className="rounded-md bg-rose-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-rose-700"
-              disabled={loading || !targetUser}
-            >
-              기기 전체 초기화
-            </button>
-          </div>
-
-          {!targetUser ? (
-            <p className="text-xs text-slate-500">
-              먼저 회원을 조회해 주세요.
-            </p>
-          ) : devices.length === 0 ? (
-            <p className="text-xs text-slate-400">
-              등록된 기기가 없습니다. (첫 재생 시 자동 등록)
-            </p>
-          ) : (
-            <div className="overflow-hidden rounded-xl border border-slate-200">
-              <table className="min-w-full text-xs">
-                <thead className="bg-slate-50">
-                  <tr>
-                    <th className="px-3 py-2 text-left font-semibold text-slate-600">
-                      ID
-                    </th>
-                    <th className="px-3 py-2 text-left font-semibold text-slate-600">
-                      Device ID
-                    </th>
-                    <th className="px-3 py-2 text-left font-semibold text-slate-600">
-                      Device Name
-                    </th>
-                    <th className="px-3 py-2 text-left font-semibold text-slate-600">
-                      등록일
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {devices.map((d) => (
-                    <tr key={d.id} className="border-t border-slate-100">
-                      <td className="px-3 py-2">{d.id}</td>
-                      <td className="px-3 py-2">{d.deviceId}</td>
-                      <td className="px-3 py-2">
-                        {d.deviceName || '(이름 없음)'}
-                      </td>
-                      <td className="px-3 py-2">
-                        {d.registeredAt
-                          ? new Date(d.registeredAt).toLocaleString()
-                          : '-'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
+        </div>
       </div>
-    </main>
+    </div>
   );
 }
