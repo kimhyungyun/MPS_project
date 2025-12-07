@@ -27,8 +27,8 @@ interface Course {
   classGroup: ClassGroup;
 }
 
+// 🔹 로컬에 저장해둔 유저 정보 (mb_no 안 씀)
 interface User {
-  mb_no: number;      // 🔥 userId로 쓸 PK
   mb_id: string;
   mb_name: string;
   mb_nick: string;
@@ -128,11 +128,7 @@ export default function Mpsvideo() {
           return;
         }
 
-        if (!parsedUser.mb_no) {
-          router.push('/form/login');
-          return;
-        }
-
+        // mb_no 같은 건 강제 체크 안 함
         setUser(parsedUser);
 
         const res = await fetch(`${API_BASE_URL}/api/lectures`, {
@@ -185,32 +181,17 @@ export default function Mpsvideo() {
 
     try {
       const token = localStorage.getItem('token');
-      const rawUser = localStorage.getItem('user');
 
-      if (!token || !rawUser) {
+      if (!token) {
         router.push('/form/login');
         return;
       }
 
-      let parsedUser: User;
-      try {
-        parsedUser = JSON.parse(rawUser) as User;
-      } catch {
-        router.push('/form/login');
-        return;
-      }
-
-      if (!parsedUser.mb_no) {
-        router.push('/form/login');
-        return;
-      }
-
-      const userId = parsedUser.mb_no;
       const deviceId = getDeviceId();
       const deviceName =
         typeof navigator !== 'undefined' ? navigator.userAgent : 'Unknown Device';
 
-      // 1) 기기 체크
+      // 1) 기기 체크 (userId는 백엔드에서 JWT로 판단)
       const deviceCheckRes = await fetch(
         `${API_BASE_URL}/api/video-authorities/devices/check`,
         {
@@ -221,7 +202,6 @@ export default function Mpsvideo() {
           },
           credentials: 'include',
           body: JSON.stringify({
-            userId,
             deviceId,
             deviceName,
           }),
