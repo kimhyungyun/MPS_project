@@ -30,6 +30,14 @@ interface VideoAuthority {
   type: LectureType | null;
 }
 
+interface UserDevice {
+  id: number;
+  deviceId: string;
+  deviceName?: string;
+  createdAt: string;
+  lastUsedAt: string;
+}
+
 const CLASS_GROUP_LABELS: Record<ClassGroup, string> = {
   A: 'A반',
   B: 'B반',
@@ -77,6 +85,11 @@ export default function VideoAuthorityPage() {
   const [selectedClassGroups, setSelectedClassGroups] = useState<ClassGroup[]>([]);
   const [selectedVideoTypes, setSelectedVideoTypes] = useState<LectureType[]>([]);
   const [authorityMessage, setAuthorityMessage] = useState<string | null>(null);
+
+  const [devices, setDevices] = useState<UserDevice[]>([]);
+  const [deviceLoading, setDeviceLoading] = useState(false);
+  const [deviceResetting, setDeviceResetting] = useState(false);
+  const [deviceMessage, setDeviceMessage] = useState<string | null>(null);
 
   const authorityPanelRef = useRef<HTMLDivElement | null>(null);
 
@@ -190,7 +203,7 @@ export default function VideoAuthorityPage() {
   };
 
   // -----------------------------
-  // 회원 선택 + 권한 불러오기
+  // 회원 선택 + 권한 + 기기 불러오기
   // -----------------------------
   const handleSelectMember = async (member: Member) => {
     setSelectedMember(member);
@@ -199,6 +212,8 @@ export default function VideoAuthorityPage() {
     setAuthorityMessage(null);
     setSelectedClassGroups([]);
     setSelectedVideoTypes([]);
+    setDeviceMessage(null);
+    setDevices([]);
 
     if (authorityPanelRef.current) {
       authorityPanelRef.current.scrollIntoView({
@@ -212,10 +227,13 @@ export default function VideoAuthorityPage() {
       return;
     }
 
+    const userId = member.mb_no;
+
+    // ------- 권한 조회 -------
     setAuthorityLoading(true);
     try {
       const res = await fetch(
-        `${API_URL}/api/video-authorities?userId=${member.mb_no}`,
+        `${API_URL}/api/video-authorities?userId=${userId}`,
         {
           method: 'GET',
           headers: {
@@ -228,30 +246,66 @@ export default function VideoAuthorityPage() {
 
       if (!res.ok) {
         setAuthorityMessage('권한 정보를 불러오지 못했습니다.');
-        return;
+      } else {
+        const data: VideoAuthority[] = await res.json();
+        console.log('🔎 권한 조회 결과:', data);
+
+        if (!data || data.length === 0) {
+          setSelectedClassGroups([]);
+          setSelectedVideoTypes([]);
+        } else {
+          const cg = data
+            .filter((a) => a.classGroup)
+            .map((a) => a.classGroup!) as ClassGroup[];
+          const vt = data
+            .filter((a) => a.type)
+            .map((a) => a.type!) as LectureType[];
+
+          setSelectedClassGroups(cg);
+          setSelectedVideoTypes(vt);
+        }
       }
-
-      const data: VideoAuthority[] = await res.json();
-      console.log('🔎 권한 조회 결과:', data);
-
-      if (!data || data.length === 0) {
-        setSelectedClassGroups([]);
-        setSelectedVideoTypes([]);
-        return;
-      }
-
-      const cg = data
-        .filter((a) => a.classGroup)
-        .map((a) => a.classGroup!) as ClassGroup[];
-      const vt = data.filter((a) => a.type).map((a) => a.type!) as LectureType[];
-
-      setSelectedClassGroups(cg);
-      setSelectedVideoTypes(vt);
     } catch (err) {
       console.error(err);
       setAuthorityMessage('권한 정보를 불러오는데 실패했습니다.');
     } finally {
       setAuthorityLoading(false);
+    }
+
+    // ------- 기기 목록 조회 -------
+    setDeviceLoading(true);
+    try {
+      const res = await fetch(
+        `${API_URL}/api/video-authorities/devices?userId=${userId}`,
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+        },
+      );
+
+      if (!res.ok) {
+        setDeviceMessage('기기 정보를 불러오지 못했습니다.');
+      } else {
+        const data: any[] = await res.json();
+        console.log('🔎 기기 조회 결과:', data);
+        const formatted: UserDevice[] = data.map((d) => ({
+          id: d.id,
+          deviceId: d.deviceId,
+          deviceName: d.deviceName,
+          createdAt: d.createdAt ?? d.created_at,
+          lastUsedAt: d.lastUsedAt ?? d.lastUsed_at ?? d.lastUsed,
+        }));
+        setDevices(formatted);
+      }
+    } catch (err) {
+      console.error(err);
+      setDeviceMessage('기기 정보를 불러오는데 실패했습니다.');
+    } finally {
+      setDeviceLoading(false);
     }
   };
 
@@ -277,7 +331,7 @@ export default function VideoAuthorityPage() {
   };
 
   // -----------------------------
-  // 저장
+  // 권한 저장
   // -----------------------------
   const handleSaveAuthority = async () => {
     if (!selectedMember) {
@@ -330,6 +384,50 @@ export default function VideoAuthorityPage() {
     }
   };
 
+  // -----------------------------
+  // 기기 전체 초기화
+  // -----------------------------
+  const handleResetDevices = async () => {
+    if (!selectedMember) return;
+    const userId = selectedMember.mb_no;
+    if (userId == null) return;
+
+    if (!window.confirm('해당 회원의 등록된 기기를 모두 초기화하시겠습니까?')) {
+      return;
+    }
+
+    setDeviceResetting(true);
+    setDeviceMessage(null);
+
+    try {
+      const res = await fetch(
+        `${API_URL}/api/video-authorities/devices/reset`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({ userId }),
+        },
+      );
+
+      if (!res.ok) {
+        setDeviceMessage('기기 초기화에 실패했습니다.');
+        return;
+      }
+
+      setDevices([]);
+      setDeviceMessage('등록된 기기가 모두 초기화되었습니다.');
+    } catch (err) {
+      console.error(err);
+      setDeviceMessage('기기 초기화 중 오류가 발생했습니다.');
+    } finally {
+      setDeviceResetting(false);
+    }
+  };
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setIsSearching(true);
@@ -353,7 +451,7 @@ export default function VideoAuthorityPage() {
     <div className="min-h-screen bg-gray-50 py-6 sm:py-8 mt-20 sm:mt-24">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6 sm:mb-8">
-          동영상 권한 관리
+          동영상 권한 및 기기 관리
         </h1>
 
         {/* 회원 목록 박스 */}
@@ -494,7 +592,7 @@ export default function VideoAuthorityPage() {
           </div>
         )}
 
-        {/* 동영상 권한 박스 */}
+        {/* 동영상 권한 + 기기 박스 */}
         <div ref={authorityPanelRef} className="bg-white shadow rounded-lg p-4 sm:p-6">
           <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">
             {selectedMember
@@ -507,6 +605,12 @@ export default function VideoAuthorityPage() {
               {authorityMessage && (
                 <div className="mb-3 text-xs sm:text-sm text-indigo-700 bg-indigo-50 px-3 py-2 rounded">
                   {authorityMessage}
+                </div>
+              )}
+
+              {deviceMessage && (
+                <div className="mb-3 text-xs sm:text-sm text-amber-700 bg-amber-50 px-3 py-2 rounded">
+                  {deviceMessage}
                 </div>
               )}
 
@@ -584,6 +688,64 @@ export default function VideoAuthorityPage() {
                     >
                       {authoritySaving ? '저장 중...' : '권한 저장'}
                     </button>
+                  </div>
+
+                  {/* 기기 관리 섹션 */}
+                  <div className="mt-6 border-t pt-4">
+                    <h3 className="text-xs sm:text-sm font-medium text-gray-800 mb-2">
+                      등록된 재생 기기 (최대 2대)
+                    </h3>
+
+                    {deviceLoading ? (
+                      <p className="text-xs sm:text-sm text-gray-500">
+                        기기 정보를 불러오는 중...
+                      </p>
+                    ) : devices.length === 0 ? (
+                      <p className="text-xs sm:text-sm text-gray-500">
+                        등록된 기기가 없습니다. (유저가 처음 재생하는 2개의 기기로 자동 등록됩니다.)
+                      </p>
+                    ) : (
+                      <div className="space-y-2">
+                        {devices.map((d, index) => (
+                          <div
+                            key={d.id}
+                            className="flex flex-col sm:flex-row sm:items-center justify-between bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-xs sm:text-sm"
+                          >
+                            <div className="flex-1">
+                              <div className="font-medium">
+                                {index + 1}번 기기
+                                {d.deviceName ? ` - ${d.deviceName}` : ''}
+                              </div>
+                              <div className="text-[11px] sm:text-xs text-gray-600 break-all">
+                                ID: {d.deviceId}
+                              </div>
+                              <div className="text-[11px] sm:text-xs text-gray-500 mt-1">
+                                등록:{' '}
+                                {d.createdAt &&
+                                  new Date(d.createdAt).toLocaleString()}
+                                {' / '}
+                                최근 사용:{' '}
+                                {d.lastUsedAt &&
+                                  new Date(d.lastUsedAt).toLocaleString()}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="mt-3 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={handleResetDevices}
+                        disabled={deviceResetting}
+                        className={`px-4 py-2 rounded-md text-xs sm:text-sm font-medium text-white bg-rose-500 hover:bg-rose-600 ${
+                          deviceResetting ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
+                      >
+                        {deviceResetting ? '초기화 중...' : '기기 전체 초기화'}
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
