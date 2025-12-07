@@ -87,16 +87,17 @@
   display: block;
   margin: 0.5rem auto;
 }
-/* --- 동영상 자동 크기 문제 방지 --- */          
 
+/* --- 동영상 자동 크기 문제 방지 --- */
 .tiptap video {
   max-width: 100%;
   height: auto;
   display: block;
   margin: 0.5rem auto;
 }
+
 /* --- 첨부파일 링크 스타일 --- */
-.tiptap .attachment-link {      
+.tiptap .attachment-link {
   display: inline-block;
   padding: 0.25rem 0.5rem;
   background-color: #f3f4f6;
@@ -110,12 +111,56 @@
 .tiptap .attachment-link:hover {
   background-color: #e5e7eb;
 }
+
 .tiptap .attachment-link .file-name {
   margin-right: 0.5rem;
 }
+
 .tiptap .attachment-link .file-size {
   color: #6b7280;
   font-size: 0.875rem;
 }
-/* --- End of CreateNotice.module.css --- */
 
+/* ------------------------ */
+/* 📱 모바일 표(테이블) 대응 */
+/* - 모바일에서는 "5글자 정도"만 보이고 나머지는 ... 처리 */
+/* ------------------------ */
+@media (max-width: 640px) {
+  /* 에디터 전체 영역 */
+  .tiptap {
+    max-width: 100%;
+    overflow-x: hidden; /* 가로로 밀리는 것 방지 */
+  }
+
+  /* 표가 화면 밖으로 나가는 것 방지 */
+  .tiptap table {
+    width: 100%;
+    max-width: 100%;
+    table-layout: fixed; /* 셀 폭 고정해서 줄바꿈 강제 */
+  }
+
+  .tiptap th,
+  .tiptap td {
+    padding: 6px 4px;
+    /* 모바일 화면에 맞춰 자동 크기 감소/증가 */
+    font-size: clamp(10px, 2.8vw, 13px);
+    word-break: break-word;
+    vertical-align: middle;
+    white-space: nowrap; /* 한 줄만 */
+  }
+
+  /* 셀 안 텍스트: "5글자 정도"까지만 보여주고 ... */
+  .tiptap th p,
+  .tiptap td p {
+    margin: 0;
+    line-height: 1.4;
+    display: block;
+
+    white-space: nowrap;
+    max-width: 5ch;           /* ✅ 대략 5글자 폭 */
+    overflow: hidden;
+    text-overflow: ellipsis;  /* 넘치면 ... */
+  }
+}
+
+/* --- End of CreateNotice.module.css --- */

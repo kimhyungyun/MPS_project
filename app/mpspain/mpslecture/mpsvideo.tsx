@@ -27,8 +27,9 @@ interface Course {
   classGroup: ClassGroup;
 }
 
-// 🔹 로컬에 저장해둔 유저 정보 (mb_no 안 씀)
+// 🔹 localStorage 저장 유저 타입 (mb_no는 있을 수도 있고 없을 수도 있게)
 interface User {
+  mb_no?: number; // userId로 쓸 PK (없을 수도 있으니 optional)
   mb_id: string;
   mb_name: string;
   mb_nick: string;
@@ -128,7 +129,7 @@ export default function Mpsvideo() {
           return;
         }
 
-        // mb_no 같은 건 강제 체크 안 함
+        // mb_no가 없어도 일단 로그인 유저로 인정 (재생 시점에서만 체크)
         setUser(parsedUser);
 
         const res = await fetch(`${API_BASE_URL}/api/lectures`, {
@@ -171,6 +172,7 @@ export default function Mpsvideo() {
   // 재생 준비 (기기 체크 + Signed URL + 권한 체크)
   //  - 403 이면 alert
   //  - 기기 제한 초과면 에러 메시지 + alert, 재생 X
+  //  - userId는 localStorage.user.mb_no 사용해서 body로 전송
   // ------------------------------------------------------------
 
   const preparePlay = async (course: Course) => {
@@ -181,17 +183,32 @@ export default function Mpsvideo() {
 
     try {
       const token = localStorage.getItem('token');
+      const rawUser = localStorage.getItem('user');
 
-      if (!token) {
+      if (!token || !rawUser) {
         router.push('/form/login');
         return;
+      }
+
+      let parsedUser: User;
+      try {
+        parsedUser = JSON.parse(rawUser) as User;
+      } catch {
+        router.push('/form/login');
+        return;
+      }
+
+      const userId = parsedUser.mb_no;
+      if (!userId) {
+        console.error('user.mb_no가 없습니다. 기기 체크 불가');
+        throw new Error('유저 정보가 올바르지 않습니다. (mb_no 없음)');
       }
 
       const deviceId = getDeviceId();
       const deviceName =
         typeof navigator !== 'undefined' ? navigator.userAgent : 'Unknown Device';
 
-      // 1) 기기 체크 (userId는 백엔드에서 JWT로 판단)
+      // 1) 기기 체크 (userId를 body로 전송)
       const deviceCheckRes = await fetch(
         `${API_BASE_URL}/api/video-authorities/devices/check`,
         {
@@ -202,6 +219,7 @@ export default function Mpsvideo() {
           },
           credentials: 'include',
           body: JSON.stringify({
+            userId,
             deviceId,
             deviceName,
           }),
