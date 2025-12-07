@@ -28,6 +28,7 @@ interface Course {
 }
 
 interface User {
+  mb_no: number;      // 🔥 userId로 쓸 PK
   mb_id: string;
   mb_name: string;
   mb_nick: string;
@@ -73,6 +74,25 @@ const GROUP_META: Record<
   },
 };
 
+// ------------------------------------------------------------
+// 디바이스 ID 헬퍼
+//  - 브라우저마다 한 번 생성해서 localStorage에 고정
+// ------------------------------------------------------------
+function getDeviceId() {
+  if (typeof window === 'undefined') return 'unknown-device';
+
+  let id = localStorage.getItem('device_id');
+  if (!id) {
+    if ('crypto' in window && 'randomUUID' in crypto) {
+      id = crypto.randomUUID();
+    } else {
+      id = `dev-${Math.random().toString(36).slice(2)}-${Date.now()}`;
+    }
+    localStorage.setItem('device_id', id);
+  }
+  return id;
+}
+
 export default function Mpsvideo() {
   const router = useRouter();
 
@@ -104,6 +124,11 @@ export default function Mpsvideo() {
         try {
           parsedUser = JSON.parse(raw) as User;
         } catch {
+          router.push('/form/login');
+          return;
+        }
+
+        if (!parsedUser.mb_no) {
           router.push('/form/login');
           return;
         }
@@ -147,12 +172,12 @@ export default function Mpsvideo() {
   };
 
   // ------------------------------------------------------------
-  // 재생 준비 (Signed URL + 권한 체크)
-  //  - 403 이면 alert로만 안내하고 모달은 안 띄움
+  // 재생 준비 (기기 체크 + Signed URL + 권한 체크)
+  //  - 403 이면 alert
+  //  - 기기 제한 초과면 에러 메시지 + alert, 재생 X
   // ------------------------------------------------------------
 
   const preparePlay = async (course: Course) => {
-    // 일단 초기화
     setSelected(null);
     setStreamUrl('');
     setErrorMsg('');
@@ -160,11 +185,77 @@ export default function Mpsvideo() {
 
     try {
       const token = localStorage.getItem('token');
-      if (!token) {
+      const rawUser = localStorage.getItem('user');
+
+      if (!token || !rawUser) {
         router.push('/form/login');
         return;
       }
 
+      let parsedUser: User;
+      try {
+        parsedUser = JSON.parse(rawUser) as User;
+      } catch {
+        router.push('/form/login');
+        return;
+      }
+
+      if (!parsedUser.mb_no) {
+        router.push('/form/login');
+        return;
+      }
+
+      const userId = parsedUser.mb_no;
+      const deviceId = getDeviceId();
+      const deviceName =
+        typeof navigator !== 'undefined' ? navigator.userAgent : 'Unknown Device';
+
+      // 1) 기기 체크
+      const deviceCheckRes = await fetch(
+        `${API_BASE_URL}/api/video-authorities/devices/check`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            userId,
+            deviceId,
+            deviceName,
+          }),
+        },
+      );
+
+      if (!deviceCheckRes.ok) {
+        console.error('device check failed', deviceCheckRes.status);
+        throw new Error('기기 인증에 실패했습니다.');
+      }
+
+      const deviceResult: {
+        allowed: boolean;
+        reason?: string;
+        devices?: any[];
+      } = await deviceCheckRes.json();
+
+      console.log('🔥 device check result:', deviceResult);
+
+      if (!deviceResult.allowed) {
+        const msg =
+          deviceResult.reason === 'DEVICE_LIMIT_EXCEEDED'
+            ? '등록 가능한 기기(2대)를 초과했습니다. 관리자에게 문의해 주세요.'
+            : '이 기기에서는 영상을 재생할 수 없습니다.';
+
+        setErrorMsg(msg);
+        if (typeof window !== 'undefined') {
+          alert(msg);
+        }
+        setLoadingPlay(false);
+        return;
+      }
+
+      // 2) 기기 허용된 경우에만 Signed URL 요청
       const playAuth = await fetch(
         `${API_BASE_URL}/api/signed-urls/lecture/${course.id}`,
         {
@@ -175,7 +266,6 @@ export default function Mpsvideo() {
       );
 
       if (playAuth.status === 403) {
-        // 🔥 백엔드에서 ForbiddenException 던진 경우 → 권한 없음
         setLoadingPlay(false);
         if (typeof window !== 'undefined') {
           alert('이 강의를 시청할 권한이 없습니다.');
@@ -189,7 +279,6 @@ export default function Mpsvideo() {
 
       const data: { ok?: boolean; streamUrl: string } = await playAuth.json();
 
-      // ✅ 여기서만 모달 오픈 + 플레이어 렌더
       setSelected(course);
       setStreamUrl(data.streamUrl);
     } catch (err) {
