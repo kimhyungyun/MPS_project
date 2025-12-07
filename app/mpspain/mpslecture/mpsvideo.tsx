@@ -1,8 +1,10 @@
+// app/mpspain/mpslecture/mpsvideo.tsx
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import HlsPlayer from './hlsplayer';
+
 
 type LectureType =
   | 'single'
@@ -27,7 +29,7 @@ interface Course {
 }
 
 interface User {
-  mb_no: number;
+  mb_no: number; // PK
   mb_id: string;
   mb_name: string;
   mb_nick: string;
@@ -35,6 +37,10 @@ interface User {
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+
+// ------------------------------------------------------------
+// 탭 메타
+// ------------------------------------------------------------
 
 type GroupKey = 'A' | 'B' | 'C' | 'D' | 'E';
 
@@ -69,6 +75,9 @@ const GROUP_META: Record<
   },
 };
 
+// ------------------------------------------------------------
+// 디바이스 ID 헬퍼
+// ------------------------------------------------------------
 function getDeviceId() {
   if (typeof window === 'undefined') return 'unknown-device';
 
@@ -101,107 +110,69 @@ export default function Mpsvideo() {
   // ------------------------------------------------------------
   // 로그인 + 프로필 + 강의 목록
   // ------------------------------------------------------------
+
   useEffect(() => {
     const init = async () => {
       try {
-        const token =
-          typeof window !== 'undefined'
-            ? localStorage.getItem('token')
-            : null;
+        const token = typeof window !== 'undefined'
+          ? localStorage.getItem('token')
+          : null;
 
         if (!token) {
           router.push('/form/login');
           return;
         }
 
-        // 1) 프로필
-        const profileRes = await fetch(
-          `${API_BASE_URL}/api/auth/profile`,
-          {
-            method: 'GET',
-            credentials: 'include',
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          },
-        );
+        // 1) 프로필 조회해서 mb_no 확보
+        const profileRes = await fetch(`${API_BASE_URL}/api/auth/profile`, {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+          credentials: 'include',
+        });
 
         if (profileRes.status === 401) {
-          if (typeof window !== 'undefined') {
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-          }
           router.push('/form/login');
           return;
         }
 
-        const profileJson = await profileRes.json();
+        if (!profileRes.ok) {
+          console.error('profile error:', profileRes.status);
+          throw new Error('프로필 조회 실패');
+        }
+
+        const profileJson: { success: boolean; data: any } =
+          await profileRes.json();
         console.log('🔥 profile json:', profileJson);
 
-        const profileData = profileJson?.data ?? {};
-        let mbNo: number | null =
-          typeof profileData.mb_no === 'number'
-            ? profileData.mb_no
-            : null;
+        const profile = profileJson.data;
 
-        // mb_no 없으면 localStorage.user에서 한 번 더 시도
-        if (!mbNo && typeof window !== 'undefined') {
-          const rawUser = localStorage.getItem('user');
-          if (rawUser) {
-            try {
-              const parsed = JSON.parse(rawUser);
-              if (typeof parsed.mb_no === 'number') {
-                mbNo = parsed.mb_no;
-              }
-            } catch {
-              // ignore
-            }
-          }
-        }
-
-        if (!mbNo) {
+        if (!profile || typeof profile.mb_no !== 'number') {
           console.error('프로필에 mb_no 정보가 없습니다.');
-          setErrorMsg(
-            '회원 정보에 문제가 있습니다. 다시 로그인 후 이용해 주세요.',
-          );
-          if (typeof window !== 'undefined') {
-            alert('다시 로그인해 주세요.');
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            router.push('/form/login');
-          }
-          return;
+          throw new Error('프로필에 mb_no 정보가 없습니다.');
         }
 
-        const userFromProfile: User = {
-          mb_no: mbNo,
-          mb_id: profileData.mb_id,
-          mb_name: profileData.mb_name,
-          mb_nick: profileData.mb_nick,
-          mb_level: Number(profileData.mb_level ?? 0),
+        const normalizedUser: User = {
+          mb_no: profile.mb_no,
+          mb_id: profile.mb_id,
+          mb_name: profile.mb_name,
+          mb_nick: profile.mb_nick,
+          mb_level: Number(profile.mb_level ?? 0),
         };
 
-        setUser(userFromProfile);
-
-        // localStorage.user 최신화
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('user', JSON.stringify(userFromProfile));
-        }
+        setUser(normalizedUser);
 
         // 2) 강의 목록
-        const lectureRes = await fetch(`${API_BASE_URL}/api/lectures`, {
+        const lecturesRes = await fetch(`${API_BASE_URL}/api/lectures`, {
           credentials: 'include',
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
         });
-        if (!lectureRes.ok) throw new Error('강의 목록 API 실패');
 
-        const data: Course[] = await lectureRes.json();
+        if (!lecturesRes.ok) throw new Error('강의 목록 API 실패');
+
+        const data: Course[] = await lecturesRes.json();
         setCourses(data);
       } catch (e) {
         console.error(e);
-        setErrorMsg('강의 목록 또는 사용자 정보를 불러오지 못했습니다.');
+        setErrorMsg('강의 목록을 불러오지 못했습니다.');
       } finally {
         setLoadingList(false);
       }
@@ -209,6 +180,10 @@ export default function Mpsvideo() {
 
     init();
   }, [router]);
+
+  // ------------------------------------------------------------
+  // 탭 선택
+  // ------------------------------------------------------------
 
   const handleSelectGroup = (key: GroupKey) => {
     setSelectedGroup(key);
@@ -227,6 +202,7 @@ export default function Mpsvideo() {
   // ------------------------------------------------------------
   // 재생 준비 (기기 체크 + Signed URL)
   // ------------------------------------------------------------
+
   const preparePlay = async (course: Course) => {
     setSelected(null);
     setStreamUrl('');
@@ -301,7 +277,7 @@ export default function Mpsvideo() {
         return;
       }
 
-      // 2) Signed URL
+      // 2) Signed URL 요청
       const playAuth = await fetch(
         `${API_BASE_URL}/api/signed-urls/lecture/${course.id}`,
         {
@@ -324,6 +300,7 @@ export default function Mpsvideo() {
       }
 
       const data: { ok?: boolean; streamUrl: string } = await playAuth.json();
+      console.log('🎯 signed streamUrl:', data.streamUrl);
 
       setSelected(course);
       setStreamUrl(data.streamUrl);
@@ -335,6 +312,10 @@ export default function Mpsvideo() {
     }
   };
 
+  // ------------------------------------------------------------
+  // 강의 필터링 (UI용)
+  // ------------------------------------------------------------
+
   const filteredCourses = courses.filter((c) => {
     if (selectedGroup === 'A') return c.classGroup === 'A';
     if (selectedGroup === 'B') return c.classGroup === 'B';
@@ -344,17 +325,24 @@ export default function Mpsvideo() {
     return false;
   });
 
+  // 로그인 안 됐고, 목록 로딩도 끝났으면 아무것도 렌더 안 함
   if (!user && !loadingList) return null;
+
+  // ------------------------------------------------------------
+  // UI
+  // ------------------------------------------------------------
 
   return (
     <main className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-5xl mt-40 px-4 py-10 lg:py-12">
+        {/* 상단 에러 */}
         {errorMsg && !selected && (
           <div className="mb-4 rounded-md bg-red-50 px-4 py-3 text-sm text-red-700">
             {errorMsg}
           </div>
         )}
 
+        {/* 탭 */}
         <section className="mb-6 flex flex-wrap items-center justify-center gap-3">
           {(Object.keys(GROUP_META) as GroupKey[]).map((key) => {
             const meta = GROUP_META[key];
@@ -376,13 +364,17 @@ export default function Mpsvideo() {
           })}
         </section>
 
+        {/* 강의 목록 */}
         <section ref={listRef}>
           <div className="mb-3 flex items-baseline justify-between">
             <h3 className="text-base font-semibold text-slate-900">
               {GROUP_META[selectedGroup].label} 강의 목록
             </h3>
             <p className="text-xs text-slate-500">
-              총 <span className="font-semibold">{filteredCourses.length}</span>{' '}
+              총{' '}
+              <span className="font-semibold">
+                {filteredCourses.length}
+              </span>{' '}
               개 강의
             </p>
           </div>
@@ -442,6 +434,7 @@ export default function Mpsvideo() {
           )}
         </section>
 
+        {/* 영상 모달 */}
         {selected && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4">
             <div className="relative w-full max-w-4xl rounded-2xl bg-white p-5 shadow-xl">
