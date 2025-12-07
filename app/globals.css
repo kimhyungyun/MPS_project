@@ -18,21 +18,21 @@
     --foreground: #ededed;
   }
 }
+
 @font-face {
   font-family: 'Pretendard-Regular';
   src: url('https://fastly.jsdelivr.net/gh/Project-Noonnu/noonfonts_2107@1.1/Pretendard-Regular.woff') format('woff');
-  font-weight: 700;
+  font-weight: 700; /* ← 이건 사실 400이 더 자연스럽긴 함 */
   font-style: normal;
 }
-
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), Pretendard, sans-serif;
-}
 
-/* global.css 또는 Tailwind @layer utilities 내부 */
-/* .btn {
-  @apply px-3 py-1 text-sm border rounded text-gray-700 hover:bg-gray-100 transition-all;
-} */
+  /* ✨ 여기만 추가하면 됨 */
+  font-weight: 500; /* 기본 글자 두께 조금 올려주기 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
