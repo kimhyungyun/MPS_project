@@ -27,7 +27,7 @@ interface Course {
 }
 
 interface User {
-  mb_no: number;    // 🔥 userId로 쓸 PK
+  mb_no: number;
   mb_id: string;
   mb_name: string;
   mb_nick: string;
@@ -35,10 +35,6 @@ interface User {
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
-
-// ------------------------------------------------------------
-// 탭 메타
-// ------------------------------------------------------------
 
 type GroupKey = 'A' | 'B' | 'C' | 'D' | 'E';
 
@@ -73,10 +69,6 @@ const GROUP_META: Record<
   },
 };
 
-// ------------------------------------------------------------
-// 디바이스 ID 헬퍼
-//  - 브라우저마다 한 번 생성해서 localStorage에 고정
-// ------------------------------------------------------------
 function getDeviceId() {
   if (typeof window === 'undefined') return 'unknown-device';
 
@@ -107,23 +99,22 @@ export default function Mpsvideo() {
   const listRef = useRef<HTMLDivElement | null>(null);
 
   // ------------------------------------------------------------
-  // 로그인 체크 + 프로필 + 강의 목록 불러오기
-  //   - localStorage.user 대신 /auth/profile 기준으로 user 세팅
+  // 로그인 + 프로필 + 강의 목록
   // ------------------------------------------------------------
-
   useEffect(() => {
     const init = async () => {
       try {
-        const token = typeof window !== 'undefined'
-          ? localStorage.getItem('token')
-          : null;
+        const token =
+          typeof window !== 'undefined'
+            ? localStorage.getItem('token')
+            : null;
 
         if (!token) {
           router.push('/form/login');
           return;
         }
 
-        // 1) 프로필에서 mb_no 포함 유저 정보 가져오기
+        // 1) 프로필
         const profileRes = await fetch(
           `${API_BASE_URL}/api/auth/profile`,
           {
@@ -136,7 +127,6 @@ export default function Mpsvideo() {
         );
 
         if (profileRes.status === 401) {
-          // 토큰 만료/유효하지 않음 → 로그인 페이지로
           if (typeof window !== 'undefined') {
             localStorage.removeItem('token');
             localStorage.removeItem('user');
@@ -145,39 +135,60 @@ export default function Mpsvideo() {
           return;
         }
 
-        if (!profileRes.ok) {
-          throw new Error('프로필 정보를 불러오지 못했습니다.');
+        const profileJson = await profileRes.json();
+        console.log('🔥 profile json:', profileJson);
+
+        const profileData = profileJson?.data ?? {};
+        let mbNo: number | null =
+          typeof profileData.mb_no === 'number'
+            ? profileData.mb_no
+            : null;
+
+        // mb_no 없으면 localStorage.user에서 한 번 더 시도
+        if (!mbNo && typeof window !== 'undefined') {
+          const rawUser = localStorage.getItem('user');
+          if (rawUser) {
+            try {
+              const parsed = JSON.parse(rawUser);
+              if (typeof parsed.mb_no === 'number') {
+                mbNo = parsed.mb_no;
+              }
+            } catch {
+              // ignore
+            }
+          }
         }
 
-        const profileJson = await profileRes.json();
-        const profileData = profileJson.data as {
-          mb_no: number;
-          mb_id: string;
-          mb_name: string;
-          mb_nick: string;
-          mb_level: number;
-        };
-
-        if (!profileData || !profileData.mb_no) {
-          throw new Error('프로필에 mb_no 정보가 없습니다.');
+        if (!mbNo) {
+          console.error('프로필에 mb_no 정보가 없습니다.');
+          setErrorMsg(
+            '회원 정보에 문제가 있습니다. 다시 로그인 후 이용해 주세요.',
+          );
+          if (typeof window !== 'undefined') {
+            alert('다시 로그인해 주세요.');
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            router.push('/form/login');
+          }
+          return;
         }
 
         const userFromProfile: User = {
-          mb_no: profileData.mb_no,
+          mb_no: mbNo,
           mb_id: profileData.mb_id,
           mb_name: profileData.mb_name,
           mb_nick: profileData.mb_nick,
-          mb_level: profileData.mb_level,
+          mb_level: Number(profileData.mb_level ?? 0),
         };
 
         setUser(userFromProfile);
 
-        // 필요하면 여기서 localStorage.user도 최신으로 덮어씀
+        // localStorage.user 최신화
         if (typeof window !== 'undefined') {
           localStorage.setItem('user', JSON.stringify(userFromProfile));
         }
 
-        // 2) 강의 목록 불러오기
+        // 2) 강의 목록
         const lectureRes = await fetch(`${API_BASE_URL}/api/lectures`, {
           credentials: 'include',
           headers: {
@@ -199,10 +210,6 @@ export default function Mpsvideo() {
     init();
   }, [router]);
 
-  // ------------------------------------------------------------
-  // 탭 선택
-  // ------------------------------------------------------------
-
   const handleSelectGroup = (key: GroupKey) => {
     setSelectedGroup(key);
     setSelected(null);
@@ -218,9 +225,8 @@ export default function Mpsvideo() {
   };
 
   // ------------------------------------------------------------
-  // 재생 준비 (기기 체크 + Signed URL + 권한 체크)
+  // 재생 준비 (기기 체크 + Signed URL)
   // ------------------------------------------------------------
-
   const preparePlay = async (course: Course) => {
     setSelected(null);
     setStreamUrl('');
@@ -228,9 +234,10 @@ export default function Mpsvideo() {
     setLoadingPlay(true);
 
     try {
-      const token = typeof window !== 'undefined'
-        ? localStorage.getItem('token')
-        : null;
+      const token =
+        typeof window !== 'undefined'
+          ? localStorage.getItem('token')
+          : null;
 
       if (!token) {
         router.push('/form/login');
@@ -245,7 +252,9 @@ export default function Mpsvideo() {
       const userId = user.mb_no;
       const deviceId = getDeviceId();
       const deviceName =
-        typeof navigator !== 'undefined' ? navigator.userAgent : 'Unknown Device';
+        typeof navigator !== 'undefined'
+          ? navigator.userAgent
+          : 'Unknown Device';
 
       // 1) 기기 체크
       const deviceCheckRes = await fetch(
@@ -292,7 +301,7 @@ export default function Mpsvideo() {
         return;
       }
 
-      // 2) 기기 허용된 경우에만 Signed URL 요청
+      // 2) Signed URL
       const playAuth = await fetch(
         `${API_BASE_URL}/api/signed-urls/lecture/${course.id}`,
         {
@@ -326,10 +335,6 @@ export default function Mpsvideo() {
     }
   };
 
-  // ------------------------------------------------------------
-  // 강의 필터링 (UI용 – 실제 권한 체크는 백엔드에서)
-  // ------------------------------------------------------------
-
   const filteredCourses = courses.filter((c) => {
     if (selectedGroup === 'A') return c.classGroup === 'A';
     if (selectedGroup === 'B') return c.classGroup === 'B';
@@ -339,24 +344,17 @@ export default function Mpsvideo() {
     return false;
   });
 
-  // 로그인 안 됐고, 목록 로딩도 끝났으면 아무것도 렌더 안 함
   if (!user && !loadingList) return null;
-
-  // ------------------------------------------------------------
-  // UI
-  // ------------------------------------------------------------
 
   return (
     <main className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-5xl mt-40 px-4 py-10 lg:py-12">
-        {/* 상단 에러 (목록 불러오기 실패 등) */}
         {errorMsg && !selected && (
           <div className="mb-4 rounded-md bg-red-50 px-4 py-3 text-sm text-red-700">
             {errorMsg}
           </div>
         )}
 
-        {/* 탭 */}
         <section className="mb-6 flex flex-wrap items-center justify-center gap-3">
           {(Object.keys(GROUP_META) as GroupKey[]).map((key) => {
             const meta = GROUP_META[key];
@@ -378,17 +376,13 @@ export default function Mpsvideo() {
           })}
         </section>
 
-        {/* 강의 목록 */}
         <section ref={listRef}>
           <div className="mb-3 flex items-baseline justify-between">
             <h3 className="text-base font-semibold text-slate-900">
               {GROUP_META[selectedGroup].label} 강의 목록
             </h3>
             <p className="text-xs text-slate-500">
-              총{' '}
-              <span className="font-semibold">
-                {filteredCourses.length}
-              </span>{' '}
+              총 <span className="font-semibold">{filteredCourses.length}</span>{' '}
               개 강의
             </p>
           </div>
@@ -448,7 +442,6 @@ export default function Mpsvideo() {
           )}
         </section>
 
-        {/* 영상 모달 */}
         {selected && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4">
             <div className="relative w-full max-w-4xl rounded-2xl bg-white p-5 shadow-xl">
