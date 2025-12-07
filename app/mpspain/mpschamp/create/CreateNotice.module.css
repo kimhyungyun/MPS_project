@@ -36,16 +36,23 @@
   font-size: 0.9em;
 }
 
+/* ✅ 표 포함 전체 컨테이너에 가로 스크롤 허용 */
+.tiptap {
+  width: 100%;
+  overflow-x: auto;             /* 가로 스크롤 가능 */
+  -webkit-overflow-scrolling: touch; /* 모바일에서 부드러운 스크롤 */
+}
+
 /* --- 표 스타일 (표 크기 자연스럽게 + 내가 조절한 크기 유지) --- */
 .tiptap table {
   border-collapse: collapse;
   margin: 0.5rem 0;
   border: 2px solid #d1d5db;
-  max-width: 100%;
+  max-width: none;              /* max-width: 100% 제거 → 표가 넓어질 수 있게 */
   width: auto;
 }
 
-/* 셀 — 한글 한 글자씩 줄바꿈 문제 방지 + 커서/리사이즈 준비 */
+/* 셀 — 기본 테이블 스타일 */
 .tiptap th,
 .tiptap td {
   border: 2px solid #d1d5db !important;
@@ -53,9 +60,8 @@
   text-align: center;
   background-color: #ffffff;
   vertical-align: middle;
-  white-space: nowrap;
+  white-space: nowrap;          /* 줄바꿈 없이 한 줄 유지 → 가로로만 길어짐 */
 
-  /* 표 안에서 텍스트 I 커서 말고 기본 커서 + 리사이즈 핸들용 position */
   cursor: default;
   position: relative;
 }
@@ -63,7 +69,7 @@
 .tiptap th p,
 .tiptap td p {
   margin: 0;
-  white-space: normal;
+  white-space: nowrap;          /* p 기준으로도 한 줄 유지 */
 }
 
 /* 🔥 컬럼 리사이즈 핸들 (tiptap table resizable 핸들) */
@@ -73,14 +79,11 @@
   top: 0;
   bottom: 0;
   width: 4px;
-  cursor: col-resize; /* ← 여기서 마우스가 <-> 느낌으로 바뀜 */
+  cursor: col-resize;
   background-color: transparent;
 }
 
-/* --- 이미지 자동 크기 문제 방지 ---
-   => width 는 건들지 않고, max-width만 잡아줘서
-   에디터에서 지정한 width(px, %) 그대로 유지되게 함
-*/
+/* --- 이미지 자동 크기 문제 방지 --- */
 .tiptap img {
   max-width: 100%;
   height: auto;
@@ -122,45 +125,18 @@
 }
 
 /* ------------------------ */
-/* 📱 모바일 표(테이블) 대응 */
-/* - 모바일에서는 "5글자 정도"만 보이고 나머지는 ... 처리 */
+/* 📱 모바일에서 폰트만 살짝 줄이기 */
 /* ------------------------ */
 @media (max-width: 640px) {
-  /* 에디터 전체 영역 */
-  .tiptap {
-    max-width: 100%;
-    overflow-x: hidden; /* 가로로 밀리는 것 방지 */
-  }
-
-  /* 표가 화면 밖으로 나가는 것 방지 */
-  .tiptap table {
-    width: 100%;
-    max-width: 100%;
-    table-layout: fixed; /* 셀 폭 고정해서 줄바꿈 강제 */
-  }
-
   .tiptap th,
   .tiptap td {
-    padding: 6px 4px;
-    /* 모바일 화면에 맞춰 자동 크기 감소/증가 */
-    font-size: clamp(10px, 2.8vw, 13px);
-    word-break: break-word;
-    vertical-align: middle;
-    white-space: nowrap; /* 한 줄만 */
+    font-size: clamp(10px, 2.8vw, 13px);  /* 글자는 조금 줄이고 */
   }
 
-  /* 셀 안 텍스트: "5글자 정도"까지만 보여주고 ... */
-  .tiptap th p,
-  .tiptap td p {
-    margin: 0;
-    line-height: 1.4;
-    display: block;
-
-    white-space: nowrap;
-    max-width: 5ch;           /* ✅ 대략 5글자 폭 */
-    overflow: hidden;
-    text-overflow: ellipsis;  /* 넘치면 ... */
-  }
+  /* 필요하면, 표 최소 너비를 잡아서 스크롤이 확실히 나오게 할 수도 있음 */
+  /* .tiptap table {
+    min-width: 600px;
+  } */
 }
 
 /* --- End of CreateNotice.module.css --- */
