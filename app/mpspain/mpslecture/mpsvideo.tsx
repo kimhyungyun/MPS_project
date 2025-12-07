@@ -1,4 +1,3 @@
-// app/mpspain/mpslecture/mpsvideo.tsx
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -27,9 +26,8 @@ interface Course {
   classGroup: ClassGroup;
 }
 
-// 🔹 localStorage 저장 유저 타입 (mb_no는 있을 수도 있고 없을 수도 있게)
 interface User {
-  mb_no?: number; // userId로 쓸 PK (없을 수도 있으니 optional)
+  mb_no: number;    // 🔥 userId로 쓸 PK
   mb_id: string;
   mb_name: string;
   mb_nick: string;
@@ -109,39 +107,90 @@ export default function Mpsvideo() {
   const listRef = useRef<HTMLDivElement | null>(null);
 
   // ------------------------------------------------------------
-  // 로그인 체크 + 강의 목록 불러오기
+  // 로그인 체크 + 프로필 + 강의 목록 불러오기
+  //   - localStorage.user 대신 /auth/profile 기준으로 user 세팅
   // ------------------------------------------------------------
 
   useEffect(() => {
     const init = async () => {
       try {
-        const raw = localStorage.getItem('user');
-        if (!raw) {
+        const token = typeof window !== 'undefined'
+          ? localStorage.getItem('token')
+          : null;
+
+        if (!token) {
           router.push('/form/login');
           return;
         }
 
-        let parsedUser: User;
-        try {
-          parsedUser = JSON.parse(raw) as User;
-        } catch {
+        // 1) 프로필에서 mb_no 포함 유저 정보 가져오기
+        const profileRes = await fetch(
+          `${API_BASE_URL}/api/auth/profile`,
+          {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
+
+        if (profileRes.status === 401) {
+          // 토큰 만료/유효하지 않음 → 로그인 페이지로
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+          }
           router.push('/form/login');
           return;
         }
 
-        // mb_no가 없어도 일단 로그인 유저로 인정 (재생 시점에서만 체크)
-        setUser(parsedUser);
+        if (!profileRes.ok) {
+          throw new Error('프로필 정보를 불러오지 못했습니다.');
+        }
 
-        const res = await fetch(`${API_BASE_URL}/api/lectures`, {
+        const profileJson = await profileRes.json();
+        const profileData = profileJson.data as {
+          mb_no: number;
+          mb_id: string;
+          mb_name: string;
+          mb_nick: string;
+          mb_level: number;
+        };
+
+        if (!profileData || !profileData.mb_no) {
+          throw new Error('프로필에 mb_no 정보가 없습니다.');
+        }
+
+        const userFromProfile: User = {
+          mb_no: profileData.mb_no,
+          mb_id: profileData.mb_id,
+          mb_name: profileData.mb_name,
+          mb_nick: profileData.mb_nick,
+          mb_level: profileData.mb_level,
+        };
+
+        setUser(userFromProfile);
+
+        // 필요하면 여기서 localStorage.user도 최신으로 덮어씀
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('user', JSON.stringify(userFromProfile));
+        }
+
+        // 2) 강의 목록 불러오기
+        const lectureRes = await fetch(`${API_BASE_URL}/api/lectures`, {
           credentials: 'include',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         });
-        if (!res.ok) throw new Error('강의 목록 API 실패');
+        if (!lectureRes.ok) throw new Error('강의 목록 API 실패');
 
-        const data: Course[] = await res.json();
+        const data: Course[] = await lectureRes.json();
         setCourses(data);
       } catch (e) {
         console.error(e);
-        setErrorMsg('강의 목록을 불러오지 못했습니다.');
+        setErrorMsg('강의 목록 또는 사용자 정보를 불러오지 못했습니다.');
       } finally {
         setLoadingList(false);
       }
@@ -170,9 +219,6 @@ export default function Mpsvideo() {
 
   // ------------------------------------------------------------
   // 재생 준비 (기기 체크 + Signed URL + 권한 체크)
-  //  - 403 이면 alert
-  //  - 기기 제한 초과면 에러 메시지 + alert, 재생 X
-  //  - userId는 localStorage.user.mb_no 사용해서 body로 전송
   // ------------------------------------------------------------
 
   const preparePlay = async (course: Course) => {
@@ -182,33 +228,26 @@ export default function Mpsvideo() {
     setLoadingPlay(true);
 
     try {
-      const token = localStorage.getItem('token');
-      const rawUser = localStorage.getItem('user');
+      const token = typeof window !== 'undefined'
+        ? localStorage.getItem('token')
+        : null;
 
-      if (!token || !rawUser) {
+      if (!token) {
         router.push('/form/login');
         return;
       }
 
-      let parsedUser: User;
-      try {
-        parsedUser = JSON.parse(rawUser) as User;
-      } catch {
-        router.push('/form/login');
-        return;
-      }
-
-      const userId = parsedUser.mb_no;
-      if (!userId) {
+      if (!user || !user.mb_no) {
         console.error('user.mb_no가 없습니다. 기기 체크 불가');
         throw new Error('유저 정보가 올바르지 않습니다. (mb_no 없음)');
       }
 
+      const userId = user.mb_no;
       const deviceId = getDeviceId();
       const deviceName =
         typeof navigator !== 'undefined' ? navigator.userAgent : 'Unknown Device';
 
-      // 1) 기기 체크 (userId를 body로 전송)
+      // 1) 기기 체크
       const deviceCheckRes = await fetch(
         `${API_BASE_URL}/api/video-authorities/devices/check`,
         {
