@@ -8,9 +8,8 @@ import { loadTossPayments } from '@tosspayments/payment-sdk';
 
 // Swiper
 import { Swiper, SwiperSlide } from 'swiper/react';
-import { Navigation } from 'swiper/modules';
+import type { Swiper as SwiperType } from 'swiper';
 import 'swiper/css';
-import 'swiper/css/navigation';
 
 const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY!;
 const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL!;
@@ -27,7 +26,7 @@ interface PackageInfo {
   price: number;
 }
 
-// 🔥 여기 ID/가격만 네 DB 기준으로 바꿔주면 됨
+// 🔥 여기 ID/가격만 실제 DB 기준으로 바꿔줘
 const PACKAGE_LIST: PackageInfo[] = [
   {
     key: 'C',
@@ -61,10 +60,12 @@ const PACKAGE_LIST: PackageInfo[] = [
 export default function PaymentsPageClient() {
   const searchParams = useSearchParams();
   const [loadingKey, setLoadingKey] = useState<PackageKey | null>(null);
+  const [swiperRef, setSwiperRef] = useState<SwiperType | null>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
 
   const initialPackageId = searchParams.get('packageId');
 
-  // URL에 ?packageId=3 같은 거 들어오면 해당 패키지를 초기 활성 슬라이드로
+  // URL에 ?packageId=3 들어오면 그 패키지를 초기 슬라이드로
   const initialIndex = useMemo(() => {
     if (!initialPackageId) return 0;
     const idNum = Number(initialPackageId);
@@ -73,8 +74,6 @@ export default function PaymentsPageClient() {
     );
     return idx >= 0 ? idx : 0;
   }, [initialPackageId]);
-
-  const [activeIndex, setActiveIndex] = useState(initialIndex);
 
   const handlePay = async (pkg: PackageInfo) => {
     if (!pkg.lecturePackageId) {
@@ -122,39 +121,39 @@ export default function PaymentsPageClient() {
           <h1 className="mt-2 text-2xl font-bold text-slate-900">
             패키지 결제 페이지
           </h1>
-          <p className="mt-2 text-sm text-slate-600">
-            C / D / E 패키지를 왼쪽·오른쪽으로 넘기며 선택하고 결제할 수 있습니다.
-          </p>
+
         </header>
 
         <section className="relative">
-          {/* 좌우 화살표 버튼 */}
+          {/* 좌우 화살표 버튼 - Swiper 인스턴스 직접 제어 */}
           <button
-            className="swiper-button-prev absolute left-2 top-1/2 z-10 hidden -translate-y-1/2 rounded-full border bg-white/80 p-2 text-slate-700 shadow hover:bg-white md:flex"
+            type="button"
+            onClick={() => swiperRef?.slidePrev()}
+            className="absolute left-2 top-1/2 z-10 hidden -translate-y-1/2 items-center justify-center rounded-full border bg-white/90 p-2 text-slate-700 shadow-lg hover:bg-white md:flex"
             aria-label="이전 패키지"
           >
             ‹
           </button>
           <button
-            className="swiper-button-next absolute right-2 top-1/2 z-10 hidden -translate-y-1/2 rounded-full border bg-white/80 p-2 text-slate-700 shadow hover:bg-white md:flex"
+            type="button"
+            onClick={() => swiperRef?.slideNext()}
+            className="absolute right-2 top-1/2 z-10 hidden -translate-y-1/2 items-center justify-center rounded-full border bg-white/90 p-2 text-slate-700 shadow-lg hover:bg-white md:flex"
             aria-label="다음 패키지"
           >
             ›
           </button>
 
           <Swiper
-            modules={[Navigation]}
-            navigation={{
-              nextEl: '.swiper-button-next',
-              prevEl: '.swiper-button-prev',
+            onSwiper={(swiper) => {
+              setSwiperRef(swiper);
+              swiper.slideToLoop(initialIndex, 0);
+              setActiveIndex(initialIndex);
             }}
             loop
             spaceBetween={24}
-            slidesPerView={1.2}
+            slidesPerView={1.1}
             centeredSlides
-            initialSlide={initialIndex}
             onSlideChange={(swiper) => {
-              // loop 사용 시 realIndex를 써야 0~2로 고정됨
               setActiveIndex(swiper.realIndex);
             }}
             className="w-full py-4"
@@ -166,52 +165,63 @@ export default function PaymentsPageClient() {
               return (
                 <SwiperSlide key={pkg.key}>
                   <article
-                    className={`mx-auto flex h-full max-w-md flex-col justify-between rounded-2xl border bg-white p-5 shadow-sm transition 
-                      ${isCenter
-                        ? 'scale-100 border-indigo-500 shadow-lg'
-                        : 'scale-90 border-slate-200 opacity-60'
+                    className={`
+                      mx-auto flex h-full min-h-[260px] max-w-2xl flex-col justify-between 
+                      rounded-3xl border bg-white p-7 transition-all duration-300 
+                      ${
+                        isCenter
+                          ? 'scale-100 border-indigo-500 shadow-xl shadow-slate-300/70'
+                          : 'scale-90 border-slate-200 opacity-60 shadow-md'
                       }
                     `}
                   >
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase text-indigo-500">
+                    {/* 상단 텍스트 영역 */}
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-indigo-500">
                         {pkg.subtitle}
                       </p>
-                      <h2 className="mt-1 text-lg font-bold text-slate-900">
+
+                      <h2 className="text-2xl font-bold text-slate-900">
                         {pkg.name}
                       </h2>
+
                       {pkg.highlight && (
-                        <p className="mt-1 text-xs font-medium text-indigo-600">
+                        <p className="text-sm font-medium text-indigo-600">
                           {pkg.highlight}
                         </p>
                       )}
-                      <p className="mt-2 text-sm text-slate-600">
+
+                      <p className="mt-2 text-[15px] leading-relaxed text-slate-700">
                         {pkg.description}
                       </p>
                     </div>
 
-                    <div className="mt-4 flex flex-col items-end gap-2">
-                      <div className="text-right">
-                        <p className="text-[11px] text-slate-500">
+                    {/* 하단 가격 + 버튼 */}
+                    <div className="mt-6 flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-slate-500">
                           패키지 이용권 가격
                         </p>
-                        <p className="text-xl font-bold text-indigo-600">
+                        <p className="text-2xl font-extrabold text-indigo-600">
                           {pkg.price.toLocaleString()}원
                         </p>
                       </div>
+
                       <button
                         type="button"
                         onClick={() => handlePay(pkg)}
                         disabled={isLoading}
-                        className={`inline-flex w-full items-center justify-center rounded-full px-3 py-2 text-sm font-semibold transition md:w-auto ${
-                          isLoading
-                            ? 'bg-slate-300 text-slate-600'
-                            : 'bg-indigo-600 text-white hover:bg-indigo-700'
-                        }`}
+                        className={`
+                          inline-flex items-center justify-center rounded-full px-6 py-3 
+                          text-sm font-semibold shadow-md transition
+                          ${
+                            isLoading
+                              ? 'bg-slate-300 text-slate-600'
+                              : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-300'
+                          }
+                        `}
                       >
-                        {isLoading
-                          ? '결제 준비 중…'
-                          : `${pkg.name} 결제하기`}
+                        {isLoading ? '결제 준비 중…' : `${pkg.name} 결제하기`}
                       </button>
                     </div>
                   </article>
