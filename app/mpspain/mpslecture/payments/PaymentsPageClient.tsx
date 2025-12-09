@@ -35,7 +35,7 @@ const PACKAGE_LIST: PackageInfo[] = [
     description: '안면부, 어깨, 경추 영역을 묶은 패키지 강의입니다.',
     highlight: '안면부 · 어깨 · 경추 집중 케어',
     lecturePackageId: 1, // TODO: 실제 C 패키지 ID
-    price: 99000,        // TODO: 실제 C 패키지 가격
+    price: 99000, // TODO: 실제 C 패키지 가격
   },
   {
     key: 'D',
@@ -44,7 +44,7 @@ const PACKAGE_LIST: PackageInfo[] = [
     description: '허리, 대퇴부에 초점을 맞춘 패키지입니다.',
     highlight: '허리 · 대퇴부 기능 회복 집중',
     lecturePackageId: 2, // TODO: 실제 D 패키지 ID
-    price: 129000,       // TODO: 실제 D 패키지 가격
+    price: 129000, // TODO: 실제 D 패키지 가격
   },
   {
     key: 'E',
@@ -53,7 +53,7 @@ const PACKAGE_LIST: PackageInfo[] = [
     description: '상지, 가슴, 슬하부를 통합한 패키지 구성입니다.',
     highlight: '상지 · 흉곽 · 슬하부 통합 패키지',
     lecturePackageId: 3, // TODO: 실제 E 패키지 ID
-    price: 149000,       // TODO: 실제 E 패키지 가격
+    price: 149000, // TODO: 실제 E 패키지 가격
   },
 ];
 
@@ -121,7 +121,6 @@ export default function PaymentsPageClient() {
           <h1 className="mt-2 text-2xl font-bold text-slate-900">
             패키지 결제 페이지
           </h1>
-
         </header>
 
         <section className="relative">
@@ -146,10 +145,12 @@ export default function PaymentsPageClient() {
           <Swiper
             onSwiper={(swiper) => {
               setSwiperRef(swiper);
+              // 초기 패키지로 이동
               swiper.slideToLoop(initialIndex, 0);
               setActiveIndex(initialIndex);
             }}
             loop
+            loopAdditionalSlides={PACKAGE_LIST.length}
             spaceBetween={24}
             slidesPerView={1.1}
             centeredSlides
