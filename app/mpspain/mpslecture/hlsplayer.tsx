@@ -20,6 +20,7 @@ export default function HlsPlayer({
 }: HlsPlayerProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const wmRef = useRef<HTMLDivElement | null>(null);
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
   const [wmPos, setWmPos] = useState({ x: 20, y: 20 });
 
   // -----------------------------
@@ -80,37 +81,58 @@ export default function HlsPlayer({
     return () => clearInterval(t);
   }, []);
 
-  return (
-    <div className="relative w-full h-full bg-black">
-      {/* VIDEO */}
-      <video
-        ref={videoRef}
-        controls
-        playsInline
-        crossOrigin="use-credentials"
-        className={className || 'w-full h-full'}
-      />
+return (
+  <div
+    ref={wrapperRef}
+    className="relative w-full h-full bg-black"
+  >
+    {/* VIDEO */}
+    <video
+      ref={videoRef}
+      controls
+      playsInline
+      controlsList="nofullscreen"
+      crossOrigin="use-credentials"
+      className={className || 'w-full h-full'}
+    />
 
-      {/* WATERMARK */}
-      <div
-        ref={wmRef}
-        style={{
-          position: 'absolute',
-          left: wmPos.x,
-          top: wmPos.y,
-          opacity: 0.28,
-          fontSize: 18,
-          fontWeight: 700,
-          transform: 'none',
-          color: '#fff',
-          textShadow: '0 0 3px rgba(0,0,0,0.65)',
-          pointerEvents: 'none',
-          userSelect: 'none',
-          whiteSpace: 'nowrap',
-        }}
-      >
-        {watermarkText} · {new Date().toLocaleString()}
-      </div>
+    {/* WATERMARK */}
+    <div
+      ref={wmRef}
+      style={{
+        position: 'absolute',
+        left: wmPos.x,
+        top: wmPos.y,
+        opacity: 0.28,
+        fontSize: 18,
+        fontWeight: 700,
+        color: '#fff',
+        textShadow: '0 0 3px rgba(0,0,0,0.65)',
+        pointerEvents: 'none',
+        userSelect: 'none',
+        whiteSpace: 'nowrap',
+        zIndex: 20,
+      }}
+    >
+      {watermarkText}
     </div>
-  );
+
+    {/* FULLSCREEN BUTTON */}
+    <button
+      type="button"
+      onClick={() => {
+        if (!wrapperRef.current) return;
+
+        if (!document.fullscreenElement) {
+          wrapperRef.current.requestFullscreen();
+        } else {
+          document.exitFullscreen();
+        }
+      }}
+      className="absolute right-3 bottom-3 z-30 rounded bg-black/60 px-3 py-1 text-xs text-white hover:bg-black/80"
+    >
+      전체화면
+    </button>
+  </div>
+);
 }
