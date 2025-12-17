@@ -76,7 +76,7 @@ export default function HlsPlayer({
     };
 
     move();
-    const t = setInterval(move, 2500);
+    const t = setInterval(move, 30000);
     return () => clearInterval(t);
   }, []);
 
@@ -98,12 +98,12 @@ export default function HlsPlayer({
           position: 'absolute',
           left: wmPos.x,
           top: wmPos.y,
-          opacity: 0.18,
+          opacity: 0.28,
           fontSize: 18,
           fontWeight: 700,
-          transform: 'rotate(-15deg)',
+          transform: 'none',
           color: '#fff',
-          textShadow: '0 0 3px rgba(0,0,0,0.6)',
+          textShadow: '0 0 3px rgba(0,0,0,0.65)',
           pointerEvents: 'none',
           userSelect: 'none',
           whiteSpace: 'nowrap',
