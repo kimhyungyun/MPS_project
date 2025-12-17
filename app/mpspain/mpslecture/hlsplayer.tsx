@@ -1,25 +1,30 @@
-// src/components/HlsPlayer.tsx
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Hls from 'hls.js';
 
 type HlsPlayerProps = {
-  /** CloudFront 등에서 내려오는 m3u8 URL */
   src: string;
-  /** true면 manifest 파싱 후 자동 재생 */
   autoPlay?: boolean;
-  /** className 커스터마이징 */
   className?: string;
+
+  /** 워터마크용 */
+  watermarkText: string; // ex: user.mb_id or mb_no
 };
 
 export default function HlsPlayer({
   src,
   autoPlay = false,
   className = '',
+  watermarkText,
 }: HlsPlayerProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const wmRef = useRef<HTMLDivElement | null>(null);
+  const [wmPos, setWmPos] = useState({ x: 20, y: 20 });
 
+  // -----------------------------
+  // HLS 로딩
+  // -----------------------------
   useEffect(() => {
     if (!src) return;
     const video = videoRef.current;
@@ -27,55 +32,85 @@ export default function HlsPlayer({
 
     let hls: Hls | null = null;
 
-    // 대부분 브라우저 (Chrome, Edge 등)
     if (Hls.isSupported()) {
-      hls = new Hls();
-
-      // 🔑 CloudFront Signed Cookie 같이 보내기
-      hls.config.xhrSetup = (xhr, _url) => {
-        xhr.withCredentials = true;
-      };
+      hls = new Hls({
+        xhrSetup(xhr) {
+          xhr.withCredentials = true;
+        },
+      });
 
       hls.attachMedia(video);
       hls.loadSource(src);
 
       if (autoPlay) {
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          video
-            .play()
-            .catch(() => {
-              // 자동재생 막힌 경우 무시
-            });
+          video.play().catch(() => {});
         });
       }
     } else {
-      // iOS Safari 등: video 태그가 HLS 직접 지원
       video.src = src;
-      if (autoPlay) {
-        video
-          .play()
-          .catch(() => {
-            // 자동재생 막힌 경우 무시
-            return;
-          });
-      }
+      if (autoPlay) video.play().catch(() => {});
     }
 
     return () => {
-      if (hls) {
-        hls.destroy();
-        hls = null;
-      }
+      if (hls) hls.destroy();
     };
   }, [src, autoPlay]);
 
+  // -----------------------------
+  // 워터마크 위치 랜덤 이동
+  // -----------------------------
+  useEffect(() => {
+    const move = () => {
+      if (!wmRef.current) return;
+
+      const parent = wmRef.current.parentElement;
+      if (!parent) return;
+
+      const { clientWidth, clientHeight } = parent;
+
+      setWmPos({
+        x: Math.random() * (clientWidth - 220),
+        y: Math.random() * (clientHeight - 40),
+      });
+    };
+
+    move();
+    const t = setInterval(move, 2500);
+    return () => clearInterval(t);
+  }, []);
+
   return (
-    <video
-      ref={videoRef}
-      controls
-      playsInline
-      crossOrigin="use-credentials"
-      className={className || 'w-full rounded-lg shadow border bg-black'}
-    />
+    <div className="relative w-full h-full bg-black">
+      {/* VIDEO */}
+      <video
+        ref={videoRef}
+        controls
+        playsInline
+        crossOrigin="use-credentials"
+        className={className || 'w-full h-full'}
+      />
+
+      {/* WATERMARK */}
+      <div
+        ref={wmRef}
+        style={{
+          position: 'absolute',
+          left: wmPos.x,
+          top: wmPos.y,
+          opacity: 0.18,
+          fontSize: 18,
+          fontWeight: 700,
+          transform: 'rotate(-15deg)',
+          color: '#fff',
+          textShadow: '0 0 3px rgba(0,0,0,0.6)',
+          pointerEvents: 'none',
+          userSelect: 'none',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {watermarkText} · {new Date().toLocaleString()}
+      </div>
+    </div>
   );
 }

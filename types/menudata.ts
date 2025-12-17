@@ -23,6 +23,7 @@ export const menuData: MenuItem[] = [
   {
     title: "MPS 동영상 강의",
     submenu: [
+      //{ title: "강의 영상", href: "/mpspain/mpslecture/payments" },
       { title: "동영상 강의", href: "/mpspain/mpslecture" },
       { title: "강의 자료실", href: "/mpspain/mpslecture/dataroom2" },
 

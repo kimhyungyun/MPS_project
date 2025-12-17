@@ -328,9 +328,7 @@ export default function Mpsvideo() {
   // 로그인 안 됐고, 목록 로딩도 끝났으면 아무것도 렌더 안 함
   if (!user && !loadingList) return null;
 
-  // ------------------------------------------------------------
-  // UI
-  // ------------------------------------------------------------
+    const watermarkText = user ? `${user.mb_id} (${user.mb_no})` : 'unknown-user';
 
   return (
     <main className="min-h-screen bg-slate-50">
@@ -464,6 +462,7 @@ export default function Mpsvideo() {
                     <HlsPlayer
                       src={streamUrl}
                       autoPlay
+                      watermarkText={watermarkText}
                       className="w-full h-full"
                     />
                   ) : (
