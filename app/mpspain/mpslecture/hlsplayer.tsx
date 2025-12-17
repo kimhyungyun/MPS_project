@@ -81,58 +81,79 @@ export default function HlsPlayer({
     return () => clearInterval(t);
   }, []);
 
-return (
-  <div
-    ref={wrapperRef}
-    className="relative w-full h-full bg-black"
-  >
-    {/* VIDEO */}
-    <video
-      ref={videoRef}
-      controls
-      playsInline
-      controlsList="nofullscreen"
-      crossOrigin="use-credentials"
-      className={className || 'w-full h-full'}
-    />
+      return (
+        <div
+          ref={wrapperRef}
+          className="group relative w-full h-full bg-black"
+        >
+          {/* VIDEO */}
+          <video
+            ref={videoRef}
+            controls
+            playsInline
+            controlsList="nofullscreen"
+            crossOrigin="use-credentials"
+            className={className || 'w-full h-full'}
+          />
 
-    {/* WATERMARK */}
-    <div
-      ref={wmRef}
-      style={{
-        position: 'absolute',
-        left: wmPos.x,
-        top: wmPos.y,
-        opacity: 0.28,
-        fontSize: 18,
-        fontWeight: 700,
-        color: '#fff',
-        textShadow: '0 0 3px rgba(0,0,0,0.65)',
-        pointerEvents: 'none',
-        userSelect: 'none',
-        whiteSpace: 'nowrap',
-        zIndex: 20,
-      }}
-    >
-      {watermarkText}
-    </div>
+          {/* WATERMARK */}
+          <div
+            ref={wmRef}
+            style={{
+              position: 'absolute',
+              left: wmPos.x,
+              top: wmPos.y,
+              opacity: 0.28,
+              fontSize: 18,
+              fontWeight: 700,
+              color: '#fff',
+              textShadow: '0 0 3px rgba(0,0,0,0.65)',
+              pointerEvents: 'none',
+              userSelect: 'none',
+              whiteSpace: 'nowrap',
+              zIndex: 20,
+            }}
+          >
+            {watermarkText}
+          </div>
 
-    {/* FULLSCREEN BUTTON */}
-    <button
-      type="button"
-      onClick={() => {
-        if (!wrapperRef.current) return;
+            <button
+              type="button"
+              aria-label="전체화면"
+              onClick={() => {
+                if (!wrapperRef.current) return;
+                if (!document.fullscreenElement) wrapperRef.current.requestFullscreen();
+                else document.exitFullscreen();
+              }}
+              className="
+                absolute right-3 bottom-14 z-30
+                inline-flex items-center justify-center
+                h-8 w-8 rounded-md
+                text-white/90
+                opacity-90
+                transition
+                hover:bg-black/55 hover:opacity-100
+                focus:outline-none focus:ring-2 focus:ring-white/40
+                group-hover:opacity-100
+              "
+            >
+              {/* fullscreen icon */}
+              <svg
+                viewBox="0 0 24 24"
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M8 3H5a2 2 0 0 0-2 2v3" />
+                <path d="M16 3h3a2 2 0 0 1 2 2v3" />
+                <path d="M8 21H5a2 2 0 0 1-2-2v-3" />
+                <path d="M16 21h3a2 2 0 0 0 2-2v-3" />
+              </svg>
+            </button>
 
-        if (!document.fullscreenElement) {
-          wrapperRef.current.requestFullscreen();
-        } else {
-          document.exitFullscreen();
-        }
-      }}
-      className="absolute right-3 bottom-3 z-30 rounded bg-black/60 px-3 py-1 text-xs text-white hover:bg-black/80"
-    >
-      전체화면
-    </button>
-  </div>
-);
+        </div>
+      );
 }
