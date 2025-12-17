@@ -130,7 +130,7 @@ export default function HlsPlayer({
             }}
             className="
               absolute z-50
-              right-[46px] bottom-[14px]
+              right-[50px] bottom-[17px]
               h-[30px] w-[30px]
               inline-flex items-center justify-center
               rounded
