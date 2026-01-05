@@ -8,8 +8,8 @@ type Pkg = { id: number; name: string; price: number };
 
 function PolicySection() {
   return (
-    <section className="rounded-3xl border bg-white p-7">
-      <h3 className="text-lg font-bold text-slate-900">동영상 강의 규정</h3>
+    <section className="rounded-3xl border border-slate-200/70 bg-white p-7 shadow-[0_12px_40px_rgba(2,6,23,0.06)]">
+      <h3 className="text-lg font-extrabold tracking-tight text-slate-900">동영상 강의 규정</h3>
 
       <ul className="mt-4 list-disc space-y-2 pl-5 text-sm leading-relaxed text-slate-700">
         <li>온라인 강의의 특성상 구매 후 환불이 불가능합니다.</li>
@@ -57,8 +57,8 @@ function BusinessFooter() {
   };
 
   return (
-    <footer className="mt-8 rounded-3xl border bg-white p-7 text-sm text-slate-700">
-      <h4 className="font-bold text-slate-900">사업자 정보</h4>
+    <footer className="mt-10 rounded-3xl border border-slate-200/70 bg-white p-7 text-sm text-slate-700 shadow-[0_12px_40px_rgba(2,6,23,0.06)]">
+      <h4 className="text-base font-extrabold tracking-tight text-slate-900">사업자 정보</h4>
       <div className="mt-4 grid gap-2 md:grid-cols-2">
         <p>상호명: {biz.companyName}</p>
         <p>대표자명: {biz.ceo}</p>
@@ -72,9 +72,11 @@ function BusinessFooter() {
 }
 
 export default async function PackageDetailPage(
-  props: { params: Promise<{ id: string }> } // ✅ Next 15 타입 대응
+  props: { params: Promise<{ id: string }> } // Next 15 타입
 ) {
-  const { id: idStr } = await props.params;  // ✅ Promise 해제
+  if (!API_URL) return notFound();
+
+  const { id: idStr } = await props.params;
   const id = Number(idStr);
   if (!Number.isFinite(id)) return notFound();
 
@@ -89,8 +91,8 @@ export default async function PackageDetailPage(
   const payHref = `/mpspain/mpslecture/payments?packageId=${id}`;
 
   return (
-    <main className="min-h-screen bg-slate-50">
-      <div className="mx-auto mt-32 max-w-5xl px-4 py-10 lg:py-12">
+    <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50">
+      <div className="mx-auto mt-24 max-w-5xl px-4 py-10 lg:py-14">
         <div className="mb-6 flex items-center justify-between gap-3">
           <Link
             href="/mpspain/mpslecture/packages"
@@ -101,54 +103,79 @@ export default async function PackageDetailPage(
 
           <Link
             href={payHref}
-            className="rounded-full bg-indigo-600 px-6 py-3 text-sm font-bold text-white hover:bg-indigo-700"
+            className="
+              rounded-full px-6 py-3 text-sm font-extrabold text-white
+              bg-gradient-to-r from-indigo-600 to-indigo-500
+              shadow-[0_10px_25px_rgba(79,70,229,0.25)]
+              hover:from-indigo-700 hover:to-indigo-600
+            "
           >
             구매하기
           </Link>
         </div>
 
-        <section className="rounded-3xl border bg-white p-7">
-          <p className="text-xs font-semibold uppercase tracking-wide text-indigo-500">
-            {ui?.badge ?? 'MPS PACKAGE'}
-          </p>
+        <section className="relative overflow-hidden rounded-3xl border border-slate-200/70 bg-white p-7 shadow-[0_12px_40px_rgba(2,6,23,0.06)]">
+          {/* glow */}
+          <div
+            className="
+              pointer-events-none absolute -top-32 -right-32 h-72 w-72 rounded-full
+              bg-gradient-to-br from-indigo-200/55 via-fuchsia-200/25 to-transparent
+              blur-2xl opacity-70
+            "
+          />
 
-          <div className="mt-2 flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
-            <div className="space-y-2">
-              <h1 className="text-2xl font-extrabold text-slate-900">{pkg.name}</h1>
-              {ui?.highlight ? (
-                <p className="text-sm font-medium text-indigo-600">{ui.highlight}</p>
-              ) : null}
-              <p className="mt-2 text-[15px] leading-relaxed text-slate-700">
-                {ui?.description ?? '설명 준비 중'}
-              </p>
+          <div className="relative">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-600">
+              {ui?.badge ?? 'MPS PACKAGE'}
+            </p>
+
+            <div className="mt-3 flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+              <div className="space-y-3">
+                <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
+                  {pkg.name}
+                </h1>
+
+                {ui?.highlight ? (
+                  <p className="text-sm font-semibold text-indigo-600">{ui.highlight}</p>
+                ) : null}
+
+                <p className="text-[15px] leading-relaxed text-slate-600">
+                  {ui?.description ?? '설명 준비 중'}
+                </p>
+              </div>
+
+              <div className="shrink-0 rounded-2xl border border-slate-200 bg-slate-50/70 px-6 py-5 text-right">
+                <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+                  Price
+                </p>
+                <p className="mt-2 text-[28px] font-extrabold tracking-tight text-slate-900">
+                  {Number(pkg.price).toLocaleString()}
+                  <span className="ml-1 text-base font-bold text-slate-500">원</span>
+                </p>
+                <p className="mt-2 text-xs text-slate-500">
+                  최대 서비스 제공기간: 결제 다음날부터 60일(1개 기준)
+                </p>
+              </div>
             </div>
 
-            <div className="shrink-0 rounded-2xl border bg-slate-50 px-6 py-5 text-right">
-              <p className="text-xs text-slate-500">판매가 (VAT 10% 포함)</p>
-              <p className="mt-1 text-2xl font-extrabold text-indigo-600">
-                {Number(pkg.price).toLocaleString()}원
-              </p>
-              <p className="mt-2 text-xs text-slate-500">
-                최대 서비스 제공기간: 결제 다음날부터 60일(1개 기준)
-              </p>
-            </div>
-          </div>
+            <div className="mt-7 grid gap-5 md:grid-cols-2">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-5">
+                <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+                  주요 근육
+                </p>
+                <p className="mt-2 text-sm text-slate-700">
+                  {ui?.muscles?.length ? ui.muscles.join(', ') : '해당 없음'}
+                </p>
+              </div>
 
-          <div className="mt-6 grid gap-5 md:grid-cols-2">
-            <div className="rounded-2xl border bg-slate-50 p-5">
-              <p className="text-xs font-semibold uppercase text-slate-500">주요 근육</p>
-              <p className="mt-2 text-sm text-slate-700">
-                {ui?.muscles?.length ? ui.muscles.join(', ') : '해당 없음'}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border bg-slate-50 p-5 md:col-span-2">
-              <p className="text-xs font-semibold uppercase text-slate-500">
-                동영상 강의 내용과 목표
-              </p>
-              <p className="mt-2 text-sm leading-relaxed text-slate-700">
-                {ui?.goal ?? '내용 준비 중'}
-              </p>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-5 md:col-span-2">
+                <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+                  동영상 강의 내용과 목표
+                </p>
+                <p className="mt-2 text-sm leading-relaxed text-slate-700">
+                  {ui?.goal ?? '내용 준비 중'}
+                </p>
+              </div>
             </div>
           </div>
         </section>
@@ -160,7 +187,12 @@ export default async function PackageDetailPage(
         <div className="mt-8">
           <Link
             href={payHref}
-            className="block w-full rounded-full bg-indigo-600 px-6 py-4 text-center text-sm font-bold text-white hover:bg-indigo-700"
+            className="
+              block w-full rounded-full px-6 py-4 text-center text-sm font-extrabold text-white
+              bg-gradient-to-r from-indigo-600 to-indigo-500
+              shadow-[0_10px_25px_rgba(79,70,229,0.25)]
+              hover:from-indigo-700 hover:to-indigo-600
+            "
           >
             구매하기
           </Link>
