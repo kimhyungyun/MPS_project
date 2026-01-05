@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getUiById } from '../../_data/packageUi';
 
-const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL!;
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 type Pkg = { id: number; name: string; price: number };
 
@@ -78,7 +78,7 @@ export default async function PackageDetailPage(
   const id = Number(idStr);
   if (!Number.isFinite(id)) return notFound();
 
-  const res = await fetch(`${apiBase}/lecture-packages`, { cache: 'no-store' });
+  const res = await fetch(`${API_URL}/lecture-packages`, { cache: 'no-store' });
   if (!res.ok) throw new Error('패키지 조회 실패');
 
   const pkgs: Pkg[] = await res.json();
