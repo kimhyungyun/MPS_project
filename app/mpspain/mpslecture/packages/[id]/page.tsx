@@ -1,6 +1,9 @@
+// app/mpspain/mpslecture/packages/[id]/page.tsx
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getUiById } from '../../_data/packageUi';
+import PurchaseGateLink from '../../_components/PurchaseGateLink';
+import VideoPreviewList from './VideoPreviewList';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -8,7 +11,7 @@ type Pkg = { id: number; name: string; price: number };
 
 function PolicySection() {
   return (
-    <section className="rounded-3xl border border-slate-200/70 bg-white p-7 shadow-[0_12px_40px_rgba(2,6,23,0.06)]">
+    <section className="rounded-3xl border border-slate-200/70 bg-white p-6 shadow-[0_12px_40px_rgba(2,6,23,0.06)] sm:p-7">
       <h3 className="text-lg font-extrabold tracking-tight text-slate-900">동영상 강의 규정</h3>
 
       <ul className="mt-4 list-disc space-y-2 pl-5 text-sm leading-relaxed text-slate-700">
@@ -46,7 +49,6 @@ function PolicySection() {
 }
 
 function BusinessFooter() {
-  // TODO: 토스 심사용 실제 값으로 교체
   const biz = {
     companyName: 'TODO 상호명',
     ceo: 'TODO 대표자명',
@@ -57,23 +59,21 @@ function BusinessFooter() {
   };
 
   return (
-    <footer className="mt-10 rounded-3xl border border-slate-200/70 bg-white p-7 text-sm text-slate-700 shadow-[0_12px_40px_rgba(2,6,23,0.06)]">
+    <footer className="mt-8 rounded-3xl border border-slate-200/70 bg-white p-6 text-sm text-slate-700 shadow-[0_12px_40px_rgba(2,6,23,0.06)] sm:mt-10 sm:p-7">
       <h4 className="text-base font-extrabold tracking-tight text-slate-900">사업자 정보</h4>
       <div className="mt-4 grid gap-2 md:grid-cols-2">
-        <p>상호명: {biz.companyName}</p>
-        <p>대표자명: {biz.ceo}</p>
-        <p>사업자등록번호: {biz.bizNo}</p>
-        <p>고객센터: {biz.phone}</p>
-        <p className="md:col-span-2">주소: {biz.address}</p>
-        <p className="md:col-span-2">이메일: {biz.email}</p>
+        <p className="truncate">상호명: {biz.companyName}</p>
+        <p className="truncate">대표자명: {biz.ceo}</p>
+        <p className="truncate">사업자등록번호: {biz.bizNo}</p>
+        <p className="truncate">고객센터: {biz.phone}</p>
+        <p className="md:col-span-2 break-words">주소: {biz.address}</p>
+        <p className="md:col-span-2 break-words">이메일: {biz.email}</p>
       </div>
     </footer>
   );
 }
 
-export default async function PackageDetailPage(
-  props: { params: Promise<{ id: string }> } // Next 15 타입
-) {
+export default async function PackageDetailPage(props: { params: Promise<{ id: string }> }) {
   if (!API_URL) return notFound();
 
   const { id: idStr } = await props.params;
@@ -88,12 +88,11 @@ export default async function PackageDetailPage(
   if (!pkg) return notFound();
 
   const ui = getUiById(id);
-  const payHref = `/mpspain/mpslecture/payments?packageId=${id}`;
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50">
-      <div className="mx-auto mt-24 max-w-5xl px-4 py-10 lg:py-14">
-        <div className="mb-6 flex items-center justify-between gap-3">
+      <div className="mx-auto mt-16 max-w-5xl px-4 pb-10 pt-6 sm:mt-24 sm:py-10 lg:py-14">
+        <div className="mb-5 flex items-center justify-between gap-3 sm:mb-6">
           <Link
             href="/mpspain/mpslecture/packages"
             className="text-sm font-semibold text-slate-700 hover:underline"
@@ -101,21 +100,22 @@ export default async function PackageDetailPage(
             ← 패키지 리스트
           </Link>
 
-          <Link
-            href={payHref}
+          {/* ✅ 구매하기: 로그인 체크 후 이동 */}
+          <PurchaseGateLink
+            packageId={id}
             className="
-              rounded-full px-6 py-3 text-sm font-extrabold text-white
+              rounded-full px-5 py-3 text-sm font-extrabold text-white
               bg-gradient-to-r from-indigo-600 to-indigo-500
               shadow-[0_10px_25px_rgba(79,70,229,0.25)]
               hover:from-indigo-700 hover:to-indigo-600
+              sm:px-6
             "
           >
             구매하기
-          </Link>
+          </PurchaseGateLink>
         </div>
 
-        <section className="relative overflow-hidden rounded-3xl border border-slate-200/70 bg-white p-7 shadow-[0_12px_40px_rgba(2,6,23,0.06)]">
-          {/* glow */}
+        <section className="relative overflow-hidden rounded-3xl border border-slate-200/70 bg-white p-6 shadow-[0_12px_40px_rgba(2,6,23,0.06)] sm:p-7">
           <div
             className="
               pointer-events-none absolute -top-32 -right-32 h-72 w-72 rounded-full
@@ -125,46 +125,46 @@ export default async function PackageDetailPage(
           />
 
           <div className="relative">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-600">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-indigo-600 sm:text-xs sm:tracking-[0.18em]">
               {ui?.badge ?? 'MPS PACKAGE'}
             </p>
 
-            <div className="mt-3 flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
-              <div className="space-y-3">
-                <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
+            <div className="mt-3 flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+              <div className="min-w-0 space-y-3">
+                <h1 className="truncate text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
                   {pkg.name}
                 </h1>
 
                 {ui?.highlight ? (
-                  <p className="text-sm font-semibold text-indigo-600">{ui.highlight}</p>
+                  <p className="truncate text-sm font-semibold text-indigo-600">{ui.highlight}</p>
                 ) : null}
 
-                <p className="text-[15px] leading-relaxed text-slate-600">
+                <p className="truncate text-[15px] leading-relaxed text-slate-600">
                   {ui?.description ?? '설명 준비 중'}
                 </p>
               </div>
 
-              <div className="shrink-0 rounded-2xl border border-slate-200 bg-slate-50/70 px-6 py-5 text-right">
+              <div className="shrink-0 rounded-2xl border border-slate-200 bg-slate-50/70 px-5 py-4 text-left sm:px-6 sm:py-5 md:text-right">
                 <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
                   Price
                 </p>
-                <p className="mt-2 text-[28px] font-extrabold tracking-tight text-slate-900">
+                <p className="mt-2 whitespace-nowrap text-[26px] font-extrabold tracking-tight text-slate-900 sm:text-[28px]">
                   {Number(pkg.price).toLocaleString()}
                   <span className="ml-1 text-base font-bold text-slate-500">원</span>
                 </p>
-                <p className="mt-2 text-xs text-slate-500">
+                <p className="mt-2 truncate text-xs text-slate-500">
                   최대 서비스 제공기간: 결제 다음날부터 60일(1개 기준)
                 </p>
               </div>
             </div>
 
-            <div className="mt-7 grid gap-5 md:grid-cols-2">
+            <div className="mt-6 grid gap-4 sm:gap-5 md:grid-cols-2">
               <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-5">
                 <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
                   주요 근육
                 </p>
-                <p className="mt-2 text-sm text-slate-700">
-                  {ui?.muscles?.length ? ui.muscles.join(', ') : '해당 없음'}
+                <p className="mt-2 truncate text-sm text-slate-700">
+                  {ui?.muscles?.length ? ui.muscles.join(', ') : '패키지 A+B+C 묶음'}
                 </p>
               </div>
 
@@ -172,7 +172,7 @@ export default async function PackageDetailPage(
                 <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
                   동영상 강의 내용과 목표
                 </p>
-                <p className="mt-2 text-sm leading-relaxed text-slate-700">
+                <p className="mt-2 truncate text-sm leading-relaxed text-slate-700">
                   {ui?.goal ?? '내용 준비 중'}
                 </p>
               </div>
@@ -180,13 +180,19 @@ export default async function PackageDetailPage(
           </div>
         </section>
 
+        {/* ✅ 강의 목록(보이기만 / 클릭불가) */}
+        <div className="mt-6">
+          <VideoPreviewList packageId={id} />
+        </div>
+
         <div className="mt-6 grid gap-6">
           <PolicySection />
         </div>
 
         <div className="mt-8">
-          <Link
-            href={payHref}
+          {/* ✅ 아래 구매하기도 게이트 적용 */}
+          <PurchaseGateLink
+            packageId={id}
             className="
               block w-full rounded-full px-6 py-4 text-center text-sm font-extrabold text-white
               bg-gradient-to-r from-indigo-600 to-indigo-500
@@ -195,7 +201,7 @@ export default async function PackageDetailPage(
             "
           >
             구매하기
-          </Link>
+          </PurchaseGateLink>
         </div>
 
         <BusinessFooter />
