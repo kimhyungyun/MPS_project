@@ -33,7 +33,7 @@ export default function RefundPolicyPage() {
               href="/mpspain/mpslecture/packages"
               className="rounded-full bg-indigo-600 px-6 py-3 text-sm font-bold text-white hover:bg-indigo-700"
             >
-              패키지 리스트로
+              패키지 리스트로 돌아가기
             </Link>
           </div>
         </section>
