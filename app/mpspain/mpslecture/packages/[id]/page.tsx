@@ -78,7 +78,7 @@ export default async function PackageDetailPage(
   const id = Number(idStr);
   if (!Number.isFinite(id)) return notFound();
 
-  const res = await fetch(`${API_URL}/lecture-packages`, { cache: 'no-store' });
+  const res = await fetch(`${API_URL}/api/lecture-packages`, { cache: 'no-store' });
   if (!res.ok) throw new Error('패키지 조회 실패');
 
   const pkgs: Pkg[] = await res.json();
