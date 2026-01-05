@@ -18,23 +18,26 @@ function PolicySection() {
         <li>
           강의 기간은 패키지 1개당 결제한 날 다음날부터 2개월(60일)입니다.
           <br />
-          (시청은 결제 당일부터 가능 / 기간 산정은 익일부터 60일)
+          (동영상 시청은 결제 당일부터 가능합니다 / 기간 책정은 익일부터 60일)
         </li>
-        <li>동영상 강의 2개 구매 시: 2가지 패키지 모두 각 4개월씩 적용됩니다.</li>
-        <li>동영상 강의 3개 구매 시: 3가지 패키지 모두 각 6개월씩 적용됩니다.</li>
+        <li>동영상 강의 2개 구매 시 2가지 패키지 모두 각 4개월 씩 적용됩니다.</li>
+        <li>동영상 강의 3개 구매 시 3가지 패키지 모두 각 6개월 씩 적용됩니다.</li>
         <li>
-          강의 1개 구매후 60일이 지나지 않은 시점에서 다른 패키지 구매 시
+          강의 1개 구매후 60일이 지나지 않은 시점에서 다른 패키지 구매하시는 경우
           두 패키지 전부 최초 구매 시점에서 120일이 적용됩니다.
         </li>
-        <li>강의 1개 구매후 60일이 지난 시점에서 다시 구매하는 경우에는 적용 안됩니다.</li>
+        <li>강의 1개 구매후 60일이 지난 시점에서 다시 구매하시는 경우에는 적용 안됩니다.</li>
         <li>
-          강의 구매자의 경우 MPS 전주 캠프 정회원 등록 시 동영상 강의 구매 금액만큼 차감되어 적용합니다.
+          강의 구매자의 경우는 MPS 전주 캠프에 참가하기 위한 정회원 등록시 동영상 강의 구매 금액만큼 차감되어 적용합니다.
           (캠프 참가 환불의 경우에도 동영상 강의 구매 금액만큼은 환불 불가합니다)
         </li>
       </ul>
 
       <div className="mt-5 text-sm">
-        <Link href="/mpspain/mpslecture/policy/refund" className="font-semibold text-indigo-600 hover:underline">
+        <Link
+          href="/mpspain/mpslecture/policy/refund"
+          className="font-semibold text-indigo-600 hover:underline"
+        >
           환불/취소 정책 페이지 보기
         </Link>
       </div>
@@ -43,7 +46,7 @@ function PolicySection() {
 }
 
 function BusinessFooter() {
-  // TODO: 실제 값으로 교체(토스 심사 필수)
+  // TODO: 토스 심사용 실제 값으로 교체
   const biz = {
     companyName: 'TODO 상호명',
     ceo: 'TODO 대표자명',
@@ -68,11 +71,13 @@ function BusinessFooter() {
   );
 }
 
-export default async function PackageDetailPage({ params }: { params: { id: string } }) {
-  const id = Number(params.id);
+export default async function PackageDetailPage(
+  props: { params: Promise<{ id: string }> } // ✅ Next 15 타입 대응
+) {
+  const { id: idStr } = await props.params;  // ✅ Promise 해제
+  const id = Number(idStr);
   if (!Number.isFinite(id)) return notFound();
 
-  // 지금은 list API만 있으니 list에서 찾아옴 (나중에 /lecture-packages/:id 만들어도 됨)
   const res = await fetch(`${apiBase}/lecture-packages`, { cache: 'no-store' });
   if (!res.ok) throw new Error('패키지 조회 실패');
 
@@ -87,7 +92,10 @@ export default async function PackageDetailPage({ params }: { params: { id: stri
     <main className="min-h-screen bg-slate-50">
       <div className="mx-auto mt-32 max-w-5xl px-4 py-10 lg:py-12">
         <div className="mb-6 flex items-center justify-between gap-3">
-          <Link href="/mpspain/mpslecture/packages" className="text-sm font-semibold text-slate-700 hover:underline">
+          <Link
+            href="/mpspain/mpslecture/packages"
+            className="text-sm font-semibold text-slate-700 hover:underline"
+          >
             ← 패키지 리스트
           </Link>
 
@@ -99,7 +107,6 @@ export default async function PackageDetailPage({ params }: { params: { id: stri
           </Link>
         </div>
 
-        {/* 상단 카드(사진 느낌) */}
         <section className="rounded-3xl border bg-white p-7">
           <p className="text-xs font-semibold uppercase tracking-wide text-indigo-500">
             {ui?.badge ?? 'MPS PACKAGE'}
@@ -108,7 +115,9 @@ export default async function PackageDetailPage({ params }: { params: { id: stri
           <div className="mt-2 flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
             <div className="space-y-2">
               <h1 className="text-2xl font-extrabold text-slate-900">{pkg.name}</h1>
-              {ui?.highlight ? <p className="text-sm font-medium text-indigo-600">{ui.highlight}</p> : null}
+              {ui?.highlight ? (
+                <p className="text-sm font-medium text-indigo-600">{ui.highlight}</p>
+              ) : null}
               <p className="mt-2 text-[15px] leading-relaxed text-slate-700">
                 {ui?.description ?? '설명 준비 중'}
               </p>
@@ -125,7 +134,6 @@ export default async function PackageDetailPage({ params }: { params: { id: stri
             </div>
           </div>
 
-          {/* 상세 내용 */}
           <div className="mt-6 grid gap-5 md:grid-cols-2">
             <div className="rounded-2xl border bg-slate-50 p-5">
               <p className="text-xs font-semibold uppercase text-slate-500">주요 근육</p>
@@ -135,7 +143,9 @@ export default async function PackageDetailPage({ params }: { params: { id: stri
             </div>
 
             <div className="rounded-2xl border bg-slate-50 p-5 md:col-span-2">
-              <p className="text-xs font-semibold uppercase text-slate-500">동영상 강의 내용과 목표</p>
+              <p className="text-xs font-semibold uppercase text-slate-500">
+                동영상 강의 내용과 목표
+              </p>
               <p className="mt-2 text-sm leading-relaxed text-slate-700">
                 {ui?.goal ?? '내용 준비 중'}
               </p>
@@ -147,7 +157,6 @@ export default async function PackageDetailPage({ params }: { params: { id: stri
           <PolicySection />
         </div>
 
-        {/* 맨 아래 구매하기 버튼(요구사항) */}
         <div className="mt-8">
           <Link
             href={payHref}

@@ -1,8 +1,8 @@
 export type PackageUi = {
   lecturePackageId: number; // DB lecture_package.id (1~4)
-  badge: string;            // 상단 작은 라벨
-  shortDesc: string;        // 리스트에서 보일 짧은 설명
-  highlight?: string;       // 한줄 강조
+  badge: string;            // 상단 라벨
+  shortDesc: string;        // 리스트 짧은 설명
+  highlight?: string;       // 강조 문구
   description: string;      // 상세 설명
   muscles: string[];
   goal: string;

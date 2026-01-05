@@ -25,6 +25,7 @@ export default function RefundPolicyPage() {
           <ul className="mt-2 list-disc space-y-2 pl-5">
             <li>패키지 1개 기준: 결제 다음날부터 60일(시청은 결제 당일부터 가능)</li>
             <li>2개 구매: 각 4개월 적용 / 3개 구매: 각 6개월 적용</li>
+            <li>60일 이내 추가 구매 시 최초 구매 기준으로 120일 적용</li>
           </ul>
 
           <div className="mt-8">
