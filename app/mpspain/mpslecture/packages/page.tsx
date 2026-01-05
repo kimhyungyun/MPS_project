@@ -1,19 +1,19 @@
 import PackageCard from './PackageCard';
 import { getUiById } from '../_data/packageUi';
 
-const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_URL = process.env.NEXT_PUBLIC_API_URL; // ✅ 네 env 키로 변경
 
 type Pkg = { id: number; name: string; price: number };
 
 export default async function PackagesPage() {
-  if (!apiBase) {
+  if (!API_URL) {
     return (
       <main className="min-h-screen bg-slate-50">
         <div className="mx-auto mt-40 max-w-3xl px-4 py-10">
           <div className="rounded-3xl border bg-white p-7">
             <h1 className="text-xl font-bold text-slate-900">설정 오류</h1>
             <p className="mt-2 text-sm text-slate-700">
-              NEXT_PUBLIC_API_BASE_URL 이 설정되어 있지 않습니다. (Vercel Env 확인)
+              NEXT_PUBLIC_API_URL 이 설정되어 있지 않습니다. (Vercel Env 확인)
             </p>
           </div>
         </div>
@@ -25,7 +25,9 @@ export default async function PackagesPage() {
   let errorMsg: string | null = null;
 
   try {
-    const res = await fetch(`${apiBase}/api/lecture-packages`, { cache: 'no-store' });
+    // ✅ 베이스 + /api 붙이기
+    const res = await fetch(`${API_URL}/api/lecture-packages`, { cache: 'no-store' });
+
     if (!res.ok) {
       errorMsg = `API 응답 오류: ${res.status}`;
     } else {
@@ -41,13 +43,15 @@ export default async function PackagesPage() {
         <header className="mb-8 text-center">
           <p className="text-xs font-semibold uppercase text-indigo-500">MPS 강의 패키지</p>
           <h1 className="mt-2 text-2xl font-bold text-slate-900">패키지 리스트</h1>
-          <p className="mt-2 text-sm text-slate-600">패키지를 선택하고 상세 내용을 확인한 후 구매하세요.</p>
+          <p className="mt-2 text-sm text-slate-600">
+            패키지를 선택하고 상세 내용을 확인한 후 구매하세요.
+          </p>
         </header>
 
         {errorMsg ? (
           <div className="rounded-3xl border bg-white p-7 text-sm text-red-700">
             <b>목록 로드 실패</b>
-            <div className="mt-2">apiBase: {apiBase}</div>
+            <div className="mt-2">API_URL: {API_URL}</div>
             <div className="mt-1">{errorMsg}</div>
           </div>
         ) : (
