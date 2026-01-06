@@ -7,10 +7,10 @@ const Footer = () => {
 
           {/* left */}
           <div className="text-gray-700 text-sm leading-relaxed text-center sm:text-left">
-            <p>(c)Copyright 2006 경근근막침(A-MPS)연구회.</p>
+            <p>유한회사 경근근막엠피에스</p>
             <p>대표 : 문대원 | 사업자번호 : 402-86-04244</p>
-            <p>전화 : 063.284.0707</p>
-            <p>주소 : 전라북도 전주시 용머리로 34 5층 | E-Mail : mdw36@hanmail.net</p>
+            <p>전화 : 063.284.0707 / 010-7942-5857</p>
+            <p>주소 : 전북 전주시 완산구 용머리로 34 5층 MPS연구회 | E-Mail : mdw36900@gmail.com</p>
             <p>통신판매신고번호 : 제2013-4650077-30-2-00234</p>
           </div>
 

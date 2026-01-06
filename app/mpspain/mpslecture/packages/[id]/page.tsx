@@ -50,12 +50,12 @@ function PolicySection() {
 
 function BusinessFooter() {
   const biz = {
-    companyName: 'TODO 상호명',
-    ceo: 'TODO 대표자명',
-    bizNo: 'TODO 사업자등록번호',
-    address: 'TODO 사업장 주소',
-    phone: 'TODO 고객센터 전화번호',
-    email: 'TODO 이메일',
+    companyName: '유한회사 경근근막엠피에스',
+    ceo: '문대원',
+    bizNo: '402-86-04244',
+    address: '전북 전주시 완산구 용머리로 34 5층 MPS연구회',
+    phone: '010-7942-5857',
+    email: 'mdw36900@gmail.com', 
   };
 
   return (
