@@ -110,6 +110,7 @@ export default function PaymentsPageClient() {
     '선택된 패키지';
 
   const displayPrice = pkg?.price ?? null;
+  const priceText = displayPrice != null ? `${displayPrice.toLocaleString()}원` : '-';
 
   const handlePay = async () => {
     if (!lecturePackageId) {
@@ -166,8 +167,6 @@ export default function PaymentsPageClient() {
     }
   };
 
-  const priceText = displayPrice != null ? `${displayPrice.toLocaleString()}원` : '-';
-
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50">
       <div className="mx-auto mt-16 max-w-4xl px-4 pb-12 pt-6 sm:mt-24 sm:pt-10">
@@ -202,9 +201,9 @@ export default function PaymentsPageClient() {
             </button>
           </section>
         ) : (
-          <section className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
+          <section className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr] items-stretch">
             {/* ✅ 상품 카드 */}
-            <div className="rounded-3xl border border-slate-200/70 bg-white p-5 sm:p-7">
+            <div className="rounded-3xl border border-slate-200/70 bg-white p-5 sm:p-7 h-full flex flex-col">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-xs font-semibold text-slate-500">선택 상품</p>
@@ -222,12 +221,13 @@ export default function PaymentsPageClient() {
               {/* 이미지 + 설명 */}
               <div className="mt-5 grid gap-4 sm:grid-cols-[220px_1fr]">
                 <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
-                  <div className="relative aspect-[4/3] w-full">
+                  <div className="relative aspect-[3/4] w-full">
                     <Image
                       src="/상품테스트이미지.jpg"
                       alt="상품 이미지"
                       fill
-                      className="object-cover"
+                      sizes="(max-width: 640px) 100vw, 220px"
+                      className="object-contain p-3"
                       priority
                     />
                   </div>
@@ -265,11 +265,11 @@ export default function PaymentsPageClient() {
               </div>
             </div>
 
-            {/* ✅ 결제 요약 카드 */}
-            <aside className="rounded-3xl border border-slate-200/70 bg-white p-5 sm:p-7">
+            {/* ✅ 결제 요약 카드 (높이 맞춤 + 버튼 하단 고정) */}
+            <aside className="rounded-3xl border border-slate-200/70 bg-white p-5 sm:p-7 h-full flex flex-col">
               <p className="text-sm font-extrabold text-slate-900">결제 요약</p>
 
-              <div className="mt-4 space-y-3">
+              <div className="mt-4 flex flex-col gap-3 grow">
                 <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
                   <p className="text-xs font-semibold text-slate-500">상품명</p>
                   <p className="mt-1 text-sm font-bold text-slate-900">
@@ -293,17 +293,19 @@ export default function PaymentsPageClient() {
                   </div>
                 </div>
 
-                <button
-                  onClick={handlePay}
-                  disabled={loading}
-                  className="w-full rounded-full bg-indigo-600 px-6 py-4 text-sm font-extrabold text-white hover:bg-indigo-700 disabled:bg-slate-300"
-                >
-                  {loading ? '결제 준비 중…' : '결제하기'}
-                </button>
+                <div className="mt-auto space-y-3">
+                  <button
+                    onClick={handlePay}
+                    disabled={loading}
+                    className="w-full rounded-full bg-indigo-600 px-6 py-4 text-sm font-extrabold text-white hover:bg-indigo-700 disabled:bg-slate-300"
+                  >
+                    {loading ? '결제 준비 중…' : '결제하기'}
+                  </button>
 
-                <p className="text-xs text-slate-500">
-                  결제 진행 시 이용약관 및 결제 정책에 동의한 것으로 간주됩니다.
-                </p>
+                  <p className="text-xs text-slate-500">
+                    결제 진행 시 이용약관 및 결제 정책에 동의한 것으로 간주됩니다.
+                  </p>
+                </div>
               </div>
             </aside>
           </section>
