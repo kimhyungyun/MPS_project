@@ -15,25 +15,13 @@ const NAME_FALLBACK: Record<number, string> = {
 };
 
 function normalizeBase(input: unknown) {
-  // 어떤 값이 와도 string으로 만들고 replace 처리
-  const base = String(input ?? '').trim();
-  return base.replace(/\/$/, '');
+  return String(input ?? '').trim().replace(/\/$/, '');
 }
 
-function requireEnv(name: string, value: string | undefined) {
-  const v = (value ?? '').trim();
-  if (!v) throw new Error(`${name} 환경변수가 없습니다.`);
-  return v;
-}
+function getPackagesEndpoint(baseUrl: string) {
+  const base = normalizeBase(baseUrl);
+  if (!base) return null;
 
-function getPackagesEndpoint(publicApiUrl: string, apiBaseUrl?: string) {
-  // 우선순위: NEXT_PUBLIC_API_URL -> NEXT_PUBLIC_API_BASE_URL
-  const raw = (publicApiUrl ?? apiBaseUrl ?? '').trim();
-  const base = normalizeBase(raw);
-
-  if (!base) throw new Error('API Base URL이 비어있습니다. (NEXT_PUBLIC_API_URL 또는 NEXT_PUBLIC_API_BASE_URL 확인)');
-
-  // 네 기존 로직 유지
   if (base.endsWith('/api')) return `${base}/lecture-packages`;
   return `${base}/api/lecture-packages`;
 }
@@ -48,21 +36,20 @@ export default function PaymentsPageClient() {
   const [pkgLoading, setPkgLoading] = useState(false);
   const [pkg, setPkg] = useState<Pkg | null>(null);
 
-  // ✅ env는 컴포넌트 안에서 "확정" 시켜두는 게 안전함 (클라 전용)
+  // ✅ throw 금지: 없으면 null로 두고 화면에 표시
   const env = useMemo(() => {
-    const clientKey = requireEnv(
-      'NEXT_PUBLIC_TOSS_CLIENT_KEY',
-      process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY,
-    );
+    const clientKey = (process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY ?? '').trim();
+    const publicApiUrl = (process.env.NEXT_PUBLIC_API_URL ?? '').trim();
+    const apiBase = (process.env.NEXT_PUBLIC_API_BASE_URL ?? '').trim();
 
-    const apiBase = (process.env.NEXT_PUBLIC_API_BASE_URL ?? '').trim(); // optional
-    const publicApiUrl = requireEnv(
-      'NEXT_PUBLIC_API_URL',
-      process.env.NEXT_PUBLIC_API_URL,
-    );
-
-    return { clientKey, apiBase, publicApiUrl };
+    return { clientKey, publicApiUrl, apiBase };
   }, []);
+
+  useEffect(() => {
+    // env 체크를 렌더 이후로 미룸(앱 안 죽게)
+    if (!env.clientKey) setError((prev) => prev ?? 'NEXT_PUBLIC_TOSS_CLIENT_KEY가 없습니다. (Vercel Production env 확인)');
+    if (!env.publicApiUrl && !env.apiBase) setError((prev) => prev ?? 'NEXT_PUBLIC_API_URL 또는 NEXT_PUBLIC_API_BASE_URL이 없습니다. (Vercel Production env 확인)');
+  }, [env.clientKey, env.publicApiUrl, env.apiBase]);
 
   const lecturePackageId = useMemo(() => {
     const v = searchParams.get('packageId');
@@ -77,12 +64,20 @@ export default function PaymentsPageClient() {
       return;
     }
 
+    const baseUrl = env.publicApiUrl || env.apiBase;
+    const endpoint = getPackagesEndpoint(baseUrl);
+
+    if (!endpoint) {
+      setPkg(null);
+      setError('API Base URL이 비어있습니다. (NEXT_PUBLIC_API_URL 또는 NEXT_PUBLIC_API_BASE_URL 확인)');
+      return;
+    }
+
     const run = async () => {
       try {
         setPkgLoading(true);
         setError(null);
 
-        const endpoint = getPackagesEndpoint(env.publicApiUrl, env.apiBase);
         const res = await fetch(endpoint, { cache: 'no-store' });
         if (!res.ok) throw new Error(`패키지 조회 실패 (${res.status})`);
 
@@ -112,15 +107,18 @@ export default function PaymentsPageClient() {
       setError('packageId가 없습니다.');
       return;
     }
+    if (!env.clientKey) {
+      setError('NEXT_PUBLIC_TOSS_CLIENT_KEY가 없습니다. (Vercel Production env 확인)');
+      return;
+    }
 
     try {
       setLoading(true);
       setError(null);
 
-      // ✅ 주문 생성 API URL 구성 (publicApiUrl을 기본으로 사용)
-      // - env.publicApiUrl이 https://api.mpspain.co.kr 라면 -> /payments/order 붙여 호출
-      // - env.publicApiUrl이 https://api.mpspain.co.kr/api 라면 -> /payments/order 붙여 호출 (서버 라우팅에 맞게)
-      const orderBase = normalizeBase(env.publicApiUrl);
+      const orderBase = normalizeBase(env.publicApiUrl || env.apiBase);
+      if (!orderBase) throw new Error('API Base URL이 비어있습니다.');
+
       const orderUrl = `${orderBase}/payments/order`;
 
       const orderRes = await axios.post(
@@ -129,21 +127,16 @@ export default function PaymentsPageClient() {
         { withCredentials: true },
       );
 
-      // ✅ 응답 확인 로그 (문제 생기면 바로 이걸 보면 됨)
       console.log('orderRes.data =', orderRes.data);
 
       const orderIdRaw = orderRes.data?.orderId;
       const amountRaw = orderRes.data?.amount;
+
+      if (!orderIdRaw || String(orderIdRaw).trim() === '') throw new Error('주문 생성 응답에 orderId가 없습니다.');
+      if (amountRaw == null || Number.isNaN(Number(amountRaw))) throw new Error('주문 생성 응답에 amount가 없거나 숫자가 아닙니다.');
+
       const titleRaw = orderRes.data?.title;
       const customerNameRaw = orderRes.data?.customerName;
-
-      // ✅ 여기서 확실히 막아줌: undefined면 requestPayment로 못 넘어가게
-      if (orderIdRaw == null || String(orderIdRaw).trim() === '') {
-        throw new Error('주문 생성 응답에 orderId가 없습니다.');
-      }
-      if (amountRaw == null || Number.isNaN(Number(amountRaw))) {
-        throw new Error('주문 생성 응답에 amount가 없거나 숫자가 아닙니다.');
-      }
 
       const orderId = String(orderIdRaw);
       const amount = Number(amountRaw);
@@ -177,101 +170,47 @@ export default function PaymentsPageClient() {
           <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-slate-900 sm:mt-3 sm:text-3xl">
             결제 진행
           </h1>
-          <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-slate-600 sm:mt-3">
-            선택한 패키지를 확인한 후 결제를 진행합니다.
-          </p>
         </header>
 
-        <section className="rounded-3xl border border-slate-200/70 bg-white p-5 shadow-[0_12px_40px_rgba(2,6,23,0.06)] sm:p-7">
+        <section className="rounded-3xl border border-slate-200/70 bg-white p-5 sm:p-7">
+          {error && (
+            <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+
           {!lecturePackageId ? (
             <div className="space-y-4">
-              <p className="text-sm text-slate-700">
-                packageId가 없습니다. 패키지 목록에서 다시 선택해주세요.
-              </p>
+              <p className="text-sm text-slate-700">packageId가 없습니다.</p>
               <button
                 onClick={() => router.push('/mpspain/mpslecture/packages')}
-                className="w-full rounded-full bg-indigo-600 px-6 py-3 text-sm font-extrabold text-white hover:bg-indigo-700"
+                className="w-full rounded-full bg-indigo-600 px-6 py-3 text-sm font-extrabold text-white"
               >
                 패키지 목록으로
               </button>
             </div>
           ) : (
-            <div className="space-y-5 sm:space-y-6">
-              <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 sm:p-5">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                      Selected Package
-                    </p>
-
-                    <p className="mt-1 flex items-baseline gap-2 min-w-0">
-                      <span className="min-w-0 truncate text-base font-extrabold tracking-tight text-slate-900">
-                        {pkgLoading ? '불러오는 중…' : displayName}
-                      </span>
-                    </p>
-                  </div>
-
-                  <div className="shrink-0 sm:text-right">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                      가격
-                    </p>
-
-                    <p className="mt-1 whitespace-nowrap text-lg font-extrabold tracking-tight text-slate-900">
-                      {displayPrice != null ? `${displayPrice.toLocaleString()}` : '-'}
-                      <span className="ml-1 text-sm font-bold text-slate-500">원</span>
-                    </p>
-                  </div>
-                </div>
+            <div className="space-y-5">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                <p className="text-base font-extrabold text-slate-900">
+                  {pkgLoading ? '불러오는 중…' : displayName}
+                </p>
+                <p className="mt-1 text-sm text-slate-600">
+                  {displayPrice != null ? `${displayPrice.toLocaleString()}원` : '-'}
+                </p>
               </div>
-
-              {error && (
-                <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-                  <p className="truncate">{error}</p>
-                </div>
-              )}
 
               <button
                 onClick={handlePay}
                 disabled={loading}
-                className={`w-full rounded-full px-6 py-4 text-sm font-extrabold text-white ${
-                  loading
-                    ? 'bg-slate-300'
-                    : 'bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-700 hover:to-indigo-600'
-                }`}
+                className="w-full rounded-full bg-indigo-600 px-6 py-4 text-sm font-extrabold text-white disabled:bg-slate-300"
               >
                 {loading ? '결제 준비 중…' : '결제하기'}
-              </button>
-
-              <button
-                onClick={() => router.back()}
-                className="w-full rounded-full border border-slate-200 bg-white px-6 py-4 text-sm font-bold text-slate-700 hover:bg-slate-50"
-              >
-                뒤로가기
               </button>
             </div>
           )}
         </section>
       </div>
-
-      {lecturePackageId ? (
-        <div className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white/90 backdrop-blur sm:hidden">
-          <div className="mx-auto max-w-2xl px-4 py-3">
-            <button
-              onClick={handlePay}
-              disabled={loading}
-              className={`w-full rounded-full px-6 py-4 text-sm font-extrabold text-white ${
-                loading
-                  ? 'bg-slate-300'
-                  : 'bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-700 hover:to-indigo-600'
-              }`}
-            >
-              {loading ? '결제 준비 중…' : '결제하기'}
-            </button>
-          </div>
-        </div>
-      ) : null}
-
-      {lecturePackageId ? <div className="h-20 sm:hidden" /> : null}
     </main>
   );
 }
