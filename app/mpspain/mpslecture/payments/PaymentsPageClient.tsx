@@ -205,7 +205,7 @@ export default function PaymentsPageClient() {
                 disabled={loading}
                 className="w-full rounded-full bg-indigo-600 px-6 py-4 text-sm font-extrabold text-white disabled:bg-slate-300"
               >
-                {loading ? '결제 준비 중…' : '결제하기'}
+              {loading ? '결제 준비 중…' : '결제하기'}
               </button>
             </div>
           )}
