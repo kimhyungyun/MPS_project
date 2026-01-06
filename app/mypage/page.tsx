@@ -10,12 +10,21 @@ interface User {
   mb_nick: string;
   mb_email: string;
   mb_hp: string;
+
+  mb_sex?: string | null;
+  mb_birth?: string | null;
+
+  mb_school?: string | null;
+  mb_zip1?: string | null;
+  mb_addr1?: string | null;
+  mb_addr2?: string | null;
+
   mb_level: number;
+  mb_point?: number;
 }
 
 export default function MyPage() {
   const router = useRouter();
-
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
   const [user, setUser] = useState<User | null>(null);
@@ -44,6 +53,9 @@ export default function MyPage() {
           headers: { Authorization: `Bearer ${token}` },
           withCredentials: true,
         });
+
+        // 🔥 디버그 필요하면 주석 해제
+        // console.log('PROFILE RAW =', res.data);
 
         if (res.data?.success) {
           setUser(res.data.data);
@@ -83,9 +95,7 @@ export default function MyPage() {
       <div className="min-h-screen bg-gray-50 pt-20 sm:pt-24 px-4">
         <div className="max-w-2xl mx-auto">
           <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-            <p className="text-sm text-gray-700">
-              {error || '회원 정보를 불러오지 못했습니다.'}
-            </p>
+            <p className="text-sm text-gray-700">{error || '회원 정보를 불러오지 못했습니다.'}</p>
             <div className="mt-4 flex justify-end">
               <button
                 onClick={() => router.push('/form/login')}
@@ -107,16 +117,15 @@ export default function MyPage() {
     </div>
   );
 
+  const fullAddress = [user.mb_zip1, user.mb_addr1, user.mb_addr2].filter(Boolean).join(' ');
+
   return (
     <div className="min-h-screen bg-gray-50 pt-20 sm:pt-24 pb-10">
       <div className="max-w-4xl mx-auto px-4">
-        {/* Header */}
         <div className="flex items-start justify-between gap-4 mb-6">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">마이페이지</h1>
-            <p className="text-sm text-gray-500 mt-1">
-              내 정보 확인 및 수정
-            </p>
+            <p className="text-sm text-gray-500 mt-1">내 정보 확인 및 수정</p>
           </div>
 
           <button
@@ -133,23 +142,25 @@ export default function MyPage() {
           </div>
         )}
 
-        {/* Card */}
         <div className="bg-white shadow-sm ring-1 ring-gray-200 rounded-2xl overflow-hidden">
           <div className="px-5 sm:px-7 py-5 border-b border-gray-100">
             <h2 className="text-base font-semibold text-gray-900">회원 정보</h2>
-            <p className="text-sm text-gray-500 mt-1">아래 정보는 계정 기본 정보입니다.</p>
+            <p className="text-sm text-gray-500 mt-1">회원가입 시 입력한 정보를 표시합니다.</p>
           </div>
 
           <div className="px-5 sm:px-7 py-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field label="아이디" value={user.mb_id} />
-              <Field label="이름" value={user.mb_name} />
-              <Field label="닉네임" value={user.mb_nick} />
-              <Field label="이메일" value={user.mb_email} />
+              <Field label="이름" value={user.mb_name || '-'} />
+              <Field label="닉네임" value={user.mb_nick || '-'} />
+              <Field label="이메일" value={user.mb_email || '-'} />
               <Field label="휴대폰" value={user.mb_hp || '-'} />
+              <Field label="성별" value={user.mb_sex || '-'} />
+              <Field label="생년월일" value={user.mb_birth || '-'} />
+              <Field label="학교" value={user.mb_school || '-'} />
+              <Field label="주소" value={fullAddress || '-'} />
             </div>
 
-            {/* optional: 로그아웃 */}
             <div className="mt-6 flex justify-end">
               <button
                 type="button"
