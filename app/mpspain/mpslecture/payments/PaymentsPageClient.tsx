@@ -18,12 +18,17 @@ function normalizeBase(input: unknown) {
   return String(input ?? '').trim().replace(/\/$/, '');
 }
 
-function getPackagesEndpoint(baseUrl: string) {
+// ✅ env는 도메인만(https://api.mpspain.co.kr) 두고, 코드에서 /api를 한 번만 붙인다.
+function ensureApiBase(baseUrl: string) {
   const base = normalizeBase(baseUrl);
   if (!base) return null;
+  return base.endsWith('/api') ? base : `${base}/api`;
+}
 
-  if (base.endsWith('/api')) return `${base}/lecture-packages`;
-  return `${base}/api/lecture-packages`;
+function getPackagesEndpoint(baseUrl: string) {
+  const apiBase = ensureApiBase(baseUrl);
+  if (!apiBase) return null;
+  return `${apiBase}/lecture-packages`;
 }
 
 export default function PaymentsPageClient() {
@@ -40,15 +45,18 @@ export default function PaymentsPageClient() {
   const env = useMemo(() => {
     const clientKey = (process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY ?? '').trim();
     const publicApiUrl = (process.env.NEXT_PUBLIC_API_URL ?? '').trim();
-    const apiBase = (process.env.NEXT_PUBLIC_API_BASE_URL ?? '').trim();
+    const apiBase = (process.env.NEXT_PUBLIC_API_BASE_URL ?? '').trim(); // optional
 
     return { clientKey, publicApiUrl, apiBase };
   }, []);
 
   useEffect(() => {
-    // env 체크를 렌더 이후로 미룸(앱 안 죽게)
-    if (!env.clientKey) setError((prev) => prev ?? 'NEXT_PUBLIC_TOSS_CLIENT_KEY가 없습니다. (Vercel Production env 확인)');
-    if (!env.publicApiUrl && !env.apiBase) setError((prev) => prev ?? 'NEXT_PUBLIC_API_URL 또는 NEXT_PUBLIC_API_BASE_URL이 없습니다. (Vercel Production env 확인)');
+    if (!env.clientKey) {
+      setError((prev) => prev ?? 'NEXT_PUBLIC_TOSS_CLIENT_KEY가 없습니다. (Vercel Production env 확인)');
+    }
+    if (!env.publicApiUrl && !env.apiBase) {
+      setError((prev) => prev ?? 'NEXT_PUBLIC_API_URL 또는 NEXT_PUBLIC_API_BASE_URL이 없습니다. (Vercel Production env 확인)');
+    }
   }, [env.clientKey, env.publicApiUrl, env.apiBase]);
 
   const lecturePackageId = useMemo(() => {
@@ -116,10 +124,13 @@ export default function PaymentsPageClient() {
       setLoading(true);
       setError(null);
 
-      const orderBase = normalizeBase(env.publicApiUrl || env.apiBase);
-      if (!orderBase) throw new Error('API Base URL이 비어있습니다.');
+      const baseUrl = env.publicApiUrl || env.apiBase;
+      const apiBase = ensureApiBase(baseUrl);
 
-      const orderUrl = `${orderBase}/payments/order`;
+      if (!apiBase) throw new Error('API Base URL이 비어있습니다. (NEXT_PUBLIC_API_URL 또는 NEXT_PUBLIC_API_BASE_URL 확인)');
+
+      // ✅ 404 방지: /api/payments/order로 호출
+      const orderUrl = `${apiBase}/payments/order`;
 
       const orderRes = await axios.post(
         orderUrl,
@@ -132,8 +143,12 @@ export default function PaymentsPageClient() {
       const orderIdRaw = orderRes.data?.orderId;
       const amountRaw = orderRes.data?.amount;
 
-      if (!orderIdRaw || String(orderIdRaw).trim() === '') throw new Error('주문 생성 응답에 orderId가 없습니다.');
-      if (amountRaw == null || Number.isNaN(Number(amountRaw))) throw new Error('주문 생성 응답에 amount가 없거나 숫자가 아닙니다.');
+      if (!orderIdRaw || String(orderIdRaw).trim() === '') {
+        throw new Error('주문 생성 응답에 orderId가 없습니다.');
+      }
+      if (amountRaw == null || Number.isNaN(Number(amountRaw))) {
+        throw new Error('주문 생성 응답에 amount가 없거나 숫자가 아닙니다.');
+      }
 
       const titleRaw = orderRes.data?.title;
       const customerNameRaw = orderRes.data?.customerName;
@@ -205,7 +220,7 @@ export default function PaymentsPageClient() {
                 disabled={loading}
                 className="w-full rounded-full bg-indigo-600 px-6 py-4 text-sm font-extrabold text-white disabled:bg-slate-300"
               >
-              {loading ? '결제 준비 중…' : '결제하기'}
+                {loading ? '결제 준비 중…' : '결제하기'}
               </button>
             </div>
           )}
