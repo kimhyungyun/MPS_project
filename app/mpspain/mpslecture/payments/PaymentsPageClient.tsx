@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { loadTossPayments } from '@tosspayments/payment-sdk';
 import { createPaymentOrder } from '@/app/services/payments';
+import Image from 'next/image';
 
 type Pkg = { id: number; name: string; price: number };
 
@@ -127,8 +128,6 @@ export default function PaymentsPageClient() {
       // ✅ 주문 생성: 결제 서비스(토큰 자동 첨부) 사용
       const order = await createPaymentOrder(lecturePackageId);
 
-      console.log('order =', order);
-
       const orderIdRaw = order?.orderId;
       const amountRaw = order?.amount;
 
@@ -157,7 +156,6 @@ export default function PaymentsPageClient() {
     } catch (e: any) {
       console.error('PAY ERROR FULL =', e);
 
-      // fetch 기반 에러는 e.response가 없으니 message 위주로 처리
       const msg =
         e?.message
           ? String(e.message)
@@ -168,56 +166,148 @@ export default function PaymentsPageClient() {
     }
   };
 
+  const priceText = displayPrice != null ? `${displayPrice.toLocaleString()}원` : '-';
+
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50">
-      <div className="mx-auto mt-16 max-w-2xl px-4 pb-10 pt-6 sm:mt-24 sm:py-10">
-        <header className="mb-6 text-center sm:mb-8">
+      <div className="mx-auto mt-16 max-w-4xl px-4 pb-12 pt-6 sm:mt-24 sm:pt-10">
+        {/* Header */}
+        <header className="mb-8 text-center">
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-indigo-600">
             MPS PAYMENT
           </p>
           <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-slate-900 sm:mt-3 sm:text-3xl">
             결제 진행
           </h1>
+          <p className="mt-2 text-sm text-slate-600">
+            선택한 패키지 정보를 확인하고 결제를 진행하세요.
+          </p>
         </header>
 
-        <section className="rounded-3xl border border-slate-200/70 bg-white p-5 sm:p-7">
-          {error && (
-            <div className="mb-4 whitespace-pre-wrap rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-              {error}
-            </div>
-          )}
+        {/* Error */}
+        {error && (
+          <div className="mb-6 whitespace-pre-wrap rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            {error}
+          </div>
+        )}
 
-          {!lecturePackageId ? (
-            <div className="space-y-4">
-              <p className="text-sm text-slate-700">packageId가 없습니다.</p>
-              <button
-                onClick={() => router.push('/mpspain/mpslecture/packages')}
-                className="w-full rounded-full bg-indigo-600 px-6 py-3 text-sm font-extrabold text-white"
-              >
-                패키지 목록으로
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-5">
-              <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-                <p className="text-base font-extrabold text-slate-900">
-                  {pkgLoading ? '불러오는 중…' : displayName}
-                </p>
-                <p className="mt-1 text-sm text-slate-600">
-                  {displayPrice != null ? `${displayPrice.toLocaleString()}원` : '-'}
-                </p>
+        {!lecturePackageId ? (
+          <section className="rounded-3xl border border-slate-200/70 bg-white p-6 sm:p-8">
+            <p className="text-sm text-slate-700">packageId가 없습니다.</p>
+            <button
+              onClick={() => router.push('/mpspain/mpslecture/packages')}
+              className="mt-4 w-full rounded-full bg-indigo-600 px-6 py-3 text-sm font-extrabold text-white hover:bg-indigo-700"
+            >
+              패키지 목록으로
+            </button>
+          </section>
+        ) : (
+          <section className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
+            {/* ✅ 상품 카드 */}
+            <div className="rounded-3xl border border-slate-200/70 bg-white p-5 sm:p-7">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold text-slate-500">선택 상품</p>
+                  <h2 className="mt-1 text-lg font-extrabold text-slate-900">
+                    {pkgLoading ? '불러오는 중…' : displayName}
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-600">{priceText}</p>
+                </div>
+
+                <span className="shrink-0 rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700">
+                  카드결제
+                </span>
               </div>
 
-              <button
-                onClick={handlePay}
-                disabled={loading}
-                className="w-full rounded-full bg-indigo-600 px-6 py-4 text-sm font-extrabold text-white disabled:bg-slate-300"
-              >
-                {loading ? '결제 준비 중…' : '결제하기'}
-              </button>
+              {/* 이미지 + 설명 */}
+              <div className="mt-5 grid gap-4 sm:grid-cols-[220px_1fr]">
+                <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
+                  <div className="relative aspect-[4/3] w-full">
+                    <Image
+                      src="/상품테스트이미지.jpg"
+                      alt="상품 이미지"
+                      fill
+                      className="object-cover"
+                      priority
+                    />
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
+                  <p className="text-sm font-bold text-slate-900">구성 안내</p>
+                  <ul className="mt-2 space-y-1.5 text-sm text-slate-700">
+                    <li>• 결제 후 즉시 수강 권한이 활성화됩니다.</li>
+                    <li>• 결제는 토스페이먼츠를 통해 안전하게 진행됩니다.</li>
+                    <li>• 패키지 구성/가격은 프로모션에 따라 변동될 수 있습니다.</li>
+                  </ul>
+
+                  <div className="mt-4 rounded-xl border border-slate-200 bg-white p-3">
+                    <p className="text-xs font-semibold text-slate-500">선택된 패키지</p>
+                    <p className="mt-1 text-sm font-extrabold text-slate-900">
+                      {pkgLoading ? '불러오는 중…' : displayName}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-4">
+                <div>
+                  <p className="text-xs font-semibold text-slate-500">결제 금액</p>
+                  <p className="mt-1 text-xl font-extrabold text-slate-900">{priceText}</p>
+                </div>
+
+                <button
+                  onClick={() => router.push('/mpspain/mpslecture/packages')}
+                  className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50"
+                >
+                  다른 패키지 보기
+                </button>
+              </div>
             </div>
-          )}
-        </section>
+
+            {/* ✅ 결제 요약 카드 */}
+            <aside className="rounded-3xl border border-slate-200/70 bg-white p-5 sm:p-7">
+              <p className="text-sm font-extrabold text-slate-900">결제 요약</p>
+
+              <div className="mt-4 space-y-3">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                  <p className="text-xs font-semibold text-slate-500">상품명</p>
+                  <p className="mt-1 text-sm font-bold text-slate-900">
+                    {pkgLoading ? '불러오는 중…' : displayName}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-slate-700">상품 금액</p>
+                    <p className="text-sm font-bold text-slate-900">{priceText}</p>
+                  </div>
+                  <div className="mt-2 flex items-center justify-between">
+                    <p className="text-sm text-slate-700">할인</p>
+                    <p className="text-sm font-bold text-slate-900">0원</p>
+                  </div>
+                  <div className="mt-3 h-px bg-slate-200" />
+                  <div className="mt-3 flex items-center justify-between">
+                    <p className="text-sm font-extrabold text-slate-900">총 결제금액</p>
+                    <p className="text-base font-extrabold text-slate-900">{priceText}</p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={handlePay}
+                  disabled={loading}
+                  className="w-full rounded-full bg-indigo-600 px-6 py-4 text-sm font-extrabold text-white hover:bg-indigo-700 disabled:bg-slate-300"
+                >
+                  {loading ? '결제 준비 중…' : '결제하기'}
+                </button>
+
+                <p className="text-xs text-slate-500">
+                  결제 진행 시 이용약관 및 결제 정책에 동의한 것으로 간주됩니다.
+                </p>
+              </div>
+            </aside>
+          </section>
+        )}
       </div>
     </main>
   );
