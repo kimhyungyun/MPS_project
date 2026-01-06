@@ -1,9 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import axios from 'axios';
-import { AxiosError } from 'axios';
+import axios, { AxiosError } from 'axios';
 
 interface User {
   mb_id: string;
@@ -12,109 +11,157 @@ interface User {
   mb_email: string;
   mb_hp: string;
   mb_level: number;
-  mb_point: number;
 }
 
 export default function MyPage() {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
+  const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const token = useMemo(() => {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem('token');
+  }, []);
+
   useEffect(() => {
-    const fetchUserProfile = async () => {
+    const fetchProfile = async () => {
       try {
-        const token = localStorage.getItem('token');
+        setLoading(true);
+        setError(null);
+
+        if (!API_URL) throw new Error('NEXT_PUBLIC_API_URL is not defined');
+
         if (!token) {
           router.push('/form/login');
           return;
         }
 
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL; // API URL을 환경변수에서 가져오기
-        if (!apiUrl) {
-          throw new Error("API URL is not defined");
-        }
-
-        const response = await axios.get(`${apiUrl}/api/auth/profile`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          withCredentials: true, // CORS 해결을 위한 옵션 추가
+        const res = await axios.get(`${API_URL}/api/auth/profile`, {
+          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
         });
 
-        if (response.data.success) {
-          setUser(response.data.data);
+        if (res.data?.success) {
+          setUser(res.data.data);
+        } else {
+          setError('회원 정보를 불러오지 못했습니다.');
         }
-      } catch (error) {
-        if (error instanceof AxiosError) {
-          console.error('Failed to fetch user profile:', error.message);
-          if (error.response?.status === 401) {
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            router.push('/form/login');
-          }
+      } catch (e) {
+        const err = e as AxiosError<any>;
+        console.error('[MyPage] profile error:', err?.message);
+
+        if (err?.response?.status === 401) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          router.push('/form/login');
+          return;
         }
+
+        setError(err?.response?.data?.message || '회원 정보를 불러오지 못했습니다.');
+      } finally {
+        setLoading(false);
       }
-      setIsLoading(false);
     };
 
-    fetchUserProfile();
-  }, [router]);
+    fetchProfile();
+  }, [API_URL, token, router]);
 
-  if (isLoading) {
+  if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-indigo-600" />
       </div>
     );
   }
 
   if (!user) {
-    return null;
+    return (
+      <div className="min-h-screen bg-gray-50 pt-20 sm:pt-24 px-4">
+        <div className="max-w-2xl mx-auto">
+          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+            <p className="text-sm text-gray-700">
+              {error || '회원 정보를 불러오지 못했습니다.'}
+            </p>
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={() => router.push('/form/login')}
+                className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+              >
+                로그인으로
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white shadow rounded-lg">
-          <div className="px-4 py-5 sm:p-6">
-            <h1 className="text-2xl font-bold text-gray-900 mb-6">마이페이지</h1>
-            
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500">아이디</h3>
-                  <p className="mt-1 text-sm text-gray-900">{user.mb_id}</p>
-                </div>
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500">이름</h3>
-                  <p className="mt-1 text-sm text-gray-900">{user.mb_name}</p>
-                </div>
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500">닉네임</h3>
-                  <p className="mt-1 text-sm text-gray-900">{user.mb_nick}</p>
-                </div>
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500">이메일</h3>
-                  <p className="mt-1 text-sm text-gray-900">{user.mb_email}</p>
-                </div>
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500">휴대폰</h3>
-                  <p className="mt-1 text-sm text-gray-900">{user.mb_hp}</p>
-                </div>
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500">포인트</h3>
-                  <p className="mt-1 text-sm text-gray-900">{user.mb_point}점</p>
-                </div>
-              </div>
+  const Field = ({ label, value }: { label: string; value: string }) => (
+    <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
+      <p className="text-xs font-semibold text-gray-500">{label}</p>
+      <p className="mt-1 text-sm font-semibold text-gray-900 break-words">{value}</p>
+    </div>
+  );
 
-              <div className="flex justify-end space-x-4 mt-6">
-                <button
-                  onClick={() => router.push('/mypage/edit')}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-                >
-                  정보 수정
-                </button>
-              </div>
+  return (
+    <div className="min-h-screen bg-gray-50 pt-20 sm:pt-24 pb-10">
+      <div className="max-w-4xl mx-auto px-4">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">마이페이지</h1>
+            <p className="text-sm text-gray-500 mt-1">
+              내 정보 확인 및 수정
+            </p>
+          </div>
+
+          <button
+            onClick={() => router.push('/mypage/edit')}
+            className="shrink-0 inline-flex items-center rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 shadow-sm"
+          >
+            정보 수정
+          </button>
+        </div>
+
+        {error && (
+          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {error}
+          </div>
+        )}
+
+        {/* Card */}
+        <div className="bg-white shadow-sm ring-1 ring-gray-200 rounded-2xl overflow-hidden">
+          <div className="px-5 sm:px-7 py-5 border-b border-gray-100">
+            <h2 className="text-base font-semibold text-gray-900">회원 정보</h2>
+            <p className="text-sm text-gray-500 mt-1">아래 정보는 계정 기본 정보입니다.</p>
+          </div>
+
+          <div className="px-5 sm:px-7 py-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Field label="아이디" value={user.mb_id} />
+              <Field label="이름" value={user.mb_name} />
+              <Field label="닉네임" value={user.mb_nick} />
+              <Field label="이메일" value={user.mb_email} />
+              <Field label="휴대폰" value={user.mb_hp || '-'} />
+            </div>
+
+            {/* optional: 로그아웃 */}
+            <div className="mt-6 flex justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  localStorage.removeItem('token');
+                  localStorage.removeItem('user');
+                  router.push('/form/login');
+                }}
+                className="inline-flex items-center rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                로그아웃
+              </button>
             </div>
           </div>
         </div>
