@@ -127,9 +127,11 @@ export default function PaymentsPageClient() {
       const baseUrl = env.publicApiUrl || env.apiBase;
       const apiBase = ensureApiBase(baseUrl);
 
-      if (!apiBase) throw new Error('API Base URL이 비어있습니다. (NEXT_PUBLIC_API_URL 또는 NEXT_PUBLIC_API_BASE_URL 확인)');
+      if (!apiBase) {
+        throw new Error('API Base URL이 비어있습니다. (NEXT_PUBLIC_API_URL 또는 NEXT_PUBLIC_API_BASE_URL 확인)');
+      }
 
-      // ✅ 404 방지: /api/payments/order로 호출
+      // ✅ /api/payments/order로 호출
       const orderUrl = `${apiBase}/payments/order`;
 
       const orderRes = await axios.post(
@@ -169,8 +171,17 @@ export default function PaymentsPageClient() {
         failUrl: `${window.location.origin}/mpspain/mpslecture/payments/fail`,
       });
     } catch (e: any) {
-      console.error(e);
-      setError(e?.message ?? '결제를 시작하는 중 오류가 발생했습니다.');
+      console.error('PAY ERROR FULL =', e);
+      console.error('PAY ERROR RESPONSE =', e?.response?.data);
+
+      const msg =
+        e?.response?.data?.message
+          ? (Array.isArray(e.response.data.message)
+              ? e.response.data.message.join(', ')
+              : String(e.response.data.message))
+          : JSON.stringify(e?.response?.data ?? { message: e?.message }, null, 2);
+
+      setError(msg);
       setLoading(false);
     }
   };
@@ -189,7 +200,7 @@ export default function PaymentsPageClient() {
 
         <section className="rounded-3xl border border-slate-200/70 bg-white p-5 sm:p-7">
           {error && (
-            <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 whitespace-pre-wrap">
               {error}
             </div>
           )}
