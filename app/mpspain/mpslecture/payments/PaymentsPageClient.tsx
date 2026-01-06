@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import axios from 'axios';
 import { loadTossPayments } from '@tosspayments/payment-sdk';
+import { createPaymentOrder } from '@/app/services/payments';
 
 type Pkg = { id: number; name: string; price: number };
 
@@ -124,26 +124,13 @@ export default function PaymentsPageClient() {
       setLoading(true);
       setError(null);
 
-      const baseUrl = env.publicApiUrl || env.apiBase;
-      const apiBase = ensureApiBase(baseUrl);
+      // ✅ 주문 생성: 결제 서비스(토큰 자동 첨부) 사용
+      const order = await createPaymentOrder(lecturePackageId);
 
-      if (!apiBase) {
-        throw new Error('API Base URL이 비어있습니다. (NEXT_PUBLIC_API_URL 또는 NEXT_PUBLIC_API_BASE_URL 확인)');
-      }
+      console.log('order =', order);
 
-      // ✅ /api/payments/order로 호출
-      const orderUrl = `${apiBase}/payments/order`;
-
-      const orderRes = await axios.post(
-        orderUrl,
-        { lecturePackageId },
-        { withCredentials: true },
-      );
-
-      console.log('orderRes.data =', orderRes.data);
-
-      const orderIdRaw = orderRes.data?.orderId;
-      const amountRaw = orderRes.data?.amount;
+      const orderIdRaw = order?.orderId;
+      const amountRaw = order?.amount;
 
       if (!orderIdRaw || String(orderIdRaw).trim() === '') {
         throw new Error('주문 생성 응답에 orderId가 없습니다.');
@@ -152,13 +139,10 @@ export default function PaymentsPageClient() {
         throw new Error('주문 생성 응답에 amount가 없거나 숫자가 아닙니다.');
       }
 
-      const titleRaw = orderRes.data?.title;
-      const customerNameRaw = orderRes.data?.customerName;
-
       const orderId = String(orderIdRaw);
       const amount = Number(amountRaw);
-      const orderName = String(titleRaw ?? 'MPS 강의 패키지');
-      const customerName = String(customerNameRaw ?? '고객');
+      const orderName = String(order?.title ?? 'MPS 강의 패키지');
+      const customerName = String(order?.customerName ?? '고객');
 
       const tossPayments = await loadTossPayments(env.clientKey);
 
@@ -172,14 +156,12 @@ export default function PaymentsPageClient() {
       });
     } catch (e: any) {
       console.error('PAY ERROR FULL =', e);
-      console.error('PAY ERROR RESPONSE =', e?.response?.data);
 
+      // fetch 기반 에러는 e.response가 없으니 message 위주로 처리
       const msg =
-        e?.response?.data?.message
-          ? (Array.isArray(e.response.data.message)
-              ? e.response.data.message.join(', ')
-              : String(e.response.data.message))
-          : JSON.stringify(e?.response?.data ?? { message: e?.message }, null, 2);
+        e?.message
+          ? String(e.message)
+          : JSON.stringify(e ?? { message: 'Unknown error' }, null, 2);
 
       setError(msg);
       setLoading(false);
@@ -200,7 +182,7 @@ export default function PaymentsPageClient() {
 
         <section className="rounded-3xl border border-slate-200/70 bg-white p-5 sm:p-7">
           {error && (
-            <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 whitespace-pre-wrap">
+            <div className="mb-4 whitespace-pre-wrap rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
               {error}
             </div>
           )}
