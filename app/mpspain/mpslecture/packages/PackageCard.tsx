@@ -85,7 +85,7 @@ export default function PackageCard({
           {/* 이미지 박스 */}
           <div className="relative h-44 w-full bg-slate-100 sm:h-48">
             <Image
-              src="/상품테스트2.jpg"
+              src="/상품이미지테스트.jpg"
               alt={`${name} 썸네일`}
               fill
               sizes="(max-width: 640px) 100vw, 50vw"
