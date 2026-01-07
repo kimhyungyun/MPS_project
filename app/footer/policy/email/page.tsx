@@ -1,6 +1,7 @@
 // app/policy/email/page.tsx
 
-import EmailRejectContent from "../EmailRejectContent";
+import EmailRejectContent from "@/app/components/policy/EmailRejectContent";
+
 
 
 export default function EmailRejectPage() {

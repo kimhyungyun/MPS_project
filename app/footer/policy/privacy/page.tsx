@@ -1,5 +1,9 @@
 // app/policy/privacy/page.tsx
-import PrivacyPolicyContent from "@/components/policy/PrivacyPolicyContent";
+
+import PrivacyPolicyContent from "@/app/components/policy/PrivacyPolicyContent";
+
+
+
 
 export default function PrivacyPolicyPage() {
   return (
