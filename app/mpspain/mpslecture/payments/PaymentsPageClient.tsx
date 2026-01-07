@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { loadTossPayments } from '@tosspayments/payment-sdk';
 import { createPaymentOrder } from '@/app/services/payments';
 import Image from 'next/image';
+import Link from 'next/link';
 
 type Pkg = { id: number; name: string; price: number };
 
@@ -14,6 +15,17 @@ const NAME_FALLBACK: Record<number, string> = {
   3: 'MPS 강의 모음 C',
   4: 'MPS 강의 모음 A + B + C',
 };
+
+/** ✅ packageId별 "모바일 이미지" 경로만 매핑 */
+const MOBILE_IMAGE_BY_ID: Record<number, string> = {
+  1: '/최종상품M이미지1.jpg',
+  2: '/최종상품M이미지2.jpg',
+  3: '/최종상품M이미지3.jpg',
+  4: '/최종상품M이미지4.jpg',
+};
+
+/** fallback */
+const MOBILE_IMAGE_FALLBACK = '/최종상품M이미지1.jpg';
 
 function normalizeBase(input: unknown) {
   return String(input ?? '').trim().replace(/\/$/, '');
@@ -47,7 +59,6 @@ export default function PaymentsPageClient() {
     const clientKey = (process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY ?? '').trim();
     const publicApiUrl = (process.env.NEXT_PUBLIC_API_URL ?? '').trim();
     const apiBase = (process.env.NEXT_PUBLIC_API_BASE_URL ?? '').trim(); // optional
-
     return { clientKey, publicApiUrl, apiBase };
   }, []);
 
@@ -112,6 +123,11 @@ export default function PaymentsPageClient() {
   const displayPrice = pkg?.price ?? null;
   const priceText = displayPrice != null ? `${displayPrice.toLocaleString()}원` : '-';
 
+  /** ✅ id별 모바일 이미지 */
+  const productImageSrc = lecturePackageId
+    ? (MOBILE_IMAGE_BY_ID[lecturePackageId] ?? MOBILE_IMAGE_FALLBACK)
+    : MOBILE_IMAGE_FALLBACK;
+
   const handlePay = async () => {
     if (!lecturePackageId) {
       setError('packageId가 없습니다.');
@@ -158,9 +174,7 @@ export default function PaymentsPageClient() {
       console.error('PAY ERROR FULL =', e);
 
       const msg =
-        e?.message
-          ? String(e.message)
-          : JSON.stringify(e ?? { message: 'Unknown error' }, null, 2);
+        e?.message ? String(e.message) : JSON.stringify(e ?? { message: 'Unknown error' }, null, 2);
 
       setError(msg);
       setLoading(false);
@@ -223,7 +237,7 @@ export default function PaymentsPageClient() {
                 <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
                   <div className="relative aspect-[3/4] w-full">
                     <Image
-                      src="/상품테스트이미지.jpg"
+                      src={productImageSrc}
                       alt="상품 이미지"
                       fill
                       sizes="(max-width: 640px) 100vw, 220px"
@@ -234,11 +248,16 @@ export default function PaymentsPageClient() {
                 </div>
 
                 <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
-                  <p className="text-sm font-bold text-slate-900">구성 안내</p>
+                  <p className="text-sm font-bold text-slate-900">안내 사항</p>
                   <ul className="mt-2 space-y-1.5 text-sm text-slate-700">
-                    <li>• 결제 후 즉시 수강 권한이 활성화됩니다.</li>
-                    <li>• 결제는 토스페이먼츠를 통해 안전하게 진행됩니다.</li>
+                    <li>• 결제 후, 결제자와 아이디 비교 후 강의 수강이 가능합니다. 약간의 시간이 걸릴 수 있습니다.</li>
+                    <li>
+                      • 카드 결제 (카카오 페이 간편결제 포함)은 토스 페이먼츠로 가능합니다. 현금 결제의 경우는
+                      현금 결제를 선택하시면 입금 계좌번호 페이지로 넘어갑니다. 입금이 확인 된 후 강의 수강이
+                      가능합니다.
+                    </li>
                     <li>• 패키지 구성/가격은 프로모션에 따라 변동될 수 있습니다.</li>
+                    <li>• (환불정책 및 이용 정책)을 숙지하지 않아서 생기는 불이익에 대해서는 책임지지 않습니다.</li>
                   </ul>
 
                   <div className="mt-4 rounded-xl border border-slate-200 bg-white p-3">
@@ -265,7 +284,7 @@ export default function PaymentsPageClient() {
               </div>
             </div>
 
-            {/* ✅ 결제 요약 카드 (높이 맞춤 + 버튼 하단 고정) */}
+            {/* ✅ 결제 요약 카드 */}
             <aside className="rounded-3xl border border-slate-200/70 bg-white p-5 sm:p-7 h-full flex flex-col">
               <p className="text-sm font-extrabold text-slate-900">결제 요약</p>
 
@@ -301,6 +320,16 @@ export default function PaymentsPageClient() {
                   >
                     {loading ? '결제 준비 중…' : '결제하기'}
                   </button>
+
+                  {/* ✅ 결제하기 바로 아래 추가 */}
+                  <div className="mt-5 text-center text-sm">
+                    <Link
+                      href="/mpspain/mpslecture/policy/refund"
+                      className="font-semibold text-indigo-600 hover:underline"
+                    >
+                      환불/취소 정책 페이지 보기
+                    </Link>
+                  </div>
 
                   <p className="text-xs text-slate-500">
                     결제 진행 시 이용약관 및 결제 정책에 동의한 것으로 간주됩니다.
