@@ -54,7 +54,7 @@ function BusinessFooter() {
     ceo: '문대원',
     bizNo: '402-86-04244',
     address: '전북 전주시 완산구 용머리로 34 5층 MPS연구회',
-    phone: '010-7942-5857',
+    phone: '010-7942-5854',
     email: 'mdw36900@gmail.com', 
   };
 
