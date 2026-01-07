@@ -29,12 +29,12 @@ function formatPrice(price: number) {
  * ✅ "한 눈에 이해"용 칩(혜택/대상/특징)
  */
 function getChips(id: number, name: string): string[] {
-  const base = ['수강권 즉시 활성화', '모바일/PC 지원', '결제 후 바로 수강'];
+  const base = ['모바일/PC 지원'];
 
   if (String(name).includes('A + B + C') || id === 4) return ['올인원 패키지', '추천', ...base];
   if (String(name).includes('A') || id === 1) return ['기초/핵심', ...base];
-  if (String(name).includes('B') || id === 2) return ['실전/응용', ...base];
-  if (String(name).includes('C') || id === 3) return ['심화/정리', ...base];
+  if (String(name).includes('B') || id === 2) return ['기초/핵심', ...base];
+  if (String(name).includes('C') || id === 3) return ['기초/핵심', ...base];
   return base;
 }
 

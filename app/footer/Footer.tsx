@@ -17,7 +17,10 @@ const Footer = () => {
           {/* right */}
           <div className="flex items-center justify-center sm:justify-end text-gray-700 text-sm mt-2 sm:mt-0">
             <p className="cursor-pointer hover:underline whitespace-nowrap">
-              이용약관 및 개인정보보호방침
+              개인정보 처리방침 /이메일 무단수집거부
+            </p>
+            <p className="cursor-pointer hover:underline whitespace-nowrap">
+              이메일 무단수집거부
             </p>
           </div>
 
