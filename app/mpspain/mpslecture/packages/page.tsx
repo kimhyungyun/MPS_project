@@ -64,6 +64,7 @@ export default async function PackagesPage() {
           <section className="grid gap-4 sm:gap-5">
             {pkgs.map((p) => {
               const ui = getUiById(p.id);
+
               return (
                 <PackageCard
                   key={p.id}
@@ -73,6 +74,10 @@ export default async function PackagesPage() {
                   badge={ui?.badge ?? 'MPS PACKAGE'}
                   highlight={ui?.highlight}
                   shortDesc={ui?.shortDesc ?? '설명 준비 중'}
+
+                  // ✅ 추가
+                  imageSrc={ui?.imageSrc ?? '/packages/default.jpg'}
+                  imageAlt={ui?.imageAlt}
                 />
               );
             })}
