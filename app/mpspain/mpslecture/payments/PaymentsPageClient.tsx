@@ -233,7 +233,7 @@ export default function PaymentsPageClient() {
               </div>
 
               {/* 이미지 + 설명 */}
-              <div className="mt-5 grid gap-4 sm:grid-cols-[220px_1fr]">
+              <div className="mt-5 grid gap-4 sm:grid-cols-[220px_1fr] sm:h-[200px]">
                 <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
                   <div className="relative aspect-[3/4] w-full">
                     <Image
@@ -247,7 +247,7 @@ export default function PaymentsPageClient() {
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 min-h-0 overflow-y-auto">
                   <p className="text-sm font-bold text-slate-900">안내 사항</p>
                   <ul className="mt-2 space-y-1.5 text-sm text-slate-700">
                     <li>• 결제 후, 결제자와 아이디 비교 후 강의 수강이 가능합니다. 약간의 시간이 걸릴 수 있습니다.</li>
