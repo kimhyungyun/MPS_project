@@ -90,7 +90,7 @@ export default function PackageCard({
               fill
               sizes="(max-width: 640px) 100vw, 50vw"
               className="object-cover"
-              priority={id === 1} // 첫 카드만 우선 로드
+              priority={id === 1}
             />
             {/* 상단 그라데이션(텍스트 가독성) */}
             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/35 via-transparent to-white/0" />
