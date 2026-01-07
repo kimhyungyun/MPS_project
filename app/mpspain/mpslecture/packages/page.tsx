@@ -75,8 +75,9 @@ export default async function PackagesPage() {
                   highlight={ui?.highlight}
                   shortDesc={ui?.shortDesc ?? '설명 준비 중'}
 
-                  // ✅ 추가
-                  imageSrc={ui?.imageSrc ?? '/packages/default.jpg'}
+                  // ✅ 변경: 데스크탑/모바일 이미지 분리
+                  imageDesktop={ui?.imageDesktop ?? '/테스트이미지-desktop.jpg'}
+                  imageMobile={ui?.imageMobile ?? '/테스트이미지-mobile.jpg'}
                   imageAlt={ui?.imageAlt}
                 />
               );

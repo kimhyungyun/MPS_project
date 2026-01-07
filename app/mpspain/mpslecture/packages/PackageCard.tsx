@@ -13,8 +13,9 @@ type Props = {
   highlight?: string;
   shortDesc: string;
 
-  // ✅ 카드별 이미지
-  imageSrc: string;
+  // ✅ 변경: 데스크탑/모바일 이미지 분리
+  imageDesktop: string;
+  imageMobile: string;
   imageAlt?: string;
 };
 
@@ -44,7 +45,8 @@ export default function PackageCard({
   badge,
   highlight,
   shortDesc,
-  imageSrc,
+  imageDesktop,
+  imageMobile,
   imageAlt,
 }: Props) {
   const detailHref = `/mpspain/mpslecture/packages/${id}`;
@@ -63,16 +65,27 @@ export default function PackageCard({
         hover:-translate-y-0.5 hover:shadow-[0_18px_50px_rgba(2,6,23,0.10)]
       "
     >
-      {/* ✅ 카드 전체 배경 이미지 */}
+      {/* ✅ 카드 전체 배경 이미지 (뷰포트 폭 기준으로 자동 전환) */}
       <div className="absolute inset-0">
+        {/* 데스크탑: sm 이상 */}
         <Image
-          src={imageSrc}
-          alt={imageAlt ?? `${name} 썸네일`}
+          src={imageDesktop}
+          alt={imageAlt ?? `${name} 이미지`}
           fill
-          sizes="(max-width: 640px) 100vw, 50vw"
-          className="object-cover"
+          sizes="800px"
+          className="hidden sm:block object-cover"
           priority={id === 1}
         />
+
+        {/* 모바일: sm 미만 */}
+        <Image
+          src={imageMobile}
+          alt={imageAlt ?? `${name} 이미지`}
+          fill
+          sizes="100vw"
+          className="block sm:hidden object-cover"
+        />
+
         {/* 기본 가독성용 오버레이(필요 없으면 지워도 됨) */}
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950/25 via-transparent to-white/0" />
       </div>
@@ -130,11 +143,7 @@ export default function PackageCard({
           </span>
         </div>
 
-        {/* ✅ 반대로 적용:
-            - 기본: 텍스트 안 보임(이미지가 더 많이 보임)
-            - hover: 텍스트 박스가 선명하게 등장(blur 없음)
-            - 구매하기 버튼은 위에서 고정이라 계속 보임
-        */}
+        {/* ✅ 기본: 텍스트 숨김 / hover: 텍스트 선명하게 표시 */}
         <div
           className="
             relative z-10
@@ -183,8 +192,6 @@ export default function PackageCard({
               <span className="ml-1 text-base font-bold text-slate-500">원</span>
             </p>
           </div>
-
-          {/* ✅ 구매하기는 밖에 고정되어 있으니 여기 버튼/링크는 굳이 안 둠 */}
         </div>
       </Link>
     </article>
