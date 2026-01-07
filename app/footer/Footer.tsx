@@ -21,13 +21,13 @@ const Footer = () => {
           {/* right: 두 줄로 */}
           <div className="flex flex-col items-center sm:items-end justify-center text-gray-700 text-sm gap-2 mt-2 sm:mt-0">
             <Link
-              href="/policy/privacy"
+              href="/footer/policy/privacy"
               className="cursor-pointer hover:underline whitespace-nowrap"
             >
               개인정보 처리방침
             </Link>
             <Link
-              href="/policy/email"
+              href="/footer/policy/email"
               className="cursor-pointer hover:underline whitespace-nowrap"
             >
               이메일 무단수집거부
