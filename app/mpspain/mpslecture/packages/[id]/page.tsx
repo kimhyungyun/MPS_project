@@ -178,7 +178,7 @@ export default async function PackageDetailPage(props: { params: Promise<{ id: s
                 <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
                   동영상 강의 내용과 목표
                 </p>
-                <p className="mt-2 truncate text-sm leading-relaxed text-slate-700">
+                <p className="mt-2 text-sm leading-relaxed text-slate-700 truncate md:whitespace-normal md:overflow-visible md:text-clip">
                   {ui?.goal ?? '내용 준비 중'}
                 </p>
               </div>

@@ -235,7 +235,7 @@ export default function PaymentsPageClient() {
               {/* 이미지 + 설명 */}
               <div className="mt-5 grid gap-4 sm:grid-cols-[220px_1fr] sm:h-[200px]">
                 <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
-                  <div className="relative aspect-[3/4] w-full">
+                  <div className="relative aspect-[4/4] w-full">
                     <Image
                       src={productImageSrc}
                       alt="상품 이미지"
