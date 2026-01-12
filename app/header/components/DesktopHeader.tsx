@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { menuData } from "@/types/menudata";
+import MobileMenu from "./MobileMenu";
 
 export interface User {
   mb_id: string;
@@ -20,10 +21,23 @@ export interface Props {
 export default function DesktopHeader({ user, handleLogout }: Props) {
   const [isScrolled, setIsScrolled] = useState(false);
 
+  // ✅ 태블릿(900~1023)에서 열릴 햄버거 메뉴 상태
+  const [isTabletMenuOpen, setIsTabletMenuOpen] = useState(false);
+
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 10);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // ✅ 화면이 lg(1024) 이상으로 커지면 태블릿 메뉴 자동으로 닫기 (선택이지만 안정적)
+  useEffect(() => {
+    const handleResize = () => {
+      // lg = 1024
+      if (window.innerWidth >= 1024) setIsTabletMenuOpen(false);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   const introMenu = menuData[0];
@@ -33,13 +47,12 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
   return (
     <header
       className={`
-        hidden md:block fixed top-0 left-0 w-full z-50 transition-all duration-300
+        hidden desktop:block fixed top-0 left-0 w-full z-50 transition-all duration-300
         ${isScrolled ? "bg-white/90 backdrop-blur shadow-md" : "bg-white/90 backdrop-blur"}
         border-b border-gray-200
       `}
     >
       <div className="flex items-center justify-between max-w-6xl mx-auto h-[110px] px-8">
-
         <Link href="/" className="flex items-center w-44 lg:w-56 shrink-0">
           <Image
             src="/빈배경로고.png"
@@ -51,7 +64,8 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
           />
         </Link>
 
-        <nav className="flex-1 flex justify-center">
+        {/* ✅ nav는 lg 이상에서만 보여서 태블릿(900~1023)에서 hover 문제 제거 */}
+        <nav className="hidden lg:flex flex-1 justify-center">
           <ul
             className="
               grid grid-cols-3
@@ -77,7 +91,6 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
                       text-center
                     "
                   >
-                    {/* 로고 + 타이틀 */}
                     <div className="flex items-center justify-center gap-3 mb-3">
                       <Image
                         src="/빈배경로고1.png"
@@ -202,7 +215,7 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
           </ul>
         </nav>
 
-        {/* 로그인 영역 */}
+        {/* 로그인 영역 + ✅ 태블릿용 햄버거 */}
         <div
           className="
             flex items-center justify-end
@@ -221,7 +234,7 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
               >
                 {user.mb_name}
               </Link>
-              <span>님 반갑습니다!</span>
+              <span className="hidden lg:inline">님 반갑습니다!</span>
               <button
                 onClick={handleLogout}
                 className="hover:text-blue-600 font-medium"
@@ -230,15 +243,32 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
               </button>
             </>
           ) : (
-            <Link
-              href="/form/login"
-              className="hover:text-blue-600 font-medium"
-            >
+            <Link href="/form/login" className="hover:text-blue-600 font-medium">
               로그인
             </Link>
           )}
+
+          {/* ✅ 900~1023 에서만 보이는 햄버거: desktop(900)부터 보이고 lg(1024)에서 숨김 */}
+          <button
+            type="button"
+            onClick={() => setIsTabletMenuOpen((v) => !v)}
+            className="ml-2 hidden desktop:flex lg:hidden flex-col items-center justify-center h-9 w-9 gap-1.5 border border-gray-300 rounded-md bg-white/70"
+            aria-label="메뉴 열기"
+          >
+            <span className="block h-[2px] w-4 rounded bg-gray-800" />
+            <span className="block h-[2px] w-4 rounded bg-gray-800" />
+            <span className="block h-[2px] w-4 rounded bg-gray-800" />
+          </button>
         </div>
       </div>
+
+      {/* ✅ 태블릿(900~1023)에서만 햄버거로 열리는 메뉴 */}
+      <MobileMenu
+        user={user}
+        isOpen={isTabletMenuOpen}
+        onClose={() => setIsTabletMenuOpen(false)}
+        onLogout={handleLogout}
+      />
     </header>
   );
 }
