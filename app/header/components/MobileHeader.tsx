@@ -17,7 +17,7 @@ const MobileHeader = ({ user, handleLogout }: MobileHeaderProps) => {
   const router = useRouter();
 
   return (
-    <header className="desktop:hidden fixed top-0 left-0 w-full z-50 border-b border-gray-200 bg-white/90 backdrop-blur">
+    <header className="md:hidden fixed top-0 left-0 w-full z-50 border-b border-gray-200 bg-white/90 backdrop-blur">
       <div className="flex justify-between items-center w-full h-[64px] px-4 max-w-6xl mx-auto">
         {/* 로고 */}
         <Link href="/" className="flex items-center">
