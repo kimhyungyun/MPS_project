@@ -213,30 +213,43 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
             whitespace-nowrap
           "
         >
-          {user ? (
-            <>
-              <Link
-                href={user.mb_level >= 8 ? "/admin" : "/mypage"}
-                className="hover:text-blue-600 font-medium"
-              >
-                {user.mb_name}
+            {user ? (
+              <>
+                {/* ✅ 왼쪽에 살짝 띄운 "동영상 강의" 링크 */}
+                <Link
+                  href="/mpspain/mpslecture/packages"
+                  className="
+                    mr-2 rounded-full border border-gray-300 bg-white/70
+                    px-3 py-1
+                    text-[10px] lg:text-xs
+                    font-semibold text-gray-700
+                    hover:text-blue-600 hover:border-blue-300
+                    transition
+                  "
+                >
+                  동영상 강의
+                </Link>
+
+                <Link
+                  href={user.mb_level >= 8 ? "/admin" : "/mypage"}
+                  className="hover:text-blue-600 font-medium"
+                >
+                  {user.mb_name}
+                </Link>
+                <span>님 반갑습니다!</span>
+                <button
+                  onClick={handleLogout}
+                  className="hover:text-blue-600 font-medium"
+                >
+                  로그아웃
+                </button>
+              </>
+            ) : (
+              <Link href="/form/login" className="hover:text-blue-600 font-medium">
+                로그인
               </Link>
-              <span>님 반갑습니다!</span>
-              <button
-                onClick={handleLogout}
-                className="hover:text-blue-600 font-medium"
-              >
-                로그아웃
-              </button>
-            </>
-          ) : (
-            <Link
-              href="/form/login"
-              className="hover:text-blue-600 font-medium"
-            >
-              로그인
-            </Link>
-          )}
+            )}
+
         </div>
       </div>
     </header>
