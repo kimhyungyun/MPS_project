@@ -28,7 +28,7 @@ const MobileMenu = ({ user, isOpen, onClose, onLogout }: MobileMenuProps) => {
   if (!isOpen) return null;
 
   return (
-    <div className="md:hidden border-t border-gray-200 bg-white/95 backdrop-blur shadow-md">
+    <div className="lg:hidden border-t border-gray-200 bg-white/95 backdrop-blur shadow-md">
       <div className="max-w-6xl mx-auto px-4 py-5 space-y-6">
         {/* 유저 정보 / 로그인 박스 */}
         <div className="flex justify-between items-center rounded-xl bg-gray-50 px-4 py-3 text-gray-700">
