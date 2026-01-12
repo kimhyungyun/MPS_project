@@ -33,7 +33,7 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
   return (
     <header
       className={`
-        hidden desktop:block fixed top-0 left-0 w-full z-50
+        hidden md:block fixed top-0 left-0 w-full z-50
         transition-all duration-300
         ${isScrolled ? "bg-white/90 backdrop-blur shadow-md" : "bg-white/90 backdrop-blur"}
         border-b border-gray-200
