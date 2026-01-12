@@ -33,13 +33,15 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
   return (
     <header
       className={`
-        hidden md:block fixed top-0 left-0 w-full z-50 transition-all duration-300
+        hidden desktop:block fixed top-0 left-0 w-full z-50
+        transition-all duration-300
         ${isScrolled ? "bg-white/90 backdrop-blur shadow-md" : "bg-white/90 backdrop-blur"}
         border-b border-gray-200
       `}
     >
-      <div className="flex items-center justify-between max-w-6xl mx-auto h-[110px] px-8">
+      <div className="flex items-center justify-between max-w-6xl mx-auto h-[110px] px-4 lg:px-6">
 
+        {/* 로고 */}
         <Link href="/" className="flex items-center w-44 lg:w-56 shrink-0">
           <Image
             src="/빈배경로고.png"
@@ -51,11 +53,12 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
           />
         </Link>
 
-        <nav className="flex-1 flex justify-center">
+        {/* 네비게이션 */}
+        <nav className="flex-1 flex justify-center mx-6 lg:mx-10">
           <ul
             className="
               grid grid-cols-3
-              gap-8 lg:gap-16 xl:gap-24
+              gap-8 lg:gap-12 xl:gap-16
               font-pretendard font-semibold
               text-sm md:text-base lg:text-lg xl:text-xl
               place-items-center
@@ -73,11 +76,9 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
                       opacity-0 invisible translate-y-2
                       group-hover:opacity-100 group-hover:visible group-hover:translate-y-0
                       transition-all duration-200
-                      py-5 px-4
-                      text-center
+                      py-5 px-4 text-center
                     "
                   >
-                    {/* 로고 + 타이틀 */}
                     <div className="flex items-center justify-center gap-3 mb-3">
                       <Image
                         src="/빈배경로고1.png"
@@ -120,8 +121,7 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
                       opacity-0 invisible translate-y-2
                       group-hover:opacity-100 group-hover:visible group-hover:translate-y-0
                       transition-all duration-200
-                      py-5 px-4
-                      text-center
+                      py-5 px-4 text-center
                     "
                   >
                     <div className="flex items-center justify-center gap-3 mb-3">
@@ -166,8 +166,7 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
                       opacity-0 invisible translate-y-2
                       group-hover:opacity-100 group-hover:visible group-hover:translate-y-0
                       transition-all duration-200
-                      py-5 px-4
-                      text-center
+                      py-5 px-4 text-center
                     "
                   >
                     <div className="flex items-center justify-center gap-3 mb-3">
@@ -207,49 +206,45 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
           className="
             flex items-center justify-end
             w-44 lg:w-56
-            gap-1 lg:gap-2
+            gap-2 lg:gap-3
             text-[10px] lg:text-xs xl:text-sm
             font-pretendard text-gray-700
             whitespace-nowrap
           "
         >
-            {user ? (
-              <>
-                {/* ✅ 왼쪽에 살짝 띄운 "동영상 강의" 링크 */}
-                <Link
-                  href="/mpspain/mpslecture/packages"
-                  className="
-                    mr-2 rounded-full border border-gray-300 bg-white/70
-                    px-3 py-1
-                    text-[10px] lg:text-xs
-                    font-semibold text-gray-700
-                    hover:text-blue-600 hover:border-blue-300
-                    transition
-                  "
-                >
-                  동영상 강의
-                </Link>
-
-                <Link
-                  href={user.mb_level >= 8 ? "/admin" : "/mypage"}
-                  className="hover:text-blue-600 font-medium"
-                >
-                  {user.mb_name}
-                </Link>
-                <span>님 반갑습니다!</span>
-                <button
-                  onClick={handleLogout}
-                  className="hover:text-blue-600 font-medium"
-                >
-                  로그아웃
-                </button>
-              </>
-            ) : (
-              <Link href="/form/login" className="hover:text-blue-600 font-medium">
-                로그인
+          {user ? (
+            <>
+              <Link
+                href="/mpspain/mpslecture/packages"
+                className="
+                  mr-2 rounded-full border border-gray-300 bg-white/70
+                  px-3 py-1
+                  font-semibold text-gray-700
+                  hover:text-blue-600 hover:border-blue-300 transition
+                "
+              >
+                동영상 강의
               </Link>
-            )}
 
+              <Link
+                href={user.mb_level >= 8 ? "/admin" : "/mypage"}
+                className="hover:text-blue-600 font-medium"
+              >
+                {user.mb_name}
+              </Link>
+              <span>님 반갑습니다!</span>
+              <button
+                onClick={handleLogout}
+                className="hover:text-blue-600 font-medium"
+              >
+                로그아웃
+              </button>
+            </>
+          ) : (
+            <Link href="/form/login" className="hover:text-blue-600 font-medium">
+              로그인
+            </Link>
+          )}
         </div>
       </div>
     </header>
