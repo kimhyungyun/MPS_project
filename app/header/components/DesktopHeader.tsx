@@ -214,17 +214,17 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
         >
           {user ? (
             <>
-              <Link
-                href="/mpspain/mpslecture"
-                className="
-                  mr-2 rounded-full border border-gray-300 bg-white/70
-                  px-3 py-1
-                  font-semibold text-gray-700
-                  hover:text-blue-600 hover:border-blue-300 transition
-                "
-              >
-                동영상 강의
-              </Link>
+                <Link
+                  href="/mpspain/mpslecture"
+                  className="
+                    mr-2 rounded-full border border-gray-300 bg-white/70
+                    px-2 py-[2px]
+                    text-[11px] font-semibold text-gray-700
+                    hover:text-blue-600 hover:border-blue-300 transition
+                  "
+                >
+                  동영상 강의
+                </Link>
 
               <Link
                 href={user.mb_level >= 8 ? "/admin" : "/mypage"}
