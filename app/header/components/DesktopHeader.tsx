@@ -39,7 +39,7 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
         border-b border-gray-200
       `}
     >
-      <div className="flex items-center justify-between max-w-6xl mx-auto h-[110px] px-4 lg:px-6">
+      <div className="flex items-center justify-between max-w-7xl mx-auto h-[110px] px-4 lg:px-6">
 
         {/* 로고 */}
         <Link href="/" className="flex items-center w-44 lg:w-56 shrink-0">
@@ -215,7 +215,7 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
           {user ? (
             <>
               <Link
-                href="/mpspain/mpslecture/packages"
+                href="/mpspain/mpslecture"
                 className="
                   mr-2 rounded-full border border-gray-300 bg-white/70
                   px-3 py-1
