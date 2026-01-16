@@ -192,7 +192,7 @@ export default function AdminPage() {
               </p>
             </button>
 
-            <button
+            {/* <button
               onClick={() => router.push('/admin/authority')}
               className="bg-white p-4 sm:p-6 rounded-lg shadow hover:shadow-md transition-shadow text-left"
             >
@@ -202,7 +202,7 @@ export default function AdminPage() {
               <p className="mt-2 text-xs sm:text-sm text-gray-500">
                 계정별 등록된 기기 확인 및 초기화
               </p>
-            </button>
+            </button> */}
 
             <button
               onClick={() => router.push('/admin/videoauthority')}
