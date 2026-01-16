@@ -8,9 +8,9 @@ interface Member {
   mb_name: string;
   mb_nick: string;
   mb_email: string;
-  mb_school: string; // ✅ 학교
-  mb_addr1: string; // ✅ 기본주소
-  mb_addr2: string; // ✅ 상세주소
+  mb_school: string;
+  mb_addr1: string;
+  mb_addr2: string;
   mb_hp: string;
   mb_level: number;
 }
@@ -20,19 +20,23 @@ type SortOrder = 'asc' | 'desc';
 
 export default function AdminMembersPage() {
   const router = useRouter();
+  const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [search, setSearch] = useState('');
+
+  // ✅ 입력값 / 실제 검색어 분리 (Submit할 때만 searchQuery가 바뀜)
+  const [searchInput, setSearchInput] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+
   const [currentPage, setCurrentPage] = useState(1);
   const [totalMembers, setTotalMembers] = useState(0);
   const [isSearching, setIsSearching] = useState(false);
 
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
-
-  const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
   const pageSize = 10;
   const pageGroupSize = 10;
@@ -41,11 +45,7 @@ export default function AdminMembersPage() {
   const startPage = (currentPageGroup - 1) * pageGroupSize + 1;
   const endPage = Math.min(startPage + pageGroupSize - 1, totalPages);
 
-  const sortMembers = (
-    list: Member[],
-    key: SortKey | null,
-    order: SortOrder,
-  ) => {
+  const sortMembers = (list: Member[], key: SortKey | null, order: SortOrder) => {
     if (!key) return list;
 
     const sorted = [...list].sort((a, b) => {
@@ -72,18 +72,16 @@ export default function AdminMembersPage() {
 
     fetchMembers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage, sortKey, sortOrder, search]);
+  }, [currentPage, sortKey, sortOrder, searchQuery]); // ✅ searchInput 말고 searchQuery만
 
   const fetchMembers = async () => {
     try {
-      if (isSearching === false) {
-        setLoading(true);
-      }
+      if (isSearching === false) setLoading(true);
       setError(null);
 
       const params = new URLSearchParams();
       params.set('page', String(currentPage));
-      if (search) params.set('search', search);
+      if (searchQuery) params.set('search', searchQuery);
       if (sortKey) {
         params.set('sortKey', sortKey);
         params.set('sortOrder', sortOrder);
@@ -107,13 +105,7 @@ export default function AdminMembersPage() {
           body = await response.json();
         } catch {}
 
-        console.error(
-          '[회원 목록 API 실패]',
-          'status =',
-          response.status,
-          'body =',
-          body,
-        );
+        console.error('[회원 목록 API 실패]', 'status =', response.status, 'body =', body);
 
         setError(
           body?.message
@@ -143,18 +135,15 @@ export default function AdminMembersPage() {
       setError(null);
       setSuccess(null);
 
-      const response = await fetch(
-        `${API_URL}/api/admin/members/${mb_id}/level`,
-        {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-          credentials: 'include',
-          body: JSON.stringify({ mb_level: newLevel }),
+      const response = await fetch(`${API_URL}/api/admin/members/${mb_id}/level`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
-      );
+        credentials: 'include',
+        body: JSON.stringify({ mb_level: newLevel }),
+      });
 
       if (response.ok) {
         setSuccess('회원 레벨이 성공적으로 변경되었습니다.');
@@ -171,6 +160,7 @@ export default function AdminMembersPage() {
     e.preventDefault();
     setIsSearching(true);
     setCurrentPage(1);
+    setSearchQuery(searchInput.trim()); // ✅ 여기서만 검색어 확정
   };
 
   const handleSortClick = (key: SortKey) => {
@@ -183,9 +173,8 @@ export default function AdminMembersPage() {
       return;
     }
 
-    if (sortOrder === 'asc') {
-      setSortOrder('desc');
-    } else if (sortOrder === 'desc') {
+    if (sortOrder === 'asc') setSortOrder('desc');
+    else if (sortOrder === 'desc') {
       setSortKey(null);
       setSortOrder('asc');
     }
@@ -208,7 +197,8 @@ export default function AdminMembersPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-6 sm:py-8 mt-20 sm:mt-24">
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+      {/* ✅ sticky 검색창이 하단에 떠있어도 가리지 않게 여백 */}
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pb-28">
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6 sm:mb-8">
           회원 관리
         </h1>
@@ -226,9 +216,7 @@ export default function AdminMembersPage() {
 
         {/* 정렬 버튼 */}
         <div className="flex flex-wrap justify-end mb-3 sm:mb-4 gap-2">
-          <span className="text-xs sm:text-sm text-gray-600 self-center">
-            정렬:
-          </span>
+          <span className="text-xs sm:text-sm text-gray-600 self-center">정렬:</span>
           <button
             type="button"
             onClick={() => handleSortClick('name')}
@@ -254,7 +242,6 @@ export default function AdminMembersPage() {
         </div>
 
         <div className="bg-white shadow rounded-lg overflow-hidden mb-6">
-          {/* 가로 스크롤 허용 + 테이블 넓게 (모바일에서 좌우 스크롤) */}
           <div className="w-full overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200 text-xs sm:text-sm">
               <thead className="bg-gray-50">
@@ -279,6 +266,7 @@ export default function AdminMembersPage() {
                   ))}
                 </tr>
               </thead>
+
               <tbody className="bg-white divide-y divide-gray-200">
                 {loading ? (
                   <tr>
@@ -295,7 +283,7 @@ export default function AdminMembersPage() {
                       colSpan={9}
                       className="px-3 sm:px-6 py-4 text-center text-xs sm:text-sm text-gray-500"
                     >
-                      {search ? '검색 결과가 없습니다.' : '회원이 없습니다.'}
+                      {searchQuery ? '검색 결과가 없습니다.' : '회원이 없습니다.'}
                     </td>
                   </tr>
                 ) : (
@@ -307,44 +295,39 @@ export default function AdminMembersPage() {
 
                     return (
                       <tr key={member.mb_id}>
-                        {/* 번호 */}
-                        <td className="px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm text-center text-gray-700 whitespace-nowrap">
+                        <td className="px-3 sm:px-6 py-2 sm:py-3 text-center text-gray-700 whitespace-nowrap">
                           {index}
                         </td>
-                        <td className="px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm whitespace-nowrap max-w-[120px] sm:max-w-[160px] truncate">
+                        <td className="px-3 sm:px-6 py-2 sm:py-3 whitespace-nowrap max-w-[120px] sm:max-w-[160px] truncate">
                           {member.mb_id}
                         </td>
-                        <td className="px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm whitespace-nowrap max-w-[90px] sm:max-w-[120px] truncate">
+                        <td className="px-3 sm:px-6 py-2 sm:py-3 whitespace-nowrap max-w-[90px] sm:max-w-[120px] truncate">
                           {member.mb_name}
                         </td>
-                        <td className="px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm whitespace-nowrap max-w-[100px] sm:max-w-[140px] truncate">
+                        <td className="px-3 sm:px-6 py-2 sm:py-3 whitespace-nowrap max-w-[100px] sm:max-w-[140px] truncate">
                           {member.mb_nick}
                         </td>
-                        <td className="px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm whitespace-nowrap max-w-[150px] sm:max-w-[200px] truncate">
+                        <td className="px-3 sm:px-6 py-2 sm:py-3 whitespace-nowrap max-w-[150px] sm:max-w-[200px] truncate">
                           {member.mb_email}
                         </td>
-                        <td className="px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm whitespace-nowrap max-w-[120px] sm:max-w-[150px] truncate">
+                        <td className="px-3 sm:px-6 py-2 sm:py-3 whitespace-nowrap max-w-[120px] sm:max-w-[150px] truncate">
                           {member.mb_school}
                         </td>
-                        {/* 주소: 길면 ... 처리 + 한 줄 유지 */}
                         <td
-                          className="px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm max-w-[160px] sm:max-w-[220px] whitespace-nowrap overflow-hidden text-ellipsis"
+                          className="px-3 sm:px-6 py-2 sm:py-3 max-w-[160px] sm:max-w-[220px] whitespace-nowrap overflow-hidden text-ellipsis"
                           title={fullAddress}
                         >
                           {fullAddress}
                         </td>
-                        <td className="px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm whitespace-nowrap max-w-[120px] sm:max-w-[150px] truncate">
+                        <td className="px-3 sm:px-6 py-2 sm:py-3 whitespace-nowrap max-w-[120px] sm:max-w-[150px] truncate">
                           {member.mb_hp}
                         </td>
-                        <td className="px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm">
+                        <td className="px-3 sm:px-6 py-2 sm:py-3">
                           <div className="flex justify-center">
                             <select
                               value={member.mb_level}
                               onChange={(e) =>
-                                handleLevelChange(
-                                  member.mb_id,
-                                  Number(e.target.value),
-                                )
+                                handleLevelChange(member.mb_id, Number(e.target.value))
                               }
                               className="w-11 sm:w-12 h-8 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-xs sm:text-sm font-semibold text-center"
                               style={{
@@ -354,11 +337,7 @@ export default function AdminMembersPage() {
                               }}
                             >
                               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((level) => (
-                                <option
-                                  key={level}
-                                  value={level}
-                                  className="text-center"
-                                >
+                                <option key={level} value={level} className="text-center">
                                   {level}
                                 </option>
                               ))}
@@ -372,33 +351,6 @@ export default function AdminMembersPage() {
               </tbody>
             </table>
           </div>
-        </div>
-
-        {/* 검색 */}
-        <div className="flex justify-center mb-6">
-          <form
-            onSubmit={handleSearch}
-            className="w-full max-w-[600px] px-1 sm:px-0"
-          >
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="   아이디, 이름, 닉네임 검색"
-                className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 px-3 sm:px-4 py-2 text-sm"
-              />
-              <button
-                type="submit"
-                disabled={isSearching}
-                className={`bg-indigo-600 text-white px-4 sm:px-6 py-2 rounded-md hover:bg-indigo-700 text-sm ${
-                  isSearching ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
-              >
-                {isSearching ? '검색 중...' : '검색'}
-              </button>
-            </div>
-          </form>
         </div>
 
         {/* 페이지네이션: 10개 단위 이동 */}
@@ -439,6 +391,34 @@ export default function AdminMembersPage() {
             </nav>
           </div>
         )}
+      </div>
+
+      {/* ✅ 검색창을 화면 하단에 sticky 고정 (테이블 높이 변화해도 안 흔들림) */}
+      <div className="sticky bottom-0 z-20 bg-gray-50 border-t border-gray-200">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4">
+          <div className="flex justify-center">
+            <form onSubmit={handleSearch} className="w-full max-w-[600px]">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  placeholder="   아이디, 이름, 닉네임 검색"
+                  className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 px-3 sm:px-4 py-2 text-sm"
+                />
+                <button
+                  type="submit"
+                  disabled={isSearching}
+                  className={`bg-indigo-600 text-white px-4 sm:px-6 py-2 rounded-md hover:bg-indigo-700 text-sm ${
+                    isSearching ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                >
+                  {isSearching ? '검색 중...' : '검색'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       </div>
     </div>
   );
