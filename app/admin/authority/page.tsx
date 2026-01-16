@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface Member {
-  mb_no: number;
+  mb_no: number; // 🔹 기기 API에 넘길 PK
   mb_id: string;
   mb_name: string;
   mb_hp: string;
@@ -30,11 +30,7 @@ export default function MemberDevicePage() {
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // ✅ 입력값 / 실제 검색어 분리
-  const [searchInput, setSearchInput] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
-
+  const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalMembers, setTotalMembers] = useState(0);
   const [isSearching, setIsSearching] = useState(false);
@@ -64,8 +60,11 @@ export default function MemberDevicePage() {
     const sorted = [...list].sort((a, b) => {
       let comp = 0;
 
-      if (key === 'name') comp = a.mb_name.localeCompare(b.mb_name);
-      else if (key === 'latest') comp = a.mb_no - b.mb_no;
+      if (key === 'name') {
+        comp = a.mb_name.localeCompare(b.mb_name);
+      } else if (key === 'latest') {
+        comp = a.mb_no - b.mb_no;
+      }
 
       return order === 'asc' ? comp : -comp;
     });
@@ -73,6 +72,7 @@ export default function MemberDevicePage() {
     return sorted;
   };
 
+  // 관리자 권한 체크 + 목록 가져오기
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     if (!user || user.mb_level < 8) {
@@ -82,17 +82,19 @@ export default function MemberDevicePage() {
 
     fetchMembers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage, sortKey, sortOrder, searchQuery]); // ✅ searchInput 제외
+  }, [currentPage, sortKey, sortOrder, search]);
 
   const fetchMembers = async () => {
     try {
-      if (!isSearching) setLoading(true);
+      if (!isSearching) {
+        setLoading(true);
+      }
       setError(null);
 
       const params = new URLSearchParams();
       params.set('page', String(currentPage));
       params.set('pageSize', String(pageSize));
-      if (searchQuery) params.set('search', searchQuery);
+      if (search) params.set('search', search);
       if (sortKey) {
         params.set('sortKey', sortKey);
         params.set('sortOrder', sortOrder);
@@ -116,7 +118,13 @@ export default function MemberDevicePage() {
           body = await response.json();
         } catch {}
 
-        console.error('[회원 목록 API 실패]', 'status =', response.status, 'body =', body);
+        console.error(
+          '[회원 목록 API 실패]',
+          'status =',
+          response.status,
+          'body =',
+          body,
+        );
 
         setError(
           body?.message
@@ -145,7 +153,6 @@ export default function MemberDevicePage() {
     e.preventDefault();
     setIsSearching(true);
     setCurrentPage(1);
-    setSearchQuery(searchInput.trim()); // ✅ 여기서만 확정
   };
 
   const handleSortClick = (key: SortKey) => {
@@ -158,8 +165,9 @@ export default function MemberDevicePage() {
       return;
     }
 
-    if (sortOrder === 'asc') setSortOrder('desc');
-    else if (sortOrder === 'desc') {
+    if (sortOrder === 'asc') {
+      setSortOrder('desc');
+    } else if (sortOrder === 'desc') {
       setSortKey(null);
       setSortOrder('asc');
     }
@@ -180,27 +188,34 @@ export default function MemberDevicePage() {
     return `${label} ${sortOrder === 'asc' ? '▲' : '▼'}`;
   };
 
+  // 🔹 특정 회원 선택 + 기기 정보 로딩
   const handleSelectMember = async (member: Member) => {
     setSelectedMember(member);
     setDeviceMessage(null);
     setDevices([]);
 
     if (devicePanelRef.current) {
-      devicePanelRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      devicePanelRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
     }
 
     if (!member.mb_no) return;
 
     setDeviceLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/admin/devices/${member.mb_no}`, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json',
+      const res = await fetch(
+        `${API_URL}/api/admin/devices/${member.mb_no}`,
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
         },
-        credentials: 'include',
-      });
+      );
 
       if (!res.ok) {
         console.error('기기 조회 실패', res.status);
@@ -227,7 +242,7 @@ export default function MemberDevicePage() {
 
     try {
       const res = await fetch(
-        `${API_URL}/api/admin/devices/${selectedMember.mb_no}/${deviceId}`,
+        `${API_URL}/admin/devices/${selectedMember.mb_no}/${deviceId}`,
         {
           method: 'DELETE',
           headers: {
@@ -262,14 +277,17 @@ export default function MemberDevicePage() {
     setDeviceMessage(null);
 
     try {
-      const res = await fetch(`${API_URL}/api/admin/devices/${selectedMember.mb_no}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json',
+      const res = await fetch(
+        `${API_URL}/admin/devices/${selectedMember.mb_no}`,
+        {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
         },
-        credentials: 'include',
-      });
+      );
 
       if (!res.ok) {
         console.error('전체 기기 초기화 실패', res.status);
@@ -300,56 +318,57 @@ export default function MemberDevicePage() {
           </div>
         )}
 
-        {/* ✅ 상단 툴바 sticky 고정 (테이블 변화해도 검색창 위치 안 흔들림) */}
-        <div className="sticky top-16 sm:top-20 z-20 bg-gray-50 py-3">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-xs sm:text-sm text-gray-600">정렬:</span>
+        {/* 정렬 + 검색 */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3 sm:gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-xs sm:text-sm text-gray-600">정렬:</span>
+            <button
+              type="button"
+              onClick={() => handleSortClick('name')}
+              className={`px-3 py-1.5 rounded-md text-xs sm:text-sm border transition-colors ${
+                sortKey === 'name'
+                  ? 'bg-indigo-600 text-white border-indigo-600'
+                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              {renderSortLabel('이름순', 'name')}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSortClick('latest')}
+              className={`px-3 py-1.5 rounded-md text-xs sm:text-sm border transition-colors ${
+                sortKey === 'latest'
+                  ? 'bg-indigo-600 text-white border-indigo-600'
+                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              {renderSortLabel('최신순', 'latest')}
+            </button>
+          </div>
+
+          <form
+            onSubmit={handleSearch}
+            className="w-full sm:w-[360px]"
+          >
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="아이디, 이름 검색"
+                className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 px-3 py-2 text-xs sm:text-sm"
+              />
               <button
-                type="button"
-                onClick={() => handleSortClick('name')}
-                className={`px-3 py-1.5 rounded-md text-xs sm:text-sm border transition-colors ${
-                  sortKey === 'name'
-                    ? 'bg-indigo-600 text-white border-indigo-600'
-                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                type="submit"
+                disabled={isSearching}
+                className={`bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 text-xs sm:text-sm ${
+                  isSearching ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
               >
-                {renderSortLabel('이름순', 'name')}
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSortClick('latest')}
-                className={`px-3 py-1.5 rounded-md text-xs sm:text-sm border transition-colors ${
-                  sortKey === 'latest'
-                    ? 'bg-indigo-600 text-white border-indigo-600'
-                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                }`}
-              >
-                {renderSortLabel('최신순', 'latest')}
+                {isSearching ? '검색 중...' : '검색'}
               </button>
             </div>
-
-            <form onSubmit={handleSearch} className="w-full sm:w-[360px]">
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
-                  placeholder="아이디, 이름 검색"
-                  className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 px-3 py-2 text-xs sm:text-sm"
-                />
-                <button
-                  type="submit"
-                  disabled={isSearching}
-                  className={`bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 text-xs sm:text-sm ${
-                    isSearching ? 'opacity-50 cursor-not-allowed' : ''
-                  }`}
-                >
-                  {isSearching ? '검색 중...' : '검색'}
-                </button>
-              </div>
-            </form>
-          </div>
+          </form>
         </div>
 
         {/* 회원 리스트 테이블 */}
@@ -368,7 +387,6 @@ export default function MemberDevicePage() {
                   ))}
                 </tr>
               </thead>
-
               <tbody className="bg-white divide-y divide-gray-200">
                 {loading ? (
                   <tr>
@@ -385,7 +403,7 @@ export default function MemberDevicePage() {
                       colSpan={4}
                       className="px-3 sm:px-6 py-4 text-center text-xs sm:text-sm text-gray-500"
                     >
-                      {searchQuery ? '검색 결과가 없습니다.' : '회원이 없습니다.'}
+                      {search ? '검색 결과가 없습니다.' : '회원이 없습니다.'}
                     </td>
                   </tr>
                 ) : (
@@ -395,17 +413,20 @@ export default function MemberDevicePage() {
                       selectedMember && selectedMember.mb_no === member.mb_no;
 
                     return (
-                      <tr key={member.mb_no} className={isSelected ? 'bg-indigo-50/40' : ''}>
-                        <td className="px-3 sm:px-6 py-2 sm:py-3 text-center text-gray-700 whitespace-nowrap">
+                      <tr
+                        key={member.mb_no}
+                        className={isSelected ? 'bg-indigo-50/40' : ''}
+                      >
+                        <td className="px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm text-center text-gray-700 whitespace-nowrap">
                           {index}
                         </td>
-                        <td className="px-3 sm:px-6 py-2 sm:py-3 whitespace-nowrap text-center max-w-[120px] sm:max-w-[160px] truncate">
+                        <td className="px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm whitespace-nowrap text-center max-w-[120px] sm:max-w-[160px] truncate">
                           {member.mb_id}
                         </td>
-                        <td className="px-3 sm:px-6 py-2 sm:py-3 whitespace-nowrap text-center max-w-[90px] sm:max-w-[120px] truncate">
+                        <td className="px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm whitespace-nowrap text-center max-w-[90px] sm:max-w-[120px] truncate">
                           {member.mb_name}
                         </td>
-                        <td className="px-3 sm:px-6 py-2 sm:py-3 whitespace-nowrap text-center">
+                        <td className="px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm whitespace-nowrap text-center">
                           <button
                             type="button"
                             onClick={() => handleSelectMember(member)}
@@ -467,7 +488,10 @@ export default function MemberDevicePage() {
         )}
 
         {/* 선택한 회원 기기 관리 패널 */}
-        <div ref={devicePanelRef} className="bg-white shadow rounded-lg p-4 sm:p-6">
+        <div
+          ref={devicePanelRef}
+          className="bg-white shadow rounded-lg p-4 sm:p-6"
+        >
           <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">
             {selectedMember
               ? `선택한 회원: ${selectedMember.mb_name} (${selectedMember.mb_id})`
@@ -530,7 +554,9 @@ export default function MemberDevicePage() {
                                   onClick={() => handleReleaseDevice(device.deviceId)}
                                   disabled={deviceSaving}
                                   className={`w-full px-3 py-2 rounded-md text-xs sm:text-sm font-medium text-white bg-rose-600 hover:bg-rose-700 ${
-                                    deviceSaving ? 'opacity-50 cursor-not-allowed' : ''
+                                    deviceSaving
+                                      ? 'opacity-50 cursor-not-allowed'
+                                      : ''
                                   }`}
                                 >
                                   기기 해제
