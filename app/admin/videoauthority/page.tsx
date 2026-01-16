@@ -69,7 +69,10 @@ export default function VideoAuthorityPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [search, setSearch] = useState('');
+  // ✅ 입력값 / 실제 검색어 분리 (Submit 시에만 searchQuery가 바뀜)
+  const [searchInput, setSearchInput] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+
   const [currentPage, setCurrentPage] = useState(1);
   const [totalMembers, setTotalMembers] = useState(0);
   const [isSearching, setIsSearching] = useState(false);
@@ -101,7 +104,7 @@ export default function VideoAuthorityPage() {
   const endPage = Math.min(startPage + pageGroupSize - 1, totalPages);
 
   // -----------------------------
-  // 로그인 / 권한 체크
+  // 로그인 / 권한 체크 + 목록 가져오기
   // -----------------------------
   useEffect(() => {
     const stored = localStorage.getItem('user');
@@ -125,7 +128,7 @@ export default function VideoAuthorityPage() {
 
     fetchMembers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage, sortKey, sortOrder, search]);
+  }, [currentPage, sortKey, sortOrder, searchQuery]); // ✅ searchInput 제거, searchQuery만
 
   // -----------------------------
   // 회원 목록 가져오기
@@ -136,11 +139,8 @@ export default function VideoAuthorityPage() {
     const sorted = [...list].sort((a, b) => {
       let comp = 0;
 
-      if (key === 'name') {
-        comp = a.mb_name.localeCompare(b.mb_name);
-      } else if (key === 'latest') {
-        comp = a.mb_no - b.mb_no;
-      }
+      if (key === 'name') comp = a.mb_name.localeCompare(b.mb_name);
+      else if (key === 'latest') comp = a.mb_no - b.mb_no;
 
       return order === 'asc' ? comp : -comp;
     });
@@ -156,7 +156,7 @@ export default function VideoAuthorityPage() {
       const params = new URLSearchParams();
       params.set('page', String(currentPage));
       params.set('pageSize', String(pageSize));
-      if (search) params.set('search', search);
+      if (searchQuery) params.set('search', searchQuery); // ✅ searchQuery 사용
       if (sortKey) {
         params.set('sortKey', sortKey);
         params.set('sortOrder', sortOrder);
@@ -232,34 +232,26 @@ export default function VideoAuthorityPage() {
     // ------- 권한 조회 -------
     setAuthorityLoading(true);
     try {
-      const res = await fetch(
-        `${API_URL}/api/video-authorities?userId=${userId}`,
-        {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
+      const res = await fetch(`${API_URL}/api/video-authorities?userId=${userId}`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json',
         },
-      );
+        credentials: 'include',
+      });
 
       if (!res.ok) {
         setAuthorityMessage('권한 정보를 불러오지 못했습니다.');
       } else {
         const data: VideoAuthority[] = await res.json();
-        console.log('🔎 권한 조회 결과:', data);
 
         if (!data || data.length === 0) {
           setSelectedClassGroups([]);
           setSelectedVideoTypes([]);
         } else {
-          const cg = data
-            .filter((a) => a.classGroup)
-            .map((a) => a.classGroup!) as ClassGroup[];
-          const vt = data
-            .filter((a) => a.type)
-            .map((a) => a.type!) as LectureType[];
+          const cg = data.filter((a) => a.classGroup).map((a) => a.classGroup!) as ClassGroup[];
+          const vt = data.filter((a) => a.type).map((a) => a.type!) as LectureType[];
 
           setSelectedClassGroups(cg);
           setSelectedVideoTypes(vt);
@@ -291,7 +283,6 @@ export default function VideoAuthorityPage() {
         setDeviceMessage('기기 정보를 불러오지 못했습니다.');
       } else {
         const data: any[] = await res.json();
-        console.log('🔎 기기 조회 결과:', data);
         const formatted: UserDevice[] = data.map((d) => ({
           id: d.id,
           deviceId: d.deviceId,
@@ -320,9 +311,7 @@ export default function VideoAuthorityPage() {
 
   const toggleVideoType = (vt: LectureType) => {
     setSelectedVideoTypes((prev) => {
-      if (vt === 'single') {
-        return prev.includes('single') ? [] : ['single'];
-      }
+      if (vt === 'single') return prev.includes('single') ? [] : ['single'];
 
       const after = prev.filter((v) => v !== 'single');
       if (after.includes(vt)) return after.filter((v) => v !== vt);
@@ -351,8 +340,6 @@ export default function VideoAuthorityPage() {
       videoTypes: selectedVideoTypes,
     };
 
-    console.log('🚀 권한 저장 요청 payload:', payload);
-
     setAuthoritySaving(true);
     setAuthorityMessage(null);
 
@@ -366,9 +353,6 @@ export default function VideoAuthorityPage() {
         credentials: 'include',
         body: JSON.stringify(payload),
       });
-
-      const text = await res.text();
-      console.log('📥 권한 저장 응답 status:', res.status, 'body:', text);
 
       if (!res.ok) {
         setAuthorityMessage('권한 저장에 실패했습니다.');
@@ -392,26 +376,21 @@ export default function VideoAuthorityPage() {
     const userId = selectedMember.mb_no;
     if (userId == null) return;
 
-    if (!window.confirm('해당 회원의 등록된 기기를 모두 초기화하시겠습니까?')) {
-      return;
-    }
+    if (!window.confirm('해당 회원의 등록된 기기를 모두 초기화하시겠습니까?')) return;
 
     setDeviceResetting(true);
     setDeviceMessage(null);
 
     try {
-      const res = await fetch(
-        `${API_URL}/api/video-authorities/devices/reset`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-          body: JSON.stringify({ userId }),
+      const res = await fetch(`${API_URL}/api/video-authorities/devices/reset`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json',
         },
-      );
+        credentials: 'include',
+        body: JSON.stringify({ userId }),
+      });
 
       if (!res.ok) {
         setDeviceMessage('기기 초기화에 실패했습니다.');
@@ -428,10 +407,14 @@ export default function VideoAuthorityPage() {
     }
   };
 
+  // -----------------------------
+  // 검색/페이지 이동
+  // -----------------------------
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setIsSearching(true);
     setCurrentPage(1);
+    setSearchQuery(searchInput.trim()); // ✅ Submit 시에만 실제 검색어 확정
   };
 
   const handlePrevGroup = () => {
@@ -449,7 +432,8 @@ export default function VideoAuthorityPage() {
   // -----------------------------
   return (
     <div className="min-h-screen bg-gray-50 py-6 sm:py-8 mt-20 sm:mt-24">
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+      {/* ✅ sticky 하단 검색바가 내용 가리는 거 방지 */}
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pb-28">
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6 sm:mb-8">
           동영상 권한 및 기기 관리
         </h1>
@@ -490,22 +474,22 @@ export default function VideoAuthorityPage() {
                         key={member.mb_no ?? `${member.mb_id}-${idx}`}
                         className={isSelected ? 'bg-indigo-50/40' : ''}
                       >
-                        <td className="px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm text-center">
+                        <td className="px-3 sm:px-6 py-2 sm:py-3 text-center">
                           {index}
                         </td>
-                        <td className="px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm text-center whitespace-nowrap max-w-[120px] sm:max-w-[160px] truncate">
+                        <td className="px-3 sm:px-6 py-2 sm:py-3 text-center whitespace-nowrap max-w-[120px] sm:max-w-[160px] truncate">
                           {member.mb_id}
                         </td>
-                        <td className="px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm text-center whitespace-nowrap max-w-[90px] sm:max-w-[120px] truncate">
+                        <td className="px-3 sm:px-6 py-2 sm:py-3 text-center whitespace-nowrap max-w-[90px] sm:max-w-[120px] truncate">
                           {member.mb_name}
                         </td>
-                        <td className="px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm text-center whitespace-nowrap max-w-[120px] sm:max-w-[150px] truncate">
+                        <td className="px-3 sm:px-6 py-2 sm:py-3 text-center whitespace-nowrap max-w-[120px] sm:max-w-[150px] truncate">
                           {member.mb_hp}
                         </td>
-                        <td className="px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm text-center whitespace-nowrap max-w-[120px] sm:max-w-[150px] truncate">
+                        <td className="px-3 sm:px-6 py-2 sm:py-3 text-center whitespace-nowrap max-w-[120px] sm:max-w-[150px] truncate">
                           {member.mb_school}
                         </td>
-                        <td className="px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm text-center">
+                        <td className="px-3 sm:px-6 py-2 sm:py-3 text-center">
                           <button
                             type="button"
                             onClick={() => handleSelectMember(member)}
@@ -525,33 +509,6 @@ export default function VideoAuthorityPage() {
               </table>
             )}
           </div>
-        </div>
-
-        {/* 검색 */}
-        <div className="flex justify-center mb-6">
-          <form
-            onSubmit={handleSearch}
-            className="w-full max-w-[600px] px-1 sm:px-0"
-          >
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="   아이디, 이름, 휴대폰, 학교 검색"
-                className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 px-3 sm:px-4 py-2 text-sm"
-              />
-              <button
-                type="submit"
-                disabled={isSearching}
-                className={`bg-indigo-600 text-white px-4 sm:px-6 py-2 rounded-md hover:bg-indigo-700 text-sm ${
-                  isSearching ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
-              >
-                {isSearching ? '검색 중...' : '검색'}
-              </button>
-            </div>
-          </form>
         </div>
 
         {/* 페이지네이션 */}
@@ -615,9 +572,7 @@ export default function VideoAuthorityPage() {
               )}
 
               {authorityLoading ? (
-                <p className="text-xs sm:text-sm text-gray-500">
-                  권한 정보를 불러오는 중...
-                </p>
+                <p className="text-xs sm:text-sm text-gray-500">권한 정보를 불러오는 중...</p>
               ) : (
                 <div className="space-y-5 sm:space-y-6">
                   <div>
@@ -626,10 +581,7 @@ export default function VideoAuthorityPage() {
                     </h3>
                     <div className="flex flex-wrap gap-3">
                       {(['A', 'B'] as ClassGroup[]).map((cg) => (
-                        <label
-                          key={cg}
-                          className="inline-flex items-center gap-2 text-xs sm:text-sm"
-                        >
+                        <label key={cg} className="inline-flex items-center gap-2 text-xs sm:text-sm">
                           <input
                             type="checkbox"
                             checked={selectedClassGroups.includes(cg)}
@@ -661,10 +613,7 @@ export default function VideoAuthorityPage() {
 
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                       {PACKAGE_TYPES.map((vt) => (
-                        <label
-                          key={vt}
-                          className="inline-flex items-center gap-2 text-xs sm:text-sm"
-                        >
+                        <label key={vt} className="inline-flex items-center gap-2 text-xs sm:text-sm">
                           <input
                             type="checkbox"
                             checked={selectedVideoTypes.includes(vt)}
@@ -697,9 +646,7 @@ export default function VideoAuthorityPage() {
                     </h3>
 
                     {deviceLoading ? (
-                      <p className="text-xs sm:text-sm text-gray-500">
-                        기기 정보를 불러오는 중...
-                      </p>
+                      <p className="text-xs sm:text-sm text-gray-500">기기 정보를 불러오는 중...</p>
                     ) : devices.length === 0 ? (
                       <p className="text-xs sm:text-sm text-gray-500">
                         등록된 기기가 없습니다. (유저가 처음 재생하는 2개의 기기로 자동 등록됩니다.)
@@ -713,20 +660,15 @@ export default function VideoAuthorityPage() {
                           >
                             <div className="flex-1">
                               <div className="font-medium">
-                                {index + 1}번 기기
-                                {d.deviceName ? ` - ${d.deviceName}` : ''}
+                                {index + 1}번 기기{d.deviceName ? ` - ${d.deviceName}` : ''}
                               </div>
                               <div className="text-[11px] sm:text-xs text-gray-600 break-all">
                                 ID: {d.deviceId}
                               </div>
                               <div className="text-[11px] sm:text-xs text-gray-500 mt-1">
-                                등록:{' '}
-                                {d.createdAt &&
-                                  new Date(d.createdAt).toLocaleString()}
+                                등록: {d.createdAt && new Date(d.createdAt).toLocaleString()}
                                 {' / '}
-                                최근 사용:{' '}
-                                {d.lastUsedAt &&
-                                  new Date(d.lastUsedAt).toLocaleString()}
+                                최근 사용: {d.lastUsedAt && new Date(d.lastUsedAt).toLocaleString()}
                               </div>
                             </div>
                           </div>
@@ -751,6 +693,34 @@ export default function VideoAuthorityPage() {
               )}
             </>
           )}
+        </div>
+      </div>
+
+      {/* ✅ 검색창: 화면 하단에 고정 (테이블 높이 바뀌어도 안 흔들림) */}
+      <div className="sticky bottom-0 z-20 bg-gray-50 border-t border-gray-200">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4">
+          <div className="flex justify-center">
+            <form onSubmit={handleSearch} className="w-full max-w-[600px] px-1 sm:px-0">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  placeholder="   아이디, 이름, 휴대폰, 학교 검색"
+                  className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 px-3 sm:px-4 py-2 text-sm"
+                />
+                <button
+                  type="submit"
+                  disabled={isSearching}
+                  className={`bg-indigo-600 text-white px-4 sm:px-6 py-2 rounded-md hover:bg-indigo-700 text-sm ${
+                    isSearching ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                >
+                  {isSearching ? '검색 중...' : '검색'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
     </div>
