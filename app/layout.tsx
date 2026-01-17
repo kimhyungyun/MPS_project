@@ -6,7 +6,7 @@ import "./globals.css";
 
 import Footer from "./footer/Footer";
 import Header from "./header/page";
-import { ViewModeProvider } from "./providers/ViewModeProvider";
+
 
 
 const geistSans = Geist({
@@ -19,7 +19,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const HEADER_HEIGHT = 100;
+const HEADER_HEIGHT = 100; // Header 컴포넌트에서 쓰는 높이랑 반드시 맞추기
 
 export default function RootLayout({
   children,
@@ -32,15 +32,21 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        <ViewModeProvider>
-          {!isMpsPage && <Header />}
+        {/* 헤더를 따로 fixed로 감싸지 말고, Header 컴포넌트만 그대로 렌더 */}
+        {!isMpsPage && <Header />}
 
-          <main style={!isMpsPage ? { paddingTop: HEADER_HEIGHT } : undefined}>
-            {children}
-          </main>
+        {/* 헤더가 있는 페이지는 헤더 높이만큼 전체 컨텐츠를 아래로 밀어줌 */}
+        <main
+          style={
+            !isMpsPage
+              ? { paddingTop: HEADER_HEIGHT }
+              : undefined
+          }
+        >
+          {children}
+        </main>
 
-          <Footer />
-        </ViewModeProvider>
+        <Footer />
       </body>
     </html>
   );

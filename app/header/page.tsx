@@ -2,13 +2,12 @@
 
 import { useState, useEffect } from "react";
 import axios, { AxiosError } from "axios";
-import DesktopHeader, { type User as HeaderUser } from "./components/DesktopHeader";
+import DesktopHeader, {
+  type User as HeaderUser,
+} from "./components/DesktopHeader";
 import MobileHeader from "./components/MobileHeader";
-import { useViewMode } from "../providers/ViewModeProvider";
 
 export default function HeaderPage() {
-  const { mode } = useViewMode();
-
   const [user, setUser] = useState<HeaderUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -53,23 +52,16 @@ export default function HeaderPage() {
     setUser(null);
   };
 
-  // 로딩 중에도 헤더는 보여줘도 되지만, 원하면 여기서 skeleton 처리해도 됨.
-  // if (isLoading) return null;
-
-  // ✅ 강제 모드면 "하나만" 렌더링 (CSS breakpoint 무시)
-  if (mode === "desktop") {
-    return <DesktopHeader user={user} handleLogout={handleLogout} />;
+  if (isLoading) {
+    // 필요하면 로딩상태 처리, 아니면 바로 헤더 렌더링해도 됨
   }
 
-  if (mode === "mobile") {
-    return <MobileHeader user={user} handleLogout={handleLogout} />;
-  }
-
-  // ✅ auto 모드면 기존 반응형대로 (둘 다 렌더링 후 md:hidden/md:block로 제어)
   return (
     <>
       <DesktopHeader user={user} handleLogout={handleLogout} />
       <MobileHeader user={user} handleLogout={handleLogout} />
+      {/* 필요하면 헤더 높이만큼 여백 */}
+      {/* <div className="h-[64px] md:h-[110px]" /> */}
     </>
   );
 }
