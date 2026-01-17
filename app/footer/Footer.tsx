@@ -1,7 +1,18 @@
-// components/Footer.tsx
+"use client";
+
 import Link from "next/link";
+import { useViewMode } from "../hooks/useViewMode";
+import { useIsDesktopWidth } from "../hooks/useIsDesktopWidth";
+
 
 const Footer = () => {
+  const { mode, setMode } = useViewMode();
+  const isDesktop = useIsDesktopWidth();
+
+  // auto일 때: 화면에 따라 보여줄 “전환 버튼” 결정
+  const showSwitchToMobile = mode === "auto" && isDesktop;     // 데스크탑 폭이면 모바일 보기 버튼
+  const showSwitchToDesktop = mode === "auto" && !isDesktop;   // 모바일/태블릿 폭이면 PC 보기 버튼
+
   return (
     <footer className="w-full bg-gray-100 border-t border-gray-200">
       <div className="max-w-6xl mx-auto px-6 py-10">
@@ -16,9 +27,42 @@ const Footer = () => {
               mdw36900@gmail.com
             </p>
             <p>통신판매신고번호 : 제2013-4650077-30-2-00234</p>
+
+            {/* ✅ 뷰 전환 버튼 (임시) */}
+            <div className="mt-4 flex items-center justify-center sm:justify-start gap-2">
+              {showSwitchToMobile && (
+                <button
+                  type="button"
+                  onClick={() => setMode("mobile")}
+                  className="rounded-full border border-gray-300 bg-white px-3 py-1 text-xs font-medium hover:bg-gray-50"
+                >
+                  모바일 버전
+                </button>
+              )}
+
+              {showSwitchToDesktop && (
+                <button
+                  type="button"
+                  onClick={() => setMode("desktop")}
+                  className="rounded-full border border-gray-300 bg-white px-3 py-1 text-xs font-medium hover:bg-gray-50"
+                >
+                  PC 버전
+                </button>
+              )}
+
+              {mode !== "auto" && (
+                <button
+                  type="button"
+                  onClick={() => setMode("auto")}
+                  className="rounded-full border border-gray-300 bg-white px-3 py-1 text-xs font-medium hover:bg-gray-50"
+                >
+                  자동으로 보기
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* right: 두 줄로 */}
+          {/* right */}
           <div className="flex flex-col items-center sm:items-end justify-center text-gray-700 text-sm gap-2 mt-2 sm:mt-0">
             <Link
               href="/footer/policy/privacy"
