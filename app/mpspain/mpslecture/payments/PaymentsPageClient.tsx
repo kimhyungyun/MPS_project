@@ -195,9 +195,6 @@ export default function PaymentsPageClient() {
         throw new Error(`표시 금액(${displayPrice})과 주문 금액(${amount})이 다릅니다.`);
       }
 
-      // 2) 혹시 위젯 표시 금액이 달랐을 수 있으니 업데이트
-      await paymentMethodsWidgetRef.current.updateAmount(amount);
-
       // 3) 결제 요청
       await paymentWidgetRef.current.requestPayment({
         orderId,
