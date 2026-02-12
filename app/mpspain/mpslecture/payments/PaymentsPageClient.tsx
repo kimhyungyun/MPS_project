@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { loadTossPayments } from '@tosspayments/payment-sdk';
+import { ANONYMOUS, loadPaymentWidget } from '@tosspayments/payment-widget-sdk';
 import { createPaymentOrder } from '@/app/services/payments';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -16,7 +16,6 @@ const NAME_FALLBACK: Record<number, string> = {
   4: 'MPS 강의 모음 A + B + C',
 };
 
-/** ✅ packageId별 "모바일 이미지" 경로만 매핑 */
 const MOBILE_IMAGE_BY_ID: Record<number, string> = {
   1: '/최종상품M이미지1.jpg',
   2: '/최종상품M이미지2.jpg',
@@ -24,14 +23,12 @@ const MOBILE_IMAGE_BY_ID: Record<number, string> = {
   4: '/최종상품M이미지4.jpg',
 };
 
-/** fallback */
 const MOBILE_IMAGE_FALLBACK = '/최종상품M이미지1.jpg';
 
 function normalizeBase(input: unknown) {
   return String(input ?? '').trim().replace(/\/$/, '');
 }
 
-// ✅ env는 도메인만(https://api.mpspain.co.kr) 두고, 코드에서 /api를 한 번만 붙인다.
 function ensureApiBase(baseUrl: string) {
   const base = normalizeBase(baseUrl);
   if (!base) return null;
@@ -54,22 +51,27 @@ export default function PaymentsPageClient() {
   const [pkgLoading, setPkgLoading] = useState(false);
   const [pkg, setPkg] = useState<Pkg | null>(null);
 
-  // ✅ throw 금지: 없으면 null로 두고 화면에 표시
+  // ✅ 결제위젯 렌더를 위한 상태
+  const [amountForWidget, setAmountForWidget] = useState<number | null>(null);
+
+  // widget refs
+  const paymentWidgetRef = useRef<any>(null);
+  const paymentMethodsWidgetRef = useRef<any>(null);
+
   const env = useMemo(() => {
-    const clientKey = (process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY ?? '').trim();
-    const publicApiUrl = (process.env.NEXT_PUBLIC_API_URL ?? '').trim();
-    const apiBase = (process.env.NEXT_PUBLIC_API_BASE_URL ?? '').trim(); // optional
-    return { clientKey, publicApiUrl, apiBase };
+    const clientKey = (process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY ?? '').trim(); // live_gck / test_gck
+    const publicApiUrl = (process.env.NEXT_PUBLIC_API_URL ?? '').trim(); // https://api.mpspain.co.kr
+    return { clientKey, publicApiUrl };
   }, []);
 
   useEffect(() => {
     if (!env.clientKey) {
-      setError((prev) => prev ?? 'NEXT_PUBLIC_TOSS_CLIENT_KEY가 없습니다. (Vercel Production env 확인)');
+      setError((prev) => prev ?? 'NEXT_PUBLIC_TOSS_CLIENT_KEY가 없습니다. (Vercel Env 확인)');
     }
-    if (!env.publicApiUrl && !env.apiBase) {
-      setError((prev) => prev ?? 'NEXT_PUBLIC_API_URL 또는 NEXT_PUBLIC_API_BASE_URL이 없습니다. (Vercel Production env 확인)');
+    if (!env.publicApiUrl) {
+      setError((prev) => prev ?? 'NEXT_PUBLIC_API_URL이 없습니다. (Vercel Env 확인)');
     }
-  }, [env.clientKey, env.publicApiUrl, env.apiBase]);
+  }, [env.clientKey, env.publicApiUrl]);
 
   const lecturePackageId = useMemo(() => {
     const v = searchParams.get('packageId');
@@ -78,18 +80,17 @@ export default function PaymentsPageClient() {
     return Number.isFinite(n) ? n : null;
   }, [searchParams]);
 
+  // 패키지 조회
   useEffect(() => {
     if (!lecturePackageId) {
       setPkg(null);
       return;
     }
 
-    const baseUrl = env.publicApiUrl || env.apiBase;
-    const endpoint = getPackagesEndpoint(baseUrl);
-
+    const endpoint = getPackagesEndpoint(env.publicApiUrl);
     if (!endpoint) {
       setPkg(null);
-      setError('API Base URL이 비어있습니다. (NEXT_PUBLIC_API_URL 또는 NEXT_PUBLIC_API_BASE_URL 확인)');
+      setError('API Base URL이 비어있습니다. (NEXT_PUBLIC_API_URL 확인)');
       return;
     }
 
@@ -102,7 +103,8 @@ export default function PaymentsPageClient() {
         if (!res.ok) throw new Error(`패키지 조회 실패 (${res.status})`);
 
         const list: Pkg[] = await res.json();
-        setPkg(list.find((x) => x.id === lecturePackageId) ?? null);
+        const found = list.find((x) => x.id === lecturePackageId) ?? null;
+        setPkg(found);
       } catch (e: any) {
         console.error(e);
         setPkg(null);
@@ -113,7 +115,7 @@ export default function PaymentsPageClient() {
     };
 
     run();
-  }, [lecturePackageId, env.publicApiUrl, env.apiBase]);
+  }, [lecturePackageId, env.publicApiUrl]);
 
   const displayName =
     pkg?.name ??
@@ -123,10 +125,56 @@ export default function PaymentsPageClient() {
   const displayPrice = pkg?.price ?? null;
   const priceText = displayPrice != null ? `${displayPrice.toLocaleString()}원` : '-';
 
-  /** ✅ id별 모바일 이미지 */
   const productImageSrc = lecturePackageId
     ? (MOBILE_IMAGE_BY_ID[lecturePackageId] ?? MOBILE_IMAGE_FALLBACK)
     : MOBILE_IMAGE_FALLBACK;
+
+  /**
+   * ✅ 결제위젯 렌더링
+   * - amountForWidget 값이 생기면 위젯을 렌더
+   * - 이미 렌더된 상태에서 금액이 바뀌면 updateAmount로 갱신
+   */
+  useEffect(() => {
+    const clientKey = env.clientKey;
+    if (!clientKey) return;
+
+    // amount가 아직 없으면 렌더하지 않음
+    if (amountForWidget == null) return;
+
+    const run = async () => {
+      try {
+        // 이미 렌더된 적 있으면 amount만 업데이트
+        if (paymentWidgetRef.current && paymentMethodsWidgetRef.current) {
+          await paymentMethodsWidgetRef.current.updateAmount(amountForWidget);
+          return;
+        }
+
+        // customerKey:
+        // - 회원이면 userId 같은 고유값
+        // - 비회원/임시면 ANONYMOUS
+        const customerKey = ANONYMOUS;
+
+        const paymentWidget = await loadPaymentWidget(clientKey, customerKey);
+        paymentWidgetRef.current = paymentWidget;
+
+        // 결제수단 위젯 렌더
+        const paymentMethodsWidget = paymentWidget.renderPaymentMethods(
+          '#payment-widget',
+          { value: amountForWidget },
+          { variantKey: 'DEFAULT' },
+        );
+        paymentMethodsWidgetRef.current = paymentMethodsWidget;
+
+        // 약관 위젯 렌더
+        paymentWidget.renderAgreement('#agreement');
+      } catch (e: any) {
+        console.error(e);
+        setError(e?.message ?? '결제위젯 초기화 오류');
+      }
+    };
+
+    run();
+  }, [env.clientKey, amountForWidget]);
 
   const handlePay = async () => {
     if (!lecturePackageId) {
@@ -134,7 +182,7 @@ export default function PaymentsPageClient() {
       return;
     }
     if (!env.clientKey) {
-      setError('NEXT_PUBLIC_TOSS_CLIENT_KEY가 없습니다. (Vercel Production env 확인)');
+      setError('NEXT_PUBLIC_TOSS_CLIENT_KEY가 없습니다.');
       return;
     }
 
@@ -142,7 +190,7 @@ export default function PaymentsPageClient() {
       setLoading(true);
       setError(null);
 
-      // ✅ 주문 생성: 결제 서비스(토큰 자동 첨부) 사용
+      // 1) 서버에서 주문 생성
       const order = await createPaymentOrder(lecturePackageId);
 
       const orderIdRaw = order?.orderId;
@@ -158,24 +206,34 @@ export default function PaymentsPageClient() {
       const orderId = String(orderIdRaw);
       const amount = Number(amountRaw);
       const orderName = String(order?.title ?? 'MPS 강의 패키지');
-      const customerName = String(order?.customerName ?? '고객');
 
-      const tossPayments = await loadTossPayments(env.clientKey);
+      // (강추) 화면 표시 가격과 주문 금액이 다르면 막기
+      if (displayPrice != null && displayPrice !== amount) {
+        throw new Error(`표시 금액(${displayPrice})과 주문 금액(${amount})이 다릅니다.`);
+      }
 
-      await tossPayments.requestPayment('카드', {
-        amount,
+      // 2) 위젯 렌더/업데이트를 위해 amount 설정
+      setAmountForWidget(amount);
+
+      // 3) 위젯 인스턴스 준비 확인
+      // (렌더가 아직 안 됐으면 다음 tick에서 만들어질 수 있으니 한번 더 체크)
+      const paymentWidget = paymentWidgetRef.current;
+      if (!paymentWidget) {
+        // 위젯이 아직 준비 안 되면 여기서 바로 requestPayment하면 실패할 수 있음
+        // 이 경우 사용자가 버튼 한번 더 누르면 정상 동작
+        throw new Error('결제위젯이 아직 준비되지 않았습니다. 잠시 후 다시 시도하세요.');
+      }
+
+      // 4) 결제 요청
+      await paymentWidget.requestPayment({
         orderId,
         orderName,
-        customerName,
         successUrl: `${window.location.origin}/mpspain/mpslecture/payments/success`,
         failUrl: `${window.location.origin}/mpspain/mpslecture/payments/fail`,
       });
     } catch (e: any) {
       console.error('PAY ERROR FULL =', e);
-
-      const msg =
-        e?.message ? String(e.message) : JSON.stringify(e ?? { message: 'Unknown error' }, null, 2);
-
+      const msg = e?.message ? String(e.message) : JSON.stringify(e ?? { message: 'Unknown error' }, null, 2);
       setError(msg);
       setLoading(false);
     }
@@ -184,7 +242,6 @@ export default function PaymentsPageClient() {
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50">
       <div className="mx-auto mt-16 max-w-4xl px-4 pb-12 pt-6 sm:mt-24 sm:pt-10">
-        {/* Header */}
         <header className="mb-8 text-center">
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-indigo-600">
             MPS PAYMENT
@@ -197,7 +254,6 @@ export default function PaymentsPageClient() {
           </p>
         </header>
 
-        {/* Error */}
         {error && (
           <div className="mb-6 whitespace-pre-wrap rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
             {error}
@@ -216,7 +272,7 @@ export default function PaymentsPageClient() {
           </section>
         ) : (
           <section className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr] items-stretch">
-            {/* ✅ 상품 카드 */}
+            {/* 상품 카드 (그대로) */}
             <div className="rounded-3xl border border-slate-200/70 bg-white p-5 sm:p-7 h-full flex flex-col">
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -226,13 +282,11 @@ export default function PaymentsPageClient() {
                   </h2>
                   <p className="mt-1 text-sm text-slate-600">{priceText}</p>
                 </div>
-
                 <span className="shrink-0 rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700">
-                  카드결제
+                  결제위젯
                 </span>
               </div>
 
-              {/* 이미지 + 설명 */}
               <div className="mt-5 grid gap-4 sm:grid-cols-[220px_1fr] sm:h-[200px]">
                 <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
                   <div className="relative aspect-[4/4] w-full">
@@ -252,9 +306,7 @@ export default function PaymentsPageClient() {
                   <ul className="mt-2 space-y-1.5 text-sm text-slate-700">
                     <li>• 결제 후, 결제자와 아이디 비교 후 강의 수강이 가능합니다. 약간의 시간이 걸릴 수 있습니다.</li>
                     <li>
-                      • 카드 결제 (카카오 페이 간편결제 포함)은 토스 페이먼츠로 가능합니다. 현금 결제의 경우는
-                      현금 결제를 선택하시면 입금 계좌번호 페이지로 넘어갑니다. 입금이 확인 된 후 강의 수강이
-                      가능합니다.
+                      • 카드 결제(간편결제 포함)는 토스페이먼츠로 진행됩니다.
                     </li>
                     <li>• 패키지 구성/가격은 프로모션에 따라 변동될 수 있습니다.</li>
                     <li>• (환불정책 및 이용 정책)을 숙지하지 않아서 생기는 불이익에 대해서는 책임지지 않습니다.</li>
@@ -284,7 +336,7 @@ export default function PaymentsPageClient() {
               </div>
             </div>
 
-            {/* ✅ 결제 요약 카드 */}
+            {/* 결제 요약 + 결제위젯 렌더 영역 */}
             <aside className="rounded-3xl border border-slate-200/70 bg-white p-5 sm:p-7 h-full flex flex-col">
               <p className="text-sm font-extrabold text-slate-900">결제 요약</p>
 
@@ -298,18 +350,17 @@ export default function PaymentsPageClient() {
 
                 <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
                   <div className="flex items-center justify-between">
-                    <p className="text-sm text-slate-700">상품 금액</p>
+                    <p className="text-sm text-slate-700">총 결제금액</p>
                     <p className="text-sm font-bold text-slate-900">{priceText}</p>
                   </div>
-                  <div className="mt-2 flex items-center justify-between">
-                    <p className="text-sm text-slate-700">할인</p>
-                    <p className="text-sm font-bold text-slate-900">0원</p>
-                  </div>
-                  <div className="mt-3 h-px bg-slate-200" />
-                  <div className="mt-3 flex items-center justify-between">
-                    <p className="text-sm font-extrabold text-slate-900">총 결제금액</p>
-                    <p className="text-base font-extrabold text-slate-900">{priceText}</p>
-                  </div>
+                </div>
+
+                {/* ✅ 결제위젯 렌더 자리 */}
+                <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                  <div id="payment-widget" />
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                  <div id="agreement" />
                 </div>
 
                 <div className="mt-auto space-y-3">
@@ -321,7 +372,6 @@ export default function PaymentsPageClient() {
                     {loading ? '결제 준비 중…' : '결제하기'}
                   </button>
 
-                  {/* ✅ 결제하기 바로 아래 추가 */}
                   <div className="mt-5 text-center text-sm">
                     <Link
                       href="/mpspain/mpslecture/policy/refund"
