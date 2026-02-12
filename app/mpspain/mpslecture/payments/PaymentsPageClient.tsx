@@ -120,35 +120,59 @@ export default function PaymentsPageClient() {
     : MOBILE_IMAGE_FALLBACK;
 
   /**
-   * ✅ 위젯은 "패키지 가격이 준비된 순간" 미리 렌더
-   * ✅ widgetReady는 ready 이벤트에서만 true
+   * ✅ 위젯 렌더 + ready 판정(ready 이벤트 + iframe 감지 + timeout)
    */
   useEffect(() => {
     const clientKey = env.clientKey;
     if (!clientKey) return;
     if (!pkg?.price) return;
+    if (!lecturePackageId) return;
 
     let disposed = false;
+    let observer: MutationObserver | null = null;
+    let timeoutId: any = null;
 
     const markReady = () => {
       if (!disposed) setWidgetReady(true);
+    };
+
+    const startIframeObserver = () => {
+      const container = document.querySelector('#payment-widget');
+      if (!container) return;
+
+      const hasIframe = () => !!container.querySelector('iframe');
+
+      // 이미 iframe 있으면 바로 ready
+      if (hasIframe()) {
+        markReady();
+        return;
+      }
+
+      observer = new MutationObserver(() => {
+        if (hasIframe()) {
+          markReady();
+          observer?.disconnect();
+          observer = null;
+        }
+      });
+
+      observer.observe(container, { childList: true, subtree: true });
     };
 
     const run = async () => {
       try {
         setWidgetReady(false);
 
-        // 이미 렌더된 상태면 금액만 업데이트 후 ready
+        // 기존 렌더 있으면 금액만 업데이트
         if (paymentWidgetRef.current && paymentMethodsWidgetRef.current) {
           await paymentMethodsWidgetRef.current.updateAmount(pkg.price);
-          // updateAmount 이후 내부 렌더가 약간 늦는 케이스 안전빵
-          setTimeout(() => markReady(), 50);
+          // updateAmount 후 UI 갱신 지연 대비
+          startIframeObserver();
+          timeoutId = setTimeout(() => markReady(), 1200);
           return;
         }
 
-        const customerKey = ANONYMOUS;
-
-        const paymentWidget = await loadPaymentWidget(clientKey, customerKey);
+        const paymentWidget = await loadPaymentWidget(clientKey, ANONYMOUS);
         paymentWidgetRef.current = paymentWidget;
 
         const paymentMethodsWidget = paymentWidget.renderPaymentMethods(
@@ -160,15 +184,24 @@ export default function PaymentsPageClient() {
 
         paymentWidget.renderAgreement('#agreement');
 
-        // ✅ TS에서 허용하는 이벤트: ready / custom*
+        // 1) ready 이벤트 (오면 가장 좋음)
         if (typeof paymentMethodsWidget?.on === 'function') {
           paymentMethodsWidget.on('ready', () => {
             markReady();
           });
-        } else {
-          // fallback (on이 없거나 타입/버전 이슈)
-          setTimeout(() => markReady(), 300);
         }
+
+        // 2) ready 이벤트가 안 오는 환경 대비: iframe 등장 감지
+        startIframeObserver();
+
+        // 3) 최후의 안전장치: 일정 시간 지나면 버튼 활성화(요청 시점 에러 방지용으로 너무 짧게 하면 안 됨)
+        timeoutId = setTimeout(() => {
+          // iframe이 실제로 없으면 억지로 ready로 만들지 말고 에러 띄우는 게 맞음
+          const container = document.querySelector('#payment-widget');
+          const iframeExists = !!container?.querySelector('iframe');
+          if (iframeExists) markReady();
+          else setError((prev) => prev ?? '결제 위젯 iframe이 생성되지 않았습니다. 도메인/키/차단 이슈 확인 필요');
+        }, 2500);
       } catch (e: any) {
         console.error(e);
         if (!disposed) {
@@ -182,8 +215,11 @@ export default function PaymentsPageClient() {
 
     return () => {
       disposed = true;
+      observer?.disconnect();
+      observer = null;
+      if (timeoutId) clearTimeout(timeoutId);
     };
-  }, [env.clientKey, pkg?.price]);
+  }, [env.clientKey, pkg?.price, lecturePackageId]);
 
   const handlePay = async () => {
     if (!lecturePackageId) return setError('packageId가 없습니다.');
@@ -197,6 +233,7 @@ export default function PaymentsPageClient() {
       setLoading(true);
       setError(null);
 
+      // 1) 서버에서 주문 생성
       const order = await createPaymentOrder(lecturePackageId);
 
       const orderId = String(order?.orderId ?? '').trim();
@@ -252,6 +289,7 @@ export default function PaymentsPageClient() {
           </section>
         ) : (
           <section className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr] items-stretch">
+            {/* 상품 카드 */}
             <div className="rounded-3xl border border-slate-200/70 bg-white p-5 sm:p-7 h-full flex flex-col">
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -290,6 +328,7 @@ export default function PaymentsPageClient() {
               </div>
             </div>
 
+            {/* 결제 요약 + 위젯 */}
             <aside className="rounded-3xl border border-slate-200/70 bg-white p-5 sm:p-7 h-full flex flex-col">
               <p className="text-sm font-extrabold text-slate-900">결제 요약</p>
 
@@ -325,10 +364,7 @@ export default function PaymentsPageClient() {
                   </button>
 
                   <div className="mt-5 text-center text-sm">
-                    <Link
-                      href="/mpspain/mpslecture/policy/refund"
-                      className="font-semibold text-indigo-600 hover:underline"
-                    >
+                    <Link href="/mpspain/mpslecture/policy/refund" className="font-semibold text-indigo-600 hover:underline">
                       환불/취소 정책 페이지 보기
                     </Link>
                   </div>
