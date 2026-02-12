@@ -54,8 +54,8 @@ export default function PaymentsPageClient() {
   const paymentMethodsWidgetRef = useRef<any>(null);
 
   const env = useMemo(() => {
-    const clientKey = (process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY ?? '').trim(); // live_gck / test_gck
-    const publicApiUrl = (process.env.NEXT_PUBLIC_API_URL ?? '').trim(); // https://api.mpspain.co.kr
+    const clientKey = (process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY ?? '').trim();
+    const publicApiUrl = (process.env.NEXT_PUBLIC_API_URL ?? '').trim();
     return { clientKey, publicApiUrl };
   }, []);
 
@@ -120,23 +120,29 @@ export default function PaymentsPageClient() {
     : MOBILE_IMAGE_FALLBACK;
 
   /**
-   * ✅ 위젯은 "패키지 가격이 준비된 순간" 미리 렌더한다
-   * - 버튼 클릭 때 렌더 시작하면 100% 타이밍 이슈가 난다.
+   * ✅ 위젯은 "패키지 가격이 준비된 순간" 미리 렌더
+   * ✅ widgetReady는 ready 이벤트에서만 true
    */
   useEffect(() => {
     const clientKey = env.clientKey;
     if (!clientKey) return;
-
     if (!pkg?.price) return;
+
+    let disposed = false;
+
+    const markReady = () => {
+      if (!disposed) setWidgetReady(true);
+    };
 
     const run = async () => {
       try {
         setWidgetReady(false);
 
-        // 이미 렌더된 상태면 금액만 업데이트하고 ready true
+        // 이미 렌더된 상태면 금액만 업데이트 후 ready
         if (paymentWidgetRef.current && paymentMethodsWidgetRef.current) {
           await paymentMethodsWidgetRef.current.updateAmount(pkg.price);
-          setWidgetReady(true);
+          // updateAmount 이후 내부 렌더가 약간 늦는 케이스 안전빵
+          setTimeout(() => markReady(), 50);
           return;
         }
 
@@ -145,7 +151,6 @@ export default function PaymentsPageClient() {
         const paymentWidget = await loadPaymentWidget(clientKey, customerKey);
         paymentWidgetRef.current = paymentWidget;
 
-        // 결제수단 위젯
         const paymentMethodsWidget = paymentWidget.renderPaymentMethods(
           '#payment-widget',
           { value: pkg.price },
@@ -153,25 +158,37 @@ export default function PaymentsPageClient() {
         );
         paymentMethodsWidgetRef.current = paymentMethodsWidget;
 
-        // 약관 위젯
         paymentWidget.renderAgreement('#agreement');
 
-        setWidgetReady(true);
+        // ✅ TS에서 허용하는 이벤트: ready / custom*
+        if (typeof paymentMethodsWidget?.on === 'function') {
+          paymentMethodsWidget.on('ready', () => {
+            markReady();
+          });
+        } else {
+          // fallback (on이 없거나 타입/버전 이슈)
+          setTimeout(() => markReady(), 300);
+        }
       } catch (e: any) {
         console.error(e);
-        setWidgetReady(false);
-        setError(e?.message ?? '결제위젯 초기화 오류');
+        if (!disposed) {
+          setWidgetReady(false);
+          setError(e?.message ?? '결제위젯 초기화 오류');
+        }
       }
     };
 
     run();
+
+    return () => {
+      disposed = true;
+    };
   }, [env.clientKey, pkg?.price]);
 
   const handlePay = async () => {
     if (!lecturePackageId) return setError('packageId가 없습니다.');
     if (!env.clientKey) return setError('NEXT_PUBLIC_TOSS_CLIENT_KEY가 없습니다.');
 
-    // ✅ 준비 안 됐으면 결제 못 하게
     if (!widgetReady || !paymentWidgetRef.current || !paymentMethodsWidgetRef.current) {
       return setError('결제위젯이 아직 준비되지 않았습니다. 잠시 후 다시 시도하세요.');
     }
@@ -180,7 +197,6 @@ export default function PaymentsPageClient() {
       setLoading(true);
       setError(null);
 
-      // 1) 서버에서 주문 생성
       const order = await createPaymentOrder(lecturePackageId);
 
       const orderId = String(order?.orderId ?? '').trim();
@@ -190,12 +206,10 @@ export default function PaymentsPageClient() {
       if (!orderId) throw new Error('주문 생성 응답에 orderId가 없습니다.');
       if (!Number.isFinite(amount)) throw new Error('주문 생성 응답에 amount가 없거나 숫자가 아닙니다.');
 
-      // (강추) 표시 가격과 주문 금액이 다르면 막기
       if (displayPrice != null && displayPrice !== amount) {
         throw new Error(`표시 금액(${displayPrice})과 주문 금액(${amount})이 다릅니다.`);
       }
 
-      // 3) 결제 요청
       await paymentWidgetRef.current.requestPayment({
         orderId,
         orderName,
@@ -238,7 +252,6 @@ export default function PaymentsPageClient() {
           </section>
         ) : (
           <section className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr] items-stretch">
-            {/* 상품 카드 */}
             <div className="rounded-3xl border border-slate-200/70 bg-white p-5 sm:p-7 h-full flex flex-col">
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -277,7 +290,6 @@ export default function PaymentsPageClient() {
               </div>
             </div>
 
-            {/* 결제 요약 + 위젯 */}
             <aside className="rounded-3xl border border-slate-200/70 bg-white p-5 sm:p-7 h-full flex flex-col">
               <p className="text-sm font-extrabold text-slate-900">결제 요약</p>
 
@@ -313,7 +325,10 @@ export default function PaymentsPageClient() {
                   </button>
 
                   <div className="mt-5 text-center text-sm">
-                    <Link href="/mpspain/mpslecture/policy/refund" className="font-semibold text-indigo-600 hover:underline">
+                    <Link
+                      href="/mpspain/mpslecture/policy/refund"
+                      className="font-semibold text-indigo-600 hover:underline"
+                    >
                       환불/취소 정책 페이지 보기
                     </Link>
                   </div>
