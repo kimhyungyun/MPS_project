@@ -59,6 +59,12 @@ export default function PaymentsPageClient() {
     return { clientKey, publicApiUrl };
   }, []);
 
+  // ✅ 진단 로그: 빌드에 박힌 NEXT_PUBLIC 값 확인 (브라우저에서 process 직접 치면 안 나옴)
+  useEffect(() => {
+    console.log('[ENV] NEXT_PUBLIC_TOSS_CLIENT_KEY =', env.clientKey);
+    console.log('[ENV] NEXT_PUBLIC_API_URL =', env.publicApiUrl);
+  }, [env.clientKey, env.publicApiUrl]);
+
   useEffect(() => {
     if (!env.clientKey) setError((prev) => prev ?? 'NEXT_PUBLIC_TOSS_CLIENT_KEY가 없습니다. (Vercel Env 확인)');
     if (!env.publicApiUrl) setError((prev) => prev ?? 'NEXT_PUBLIC_API_URL이 없습니다. (Vercel Env 확인)');
@@ -71,7 +77,7 @@ export default function PaymentsPageClient() {
     return Number.isFinite(n) ? n : null;
   }, [searchParams]);
 
-  // 패키지 조회
+  // ✅ 패키지 조회
   useEffect(() => {
     if (!lecturePackageId) {
       setPkg(null);
@@ -81,22 +87,29 @@ export default function PaymentsPageClient() {
     const endpoint = getPackagesEndpoint(env.publicApiUrl);
     if (!endpoint) {
       setPkg(null);
-      setError('API Base URL이 비어있습니다. (NEXT_PUBLIC_API_URL 확인)');
+      setError((prev) => prev ?? 'API Base URL이 비어있습니다. (NEXT_PUBLIC_API_URL 확인)');
       return;
     }
 
     const run = async () => {
       try {
         setPkgLoading(true);
-        setError(null);
+        // ❌ setError(null) 제거: 이게 키 없음 에러까지 지워버려서 “로딩중”만 보이게 만들 수 있음
+
+        console.log('[PKG] fetch endpoint =', endpoint);
 
         const res = await fetch(endpoint, { cache: 'no-store' });
         if (!res.ok) throw new Error(`패키지 조회 실패 (${res.status})`);
 
         const list: Pkg[] = await res.json();
-        setPkg(list.find((x) => x.id === lecturePackageId) ?? null);
+        const found = list.find((x) => x.id === lecturePackageId) ?? null;
+
+        console.log('[PKG] lecturePackageId =', lecturePackageId, 'found =', found);
+
+        setPkg(found);
+        if (!found) setError((prev) => prev ?? `패키지를 찾을 수 없습니다. (packageId=${lecturePackageId})`);
       } catch (e: any) {
-        console.error(e);
+        console.error('[PKG] ERROR =', e);
         setPkg(null);
         setError(e?.message ?? '패키지 조회 중 오류');
       } finally {
@@ -124,8 +137,16 @@ export default function PaymentsPageClient() {
    */
   useEffect(() => {
     const clientKey = env.clientKey;
+
+    console.log('[WIDGET] effect start', {
+      clientKey,
+      lecturePackageId,
+      pkgPrice: pkg?.price,
+      pkg,
+    });
+
     if (!clientKey) return;
-    if (!pkg?.price) return;
+    if (!pkg?.price) return; // price가 0/null이면 위젯 렌더 안 됨 (의도면 OK)
     if (!lecturePackageId) return;
 
     let disposed = false;
@@ -138,18 +159,22 @@ export default function PaymentsPageClient() {
 
     const startIframeObserver = () => {
       const container = document.querySelector('#payment-widget');
-      if (!container) return;
+      if (!container) {
+        console.warn('[WIDGET] #payment-widget container not found');
+        return;
+      }
 
       const hasIframe = () => !!container.querySelector('iframe');
 
-      // 이미 iframe 있으면 바로 ready
       if (hasIframe()) {
+        console.log('[WIDGET] iframe already exists');
         markReady();
         return;
       }
 
       observer = new MutationObserver(() => {
         if (hasIframe()) {
+          console.log('[WIDGET] iframe detected by observer');
           markReady();
           observer?.disconnect();
           observer = null;
@@ -165,14 +190,17 @@ export default function PaymentsPageClient() {
 
         // 기존 렌더 있으면 금액만 업데이트
         if (paymentWidgetRef.current && paymentMethodsWidgetRef.current) {
+          console.log('[WIDGET] already rendered -> updateAmount', pkg.price);
           await paymentMethodsWidgetRef.current.updateAmount(pkg.price);
-          // updateAmount 후 UI 갱신 지연 대비
           startIframeObserver();
           timeoutId = setTimeout(() => markReady(), 1200);
           return;
         }
 
+        console.log('[WIDGET] loadPaymentWidget start');
         const paymentWidget = await loadPaymentWidget(clientKey, ANONYMOUS);
+        console.log('[WIDGET] loadPaymentWidget success');
+
         paymentWidgetRef.current = paymentWidget;
 
         const paymentMethodsWidget = paymentWidget.renderPaymentMethods(
@@ -184,26 +212,26 @@ export default function PaymentsPageClient() {
 
         paymentWidget.renderAgreement('#agreement');
 
-        // 1) ready 이벤트 (오면 가장 좋음)
         if (typeof paymentMethodsWidget?.on === 'function') {
           paymentMethodsWidget.on('ready', () => {
+            console.log('[WIDGET] ready event fired');
             markReady();
           });
+        } else {
+          console.warn('[WIDGET] paymentMethodsWidget.on is not a function');
         }
 
-        // 2) ready 이벤트가 안 오는 환경 대비: iframe 등장 감지
         startIframeObserver();
 
-        // 3) 최후의 안전장치: 일정 시간 지나면 버튼 활성화(요청 시점 에러 방지용으로 너무 짧게 하면 안 됨)
         timeoutId = setTimeout(() => {
-          // iframe이 실제로 없으면 억지로 ready로 만들지 말고 에러 띄우는 게 맞음
           const container = document.querySelector('#payment-widget');
           const iframeExists = !!container?.querySelector('iframe');
+          console.log('[WIDGET] timeout check iframeExists=', iframeExists);
           if (iframeExists) markReady();
-          else setError((prev) => prev ?? '결제 위젯 iframe이 생성되지 않았습니다. 도메인/키/차단 이슈 확인 필요');
+          else setError((prev) => prev ?? '결제 위젯 iframe이 생성되지 않았습니다. (키/도메인/차단 가능성)');
         }, 2500);
       } catch (e: any) {
-        console.error(e);
+        console.error('[WIDGET] INIT ERROR =', e);
         if (!disposed) {
           setWidgetReady(false);
           setError(e?.message ?? '결제위젯 초기화 오류');
@@ -219,7 +247,7 @@ export default function PaymentsPageClient() {
       observer = null;
       if (timeoutId) clearTimeout(timeoutId);
     };
-  }, [env.clientKey, pkg?.price, lecturePackageId]);
+  }, [env.clientKey, pkg?.price, lecturePackageId, pkg]);
 
   const handlePay = async () => {
     if (!lecturePackageId) return setError('packageId가 없습니다.');
@@ -233,7 +261,6 @@ export default function PaymentsPageClient() {
       setLoading(true);
       setError(null);
 
-      // 1) 서버에서 주문 생성
       const order = await createPaymentOrder(lecturePackageId);
 
       const orderId = String(order?.orderId ?? '').trim();
@@ -364,7 +391,10 @@ export default function PaymentsPageClient() {
                   </button>
 
                   <div className="mt-5 text-center text-sm">
-                    <Link href="/mpspain/mpslecture/policy/refund" className="font-semibold text-indigo-600 hover:underline">
+                    <Link
+                      href="/mpspain/mpslecture/policy/refund"
+                      className="font-semibold text-indigo-600 hover:underline"
+                    >
                       환불/취소 정책 페이지 보기
                     </Link>
                   </div>
