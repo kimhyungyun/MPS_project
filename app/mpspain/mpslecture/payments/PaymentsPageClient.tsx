@@ -1,11 +1,13 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { ANONYMOUS, loadPaymentWidget } from '@tosspayments/payment-widget-sdk';
-import { createPaymentOrder } from '@/app/services/payments';
 import Image from 'next/image';
 import Link from 'next/link';
+
+import { createPaymentOrder } from '@/app/services/payments';
+import { useMyProfile } from '@/app/hooks/useMyProfile';
+import { usePaymentWidget } from '@/app/hooks/usePaymentWidget';
 
 type Pkg = { id: number; name: string; price: number };
 
@@ -37,37 +39,25 @@ function getPackagesEndpoint(baseUrl: string) {
   if (!apiBase) return null;
   return `${apiBase}/lecture-packages`;
 }
+function onlyDigits(v: unknown) {
+  return String(v ?? '').replace(/[^0-9]/g, '');
+}
 
 export default function PaymentsPageClient() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
   const [loading, setLoading] = useState(false);
-  const [widgetReady, setWidgetReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [pkgLoading, setPkgLoading] = useState(false);
   const [pkg, setPkg] = useState<Pkg | null>(null);
-
-  // widget refs
-  const paymentWidgetRef = useRef<any>(null);
-  const paymentMethodsWidgetRef = useRef<any>(null);
 
   const env = useMemo(() => {
     const clientKey = (process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY ?? '').trim();
     const publicApiUrl = (process.env.NEXT_PUBLIC_API_URL ?? '').trim();
     return { clientKey, publicApiUrl };
   }, []);
-
-  useEffect(() => {
-    console.log('[ENV] NEXT_PUBLIC_TOSS_CLIENT_KEY =', env.clientKey);
-    console.log('[ENV] NEXT_PUBLIC_API_URL =', env.publicApiUrl);
-  }, [env.clientKey, env.publicApiUrl]);
-
-  useEffect(() => {
-    if (!env.clientKey) setError((prev) => prev ?? 'NEXT_PUBLIC_TOSS_CLIENT_KEY가 없습니다. (Vercel Env 확인)');
-    if (!env.publicApiUrl) setError((prev) => prev ?? 'NEXT_PUBLIC_API_URL이 없습니다. (Vercel Env 확인)');
-  }, [env.clientKey, env.publicApiUrl]);
 
   const lecturePackageId = useMemo(() => {
     const v = searchParams.get('packageId');
@@ -76,46 +66,43 @@ export default function PaymentsPageClient() {
     return Number.isFinite(n) ? n : null;
   }, [searchParams]);
 
-  // ✅ 패키지 조회
-  useEffect(() => {
-    if (!lecturePackageId) {
-      setPkg(null);
-      return;
-    }
+  // ✅ 내 프로필 (mb_name/mb_email/mb_hp)
+  const { me } = useMyProfile();
 
-    const endpoint = getPackagesEndpoint(env.publicApiUrl);
-    if (!endpoint) {
-      setPkg(null);
-      setError((prev) => prev ?? 'API Base URL이 비어있습니다. (NEXT_PUBLIC_API_URL 확인)');
-      return;
-    }
-
-    const run = async () => {
+  // ✅ 패키지 조회 (기존 로직 유지)
+  //   - 유지보수 더 하려면 이것도 훅으로 뺄 수 있음
+  useMemo(() => {
+    (async () => {
       try {
+        if (!lecturePackageId) {
+          setPkg(null);
+          return;
+        }
+
+        const endpoint = getPackagesEndpoint(env.publicApiUrl);
+        if (!endpoint) {
+          setPkg(null);
+          setError((prev) => prev ?? 'API Base URL이 비어있습니다. (NEXT_PUBLIC_API_URL 확인)');
+          return;
+        }
+
         setPkgLoading(true);
-
-        console.log('[PKG] fetch endpoint =', endpoint);
-
         const res = await fetch(endpoint, { cache: 'no-store' });
         if (!res.ok) throw new Error(`패키지 조회 실패 (${res.status})`);
 
         const list: Pkg[] = await res.json();
         const found = list.find((x) => x.id === lecturePackageId) ?? null;
 
-        console.log('[PKG] lecturePackageId =', lecturePackageId, 'found =', found);
-
         setPkg(found);
         if (!found) setError((prev) => prev ?? `패키지를 찾을 수 없습니다. (packageId=${lecturePackageId})`);
       } catch (e: any) {
-        console.error('[PKG] ERROR =', e);
         setPkg(null);
         setError(e?.message ?? '패키지 조회 중 오류');
       } finally {
         setPkgLoading(false);
       }
-    };
-
-    run();
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lecturePackageId, env.publicApiUrl]);
 
   const displayName =
@@ -130,128 +117,21 @@ export default function PaymentsPageClient() {
     ? (MOBILE_IMAGE_BY_ID[lecturePackageId] ?? MOBILE_IMAGE_FALLBACK)
     : MOBILE_IMAGE_FALLBACK;
 
-  /**
-   * ✅ 위젯 렌더 + ready 판정(ready 이벤트 + iframe 감지 + timeout)
-   * ✅ 변경 포인트: 위젯이 이제 "아래 풀폭 섹션"에 렌더됨 (id는 동일)
-   */
-  useEffect(() => {
-    const clientKey = env.clientKey;
+  // ✅ 결제위젯 훅
+  const { widgetReady, widgetError, paymentWidgetRef, paymentMethodsWidgetRef } = usePaymentWidget({
+    clientKey: env.clientKey,
+    amount: displayPrice,
+    enabled: !!lecturePackageId && !!displayPrice,
+  });
 
-    console.log('[WIDGET] effect start', {
-      clientKey,
-      lecturePackageId,
-      pkgPrice: pkg?.price,
-      pkg,
-    });
-
-    if (!clientKey) return;
-    if (!pkg?.price) return;
-    if (!lecturePackageId) return;
-
-    let disposed = false;
-    let observer: MutationObserver | null = null;
-    let timeoutId: any = null;
-
-    const markReady = () => {
-      if (!disposed) setWidgetReady(true);
-    };
-
-    const startIframeObserver = () => {
-      const container = document.querySelector('#payment-widget');
-      if (!container) {
-        console.warn('[WIDGET] #payment-widget container not found');
-        return;
-      }
-
-      const hasIframe = () => !!container.querySelector('iframe');
-
-      if (hasIframe()) {
-        console.log('[WIDGET] iframe already exists');
-        markReady();
-        return;
-      }
-
-      observer = new MutationObserver(() => {
-        if (hasIframe()) {
-          console.log('[WIDGET] iframe detected by observer');
-          markReady();
-          observer?.disconnect();
-          observer = null;
-        }
-      });
-
-      observer.observe(container, { childList: true, subtree: true });
-    };
-
-    const run = async () => {
-      try {
-        setWidgetReady(false);
-
-        // 기존 렌더 있으면 금액만 업데이트
-        if (paymentWidgetRef.current && paymentMethodsWidgetRef.current) {
-          console.log('[WIDGET] already rendered -> updateAmount', pkg.price);
-          await paymentMethodsWidgetRef.current.updateAmount(pkg.price);
-          startIframeObserver();
-          timeoutId = setTimeout(() => markReady(), 1200);
-          return;
-        }
-
-        console.log('[WIDGET] loadPaymentWidget start');
-        const paymentWidget = await loadPaymentWidget(clientKey, ANONYMOUS);
-        console.log('[WIDGET] loadPaymentWidget success');
-
-        paymentWidgetRef.current = paymentWidget;
-
-        const paymentMethodsWidget = paymentWidget.renderPaymentMethods(
-          '#payment-widget',
-          { value: pkg.price },
-          { variantKey: 'DEFAULT' },
-        );
-        paymentMethodsWidgetRef.current = paymentMethodsWidget;
-
-        paymentWidget.renderAgreement('#agreement');
-
-        if (typeof paymentMethodsWidget?.on === 'function') {
-          paymentMethodsWidget.on('ready', () => {
-            console.log('[WIDGET] ready event fired');
-            markReady();
-          });
-        } else {
-          console.warn('[WIDGET] paymentMethodsWidget.on is not a function');
-        }
-
-        startIframeObserver();
-
-        timeoutId = setTimeout(() => {
-          const container = document.querySelector('#payment-widget');
-          const iframeExists = !!container?.querySelector('iframe');
-          console.log('[WIDGET] timeout check iframeExists=', iframeExists);
-          if (iframeExists) markReady();
-          else setError((prev) => prev ?? '결제 위젯 iframe이 생성되지 않았습니다. (키/도메인/차단 가능성)');
-        }, 2500);
-      } catch (e: any) {
-        console.error('[WIDGET] INIT ERROR =', e);
-        if (!disposed) {
-          setWidgetReady(false);
-          setError(e?.message ?? '결제위젯 초기화 오류');
-        }
-      }
-    };
-
-    run();
-
-    return () => {
-      disposed = true;
-      observer?.disconnect();
-      observer = null;
-      if (timeoutId) clearTimeout(timeoutId);
-    };
-  }, [env.clientKey, pkg?.price, lecturePackageId, pkg]);
+  // 위젯 에러를 화면 에러로 승격
+  useMemo(() => {
+    if (widgetError) setError((prev) => prev ?? widgetError);
+  }, [widgetError]);
 
   const handlePay = async () => {
     if (!lecturePackageId) return setError('packageId가 없습니다.');
     if (!env.clientKey) return setError('NEXT_PUBLIC_TOSS_CLIENT_KEY가 없습니다.');
-
     if (!widgetReady || !paymentWidgetRef.current || !paymentMethodsWidgetRef.current) {
       return setError('결제위젯이 아직 준비되지 않았습니다. 잠시 후 다시 시도하세요.');
     }
@@ -268,14 +148,23 @@ export default function PaymentsPageClient() {
 
       if (!orderId) throw new Error('주문 생성 응답에 orderId가 없습니다.');
       if (!Number.isFinite(amount)) throw new Error('주문 생성 응답에 amount가 없거나 숫자가 아닙니다.');
-
       if (displayPrice != null && displayPrice !== amount) {
         throw new Error(`표시 금액(${displayPrice})과 주문 금액(${amount})이 다릅니다.`);
       }
 
+      // ✅ 토스 상점(콘솔)에 보일 구매자 정보
+      const customerName = (me?.mb_name || me?.mb_nick || '').trim();
+      const customerEmail = String(me?.mb_email ?? '').trim();
+      const customerMobilePhone = onlyDigits(me?.mb_hp);
+
       await paymentWidgetRef.current.requestPayment({
         orderId,
         orderName,
+
+        ...(customerName ? { customerName } : {}),
+        ...(customerEmail ? { customerEmail } : {}),
+        ...(customerMobilePhone ? { customerMobilePhone } : {}),
+
         successUrl: `${window.location.origin}/mpspain/mpslecture/payments/success`,
         failUrl: `${window.location.origin}/mpspain/mpslecture/payments/fail`,
       });
@@ -315,9 +204,8 @@ export default function PaymentsPageClient() {
           </section>
         ) : (
           <div className="space-y-6">
-            {/* ✅ 상단: 상품 + 요약(2컬럼) */}
+            {/* 상단: 상품 + 요약 */}
             <section className="grid gap-6 items-stretch lg:grid-cols-[1fr_420px]">
-              {/* 상품 카드 */}
               <div className="rounded-3xl border border-slate-200/70 bg-white p-5 sm:p-7">
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -356,7 +244,6 @@ export default function PaymentsPageClient() {
                 </div>
               </div>
 
-              {/* 요약 카드 (오른쪽) */}
               <aside className="rounded-3xl border border-slate-200/70 bg-white p-5 sm:p-7 flex flex-col">
                 <p className="text-sm font-extrabold text-slate-900">결제 요약</p>
 
@@ -397,7 +284,7 @@ export default function PaymentsPageClient() {
               </aside>
             </section>
 
-            {/* ✅ 하단: 결제 위젯(풀폭) */}
+            {/* 하단: 결제 위젯 */}
             <section className="rounded-3xl border border-slate-200/70 bg-white p-5 sm:p-7">
               <div className="flex items-center justify-between gap-3">
                 <div>
@@ -409,8 +296,6 @@ export default function PaymentsPageClient() {
                 </span>
               </div>
 
-              {/* 위젯은 내부적으로 width를 잡아서 좁으면 몰림/줄바꿈이 심해짐.
-                 풀폭 + overflow-x-auto로 깨짐 방지 */}
               <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-3 sm:p-4 overflow-x-auto">
                 <div id="payment-widget" className="min-w-[520px]" />
               </div>
@@ -419,13 +304,13 @@ export default function PaymentsPageClient() {
                 <div id="agreement" />
               </div>
 
-              {/* 버튼을 아래에도 하나 더 두고 싶으면 주석 해제 */}
-
               <div className="mt-5">
+                {/* ⚠️ 너 코드에 있던 className="w-62px" 는 Tailwind 문법이 아님.
+                    width 지정하려면 w-[62px] 또는 w-16 같은 걸 써야 함 */}
                 <button
                   onClick={handlePay}
                   disabled={loading || !widgetReady}
-                  className="w-62px rounded-full bg-indigo-600 px-6 py-4 text-sm font-extrabold text-white hover:bg-indigo-700 disabled:bg-slate-300"
+                  className="rounded-full bg-indigo-600 px-6 py-4 text-sm font-extrabold text-white hover:bg-indigo-700 disabled:bg-slate-300"
                 >
                   {loading ? '결제 준비 중…' : widgetReady ? '결제하기' : '위젯 로딩 중…'}
                 </button>

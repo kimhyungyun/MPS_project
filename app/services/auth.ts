@@ -1,13 +1,23 @@
-// app/services/auth.ts
-import axios from 'axios';
+import { api, getApiBaseOrThrow } from './api';
 
-const apiBase = (process.env.NEXT_PUBLIC_API_URL ?? '').replace(/\/$/, '');
-const api = apiBase.endsWith('/api') ? apiBase : `${apiBase}/api`;
+export type MyProfile = {
+  mb_no: number | null;
+  mb_id: string;
+  mb_level: number;
+  isAdmin: boolean;
 
-export async function fetchMyProfile() {
-  const res = await axios.get(`${api}/auth/profile`, {
-    withCredentials: true, // 쿠키 기반이면 필요
-    // Authorization Bearer 쓰는 구조면 여기 headers 추가해야 함
-  });
-  return res.data?.data; // { mb_name, mb_email, mb_hp, ... }
+  mb_name: string | null;
+  mb_nick: string | null;
+  mb_email: string | null;
+  mb_hp: string | null;
+};
+
+export async function fetchMyProfile(): Promise<MyProfile> {
+  // baseURL이 빈 경우 대비 (런타임에서 확정)
+  api.defaults.baseURL = getApiBaseOrThrow();
+
+  const res = await api.get('/auth/profile');
+  const data = res.data?.data;
+  if (!data) throw new Error('프로필 응답이 비어있습니다.');
+  return data as MyProfile;
 }
