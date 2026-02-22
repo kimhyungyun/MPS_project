@@ -420,7 +420,7 @@ export default function PaymentsPageClient() {
               </div>
 
               {/* 버튼을 아래에도 하나 더 두고 싶으면 주석 해제 */}
-              {/*
+
               <div className="mt-5">
                 <button
                   onClick={handlePay}
@@ -430,7 +430,6 @@ export default function PaymentsPageClient() {
                   {loading ? '결제 준비 중…' : widgetReady ? '결제하기' : '위젯 로딩 중…'}
                 </button>
               </div>
-              */}
             </section>
           </div>
         )}
