@@ -157,6 +157,13 @@ export default function PaymentsPageClient() {
       const customerEmail = String(me?.mb_email ?? '').trim();
       const customerMobilePhone = onlyDigits(me?.mb_hp);
 
+      console.log('[PROFILE]', me);
+      console.log('[CUSTOMER]', {
+          customerName,
+          customerEmail,
+          customerMobilePhone,
+        });
+
       await paymentWidgetRef.current.requestPayment({
         orderId,
         orderName,
