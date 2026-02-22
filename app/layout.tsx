@@ -6,7 +6,7 @@ import "./globals.css";
 
 import Footer from "./footer/Footer";
 import Header from "./header/page";
-
+import SectionDrawer from "./mpspain/components/SectionDrawer";
 
 
 const geistSans = Geist({
@@ -32,17 +32,14 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        {/* 헤더를 따로 fixed로 감싸지 말고, Header 컴포넌트만 그대로 렌더 */}
+        {/* ✅ /mpspain 페이지에서만 책갈피(우측 아이콘) 메뉴 */}
+        {isMpsPage && <SectionDrawer />}
+
+        {/* ✅ mpspain 페이지에서는 Header 숨김 */}
         {!isMpsPage && <Header />}
 
-        {/* 헤더가 있는 페이지는 헤더 높이만큼 전체 컨텐츠를 아래로 밀어줌 */}
-        <main
-          style={
-            !isMpsPage
-              ? { paddingTop: HEADER_HEIGHT }
-              : undefined
-          }
-        >
+        {/* 헤더가 있는 페이지만 paddingTop 적용 */}
+        <main style={!isMpsPage ? { paddingTop: HEADER_HEIGHT } : undefined}>
           {children}
         </main>
 
