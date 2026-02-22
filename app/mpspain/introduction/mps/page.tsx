@@ -1,11 +1,20 @@
 'use client';
+
 import React from 'react';
 import Image from "next/image";
+import SectionDropdown from '../../components/SectionDropdown';
+import { menuData } from '@/types/menudata';
+
+
 
 const mps = () => {
     return (
         <section className="w-full min-h-screen bg-gradient-to-b from-gray-50 to-white">
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+                <div className="mb-8">
+                <SectionDropdown menuData={menuData} />
+                </div>
                 {/* Header Section */}
                 <div className="text-center mb-16">
                     <h1 className="text-4xl font-bold text-gray-900 mb-4">MPS 캠프 소개</h1>
