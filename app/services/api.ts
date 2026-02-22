@@ -17,16 +17,27 @@ export function getApiBaseOrThrow() {
   return apiBase;
 }
 
-// ✅ 쿠키 기반이면 withCredentials true가 편함
+// ✅ 공용 axios
 export const api = axios.create({
   baseURL: (() => {
     try {
       return getApiBaseOrThrow();
     } catch {
-      // 빌드/SSR 환경에서 undefined일 수 있어 런타임에서 잡히게 둠
       return '';
     }
   })(),
   withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
+});
+
+// ✅ 핵심: Bearer 토큰 자동 첨부 (네 로그인 저장 키: localStorage 'token')
+api.interceptors.request.use((config) => {
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('token'); // <- LoginForm에서 저장한 키
+    if (token) {
+      config.headers = config.headers ?? {};
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  }
+  return config;
 });
