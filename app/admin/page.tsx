@@ -215,6 +215,18 @@ export default function AdminPage() {
                 회원별 동영상 권한 관리
               </p>
             </button>
+
+              <button
+              onClick={() => router.push('/admin/payments')}
+              className="bg-white p-4 sm:p-6 rounded-lg shadow hover:shadow-md transition-shadow text-left"
+            >
+              <h3 className="text-base sm:text-lg font-medium text-gray-900">
+                동영상 결제 관리
+              </h3>
+              <p className="mt-2 text-xs sm:text-sm text-gray-500">
+                결제 회원별 현황 관리
+              </p>
+            </button>
           </div>
         </div>
       </div>
