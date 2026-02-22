@@ -59,7 +59,6 @@ export default function PaymentsPageClient() {
     return { clientKey, publicApiUrl };
   }, []);
 
-  // ✅ 진단 로그: 빌드에 박힌 NEXT_PUBLIC 값 확인 (브라우저에서 process 직접 치면 안 나옴)
   useEffect(() => {
     console.log('[ENV] NEXT_PUBLIC_TOSS_CLIENT_KEY =', env.clientKey);
     console.log('[ENV] NEXT_PUBLIC_API_URL =', env.publicApiUrl);
@@ -94,7 +93,6 @@ export default function PaymentsPageClient() {
     const run = async () => {
       try {
         setPkgLoading(true);
-        // ❌ setError(null) 제거: 이게 키 없음 에러까지 지워버려서 “로딩중”만 보이게 만들 수 있음
 
         console.log('[PKG] fetch endpoint =', endpoint);
 
@@ -134,6 +132,7 @@ export default function PaymentsPageClient() {
 
   /**
    * ✅ 위젯 렌더 + ready 판정(ready 이벤트 + iframe 감지 + timeout)
+   * ✅ 변경 포인트: 위젯이 이제 "아래 풀폭 섹션"에 렌더됨 (id는 동일)
    */
   useEffect(() => {
     const clientKey = env.clientKey;
@@ -146,7 +145,7 @@ export default function PaymentsPageClient() {
     });
 
     if (!clientKey) return;
-    if (!pkg?.price) return; // price가 0/null이면 위젯 렌더 안 됨 (의도면 OK)
+    if (!pkg?.price) return;
     if (!lecturePackageId) return;
 
     let disposed = false;
@@ -289,7 +288,7 @@ export default function PaymentsPageClient() {
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50">
-      <div className="mx-auto mt-16 max-w-4xl px-4 pb-12 pt-6 sm:mt-24 sm:pt-10">
+      <div className="mx-auto mt-14 max-w-6xl px-4 pb-12 pt-6 sm:mt-20 sm:pt-10">
         <header className="mb-8 text-center">
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-indigo-600">MPS PAYMENT</p>
           <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-slate-900 sm:mt-3 sm:text-3xl">
@@ -315,93 +314,125 @@ export default function PaymentsPageClient() {
             </button>
           </section>
         ) : (
-          <section className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr] items-stretch">
-            {/* 상품 카드 */}
-            <div className="rounded-3xl border border-slate-200/70 bg-white p-5 sm:p-7 h-full flex flex-col">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold text-slate-500">선택 상품</p>
-                  <h2 className="mt-1 text-lg font-extrabold text-slate-900">
-                    {pkgLoading ? '불러오는 중…' : displayName}
-                  </h2>
-                  <p className="mt-1 text-sm text-slate-600">{priceText}</p>
+          <div className="space-y-6">
+            {/* ✅ 상단: 상품 + 요약(2컬럼) */}
+            <section className="grid gap-6 items-stretch lg:grid-cols-[1fr_420px]">
+              {/* 상품 카드 */}
+              <div className="rounded-3xl border border-slate-200/70 bg-white p-5 sm:p-7">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold text-slate-500">선택 상품</p>
+                    <h2 className="mt-1 text-lg font-extrabold text-slate-900">
+                      {pkgLoading ? '불러오는 중…' : displayName}
+                    </h2>
+                    <p className="mt-1 text-sm text-slate-600">{priceText}</p>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700">
+                    결제위젯
+                  </span>
                 </div>
-                <span className="shrink-0 rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700">
-                  결제위젯
+
+                <div className="mt-5 grid gap-4 md:grid-cols-[240px_1fr]">
+                  <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
+                    <div className="relative aspect-square w-full">
+                      <Image
+                        src={productImageSrc}
+                        alt="상품 이미지"
+                        fill
+                        sizes="(max-width: 768px) 100vw, 240px"
+                        className="object-contain p-3"
+                        priority
+                      />
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
+                    <p className="text-sm font-bold text-slate-900">안내 사항</p>
+                    <ul className="mt-2 space-y-1.5 text-sm text-slate-700">
+                      <li>• 결제 후, 결제자와 아이디 비교 후 강의 수강이 가능합니다.</li>
+                      <li>• 카드 결제(간편결제 포함)는 토스페이먼츠 결제위젯으로 진행됩니다.</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* 요약 카드 (오른쪽) */}
+              <aside className="rounded-3xl border border-slate-200/70 bg-white p-5 sm:p-7 flex flex-col">
+                <p className="text-sm font-extrabold text-slate-900">결제 요약</p>
+
+                <div className="mt-4 flex flex-col gap-3 grow">
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                    <p className="text-xs font-semibold text-slate-500">상품명</p>
+                    <p className="mt-1 text-sm font-bold text-slate-900">
+                      {pkgLoading ? '불러오는 중…' : displayName}
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm text-slate-700">총 결제금액</p>
+                      <p className="text-sm font-bold text-slate-900">{priceText}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-auto space-y-3">
+                    <button
+                      onClick={handlePay}
+                      disabled={loading || !widgetReady}
+                      className="w-full rounded-full bg-indigo-600 px-6 py-4 text-sm font-extrabold text-white hover:bg-indigo-700 disabled:bg-slate-300"
+                    >
+                      {loading ? '결제 준비 중…' : widgetReady ? '결제하기' : '위젯 로딩 중…'}
+                    </button>
+
+                    <div className="text-center text-sm">
+                      <Link
+                        href="/mpspain/mpslecture/policy/refund"
+                        className="font-semibold text-indigo-600 hover:underline"
+                      >
+                        환불/취소 정책 페이지 보기
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </aside>
+            </section>
+
+            {/* ✅ 하단: 결제 위젯(풀폭) */}
+            <section className="rounded-3xl border border-slate-200/70 bg-white p-5 sm:p-7">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-extrabold text-slate-900">결제 방법</p>
+                  <p className="mt-1 text-sm text-slate-600">원하는 결제 수단을 선택하세요.</p>
+                </div>
+                <span className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
+                  Toss Payments
                 </span>
               </div>
 
-              <div className="mt-5 grid gap-4 sm:grid-cols-[220px_1fr] sm:h-[200px]">
-                <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
-                  <div className="relative aspect-[4/4] w-full">
-                    <Image
-                      src={productImageSrc}
-                      alt="상품 이미지"
-                      fill
-                      sizes="(max-width: 640px) 100vw, 220px"
-                      className="object-contain p-3"
-                      priority
-                    />
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 min-h-0 overflow-y-auto">
-                  <p className="text-sm font-bold text-slate-900">안내 사항</p>
-                  <ul className="mt-2 space-y-1.5 text-sm text-slate-700">
-                    <li>• 결제 후, 결제자와 아이디 비교 후 강의 수강이 가능합니다.</li>
-                    <li>• 카드 결제(간편결제 포함)는 토스페이먼츠 결제위젯으로 진행됩니다.</li>
-                  </ul>
-                </div>
+              {/* 위젯은 내부적으로 width를 잡아서 좁으면 몰림/줄바꿈이 심해짐.
+                 풀폭 + overflow-x-auto로 깨짐 방지 */}
+              <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-3 sm:p-4 overflow-x-auto">
+                <div id="payment-widget" className="min-w-[520px]" />
               </div>
-            </div>
 
-            {/* 결제 요약 + 위젯 */}
-            <aside className="rounded-3xl border border-slate-200/70 bg-white p-5 sm:p-7 h-full flex flex-col">
-              <p className="text-sm font-extrabold text-slate-900">결제 요약</p>
-
-              <div className="mt-4 flex flex-col gap-3 grow">
-                <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-                  <p className="text-xs font-semibold text-slate-500">상품명</p>
-                  <p className="mt-1 text-sm font-bold text-slate-900">
-                    {pkgLoading ? '불러오는 중…' : displayName}
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm text-slate-700">총 결제금액</p>
-                    <p className="text-sm font-bold text-slate-900">{priceText}</p>
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                  <div id="payment-widget" />
-                </div>
-                <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                  <div id="agreement" />
-                </div>
-
-                <div className="mt-auto space-y-3">
-                  <button
-                    onClick={handlePay}
-                    disabled={loading || !widgetReady}
-                    className="w-full rounded-full bg-indigo-600 px-6 py-4 text-sm font-extrabold text-white hover:bg-indigo-700 disabled:bg-slate-300"
-                  >
-                    {loading ? '결제 준비 중…' : widgetReady ? '결제하기' : '위젯 로딩 중…'}
-                  </button>
-
-                  <div className="mt-5 text-center text-sm">
-                    <Link
-                      href="/mpspain/mpslecture/policy/refund"
-                      className="font-semibold text-indigo-600 hover:underline"
-                    >
-                      환불/취소 정책 페이지 보기
-                    </Link>
-                  </div>
-                </div>
+              <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-3 sm:p-4">
+                <div id="agreement" />
               </div>
-            </aside>
-          </section>
+
+              {/* 버튼을 아래에도 하나 더 두고 싶으면 주석 해제 */}
+              {/*
+              <div className="mt-5">
+                <button
+                  onClick={handlePay}
+                  disabled={loading || !widgetReady}
+                  className="w-full rounded-full bg-indigo-600 px-6 py-4 text-sm font-extrabold text-white hover:bg-indigo-700 disabled:bg-slate-300"
+                >
+                  {loading ? '결제 준비 중…' : widgetReady ? '결제하기' : '위젯 로딩 중…'}
+                </button>
+              </div>
+              */}
+            </section>
+          </div>
         )}
       </div>
     </main>
