@@ -425,7 +425,7 @@ export default function PaymentsPageClient() {
                 <button
                   onClick={handlePay}
                   disabled={loading || !widgetReady}
-                  className="w-full rounded-full bg-indigo-600 px-6 py-4 text-sm font-extrabold text-white hover:bg-indigo-700 disabled:bg-slate-300"
+                  className="w-42px rounded-full bg-indigo-600 px-6 py-4 text-sm font-extrabold text-white hover:bg-indigo-700 disabled:bg-slate-300"
                 >
                   {loading ? '결제 준비 중…' : widgetReady ? '결제하기' : '위젯 로딩 중…'}
                 </button>
