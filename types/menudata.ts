@@ -14,7 +14,8 @@ export const menuData: MenuItem[] = [
     title: "MPS 회원 광장",
     submenu: [
       //{ title: "정회원 가입 신청", href: "/mpspain/mpschamp/application" },
-      { title: "정회원 캠프 안내", href: "/mpspain/mpschamp" },
+      { title: "정회원 캠프 안내", href: "/mpspain/mpschamp/campPromotion" },
+      { title: "정회원 캠프 공지 게시판", href: "/mpspain/mpschamp" },
       //{ title: "문의하기", href: "/mpspain/mpschamp/questionroom" },
       { title: "캠프 자료실", href: "/mpspain/mpschamp/dataroom1" },
     ],
