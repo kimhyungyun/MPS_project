@@ -73,7 +73,7 @@ export default function ProfileIntro() {
               <div className="lg:w-1/3 flex justify-center">
                 <div className="relative w-[300px] h-[300px]">
                   <Image
-                    src="/빈배경로고1.png"
+                    src="/문대원 원장 프로필사진.png"
                     alt="문대원 원장"
                     fill
                     className="profile-image rounded-xl object-contain"
@@ -143,8 +143,8 @@ export default function ProfileIntro() {
               <div className="lg:w-1/3 flex justify-center">
                 <div className="relative w-[300px] h-[300px]">
                   <Image
-                    src="/빈배경로고1.png"
-                    alt="김건모 수습 강사"
+                    src="/김건모 프로필사진.jpg"
+                    alt="김건모 보조 강사"
                     fill
                     className="profile-image rounded-xl object-contain"
                   />
@@ -152,15 +152,19 @@ export default function ProfileIntro() {
               </div>
               <div className="lg:w-2/3">
                 <div className="profile-item text-center lg:text-left">
-                  <h2 className="text-2xl font-bold text-gray-800 mb-6">김건모 수습 강사</h2>
+                  <h2 className="text-2xl font-bold text-gray-800 mb-6">김건모 보조 강사</h2>
                   <div className="space-y-3">
                     <p className="text-gray-700 flex items-center lg:justify-start justify-center">
                       <span className="font-medium mr-2">•</span>
-                      (현) 전라남도 화순군 공중보건의사
+                      (전) 전라남도 화순군 공중보건의사
                     </p>
                     <p className="text-gray-700 flex items-center lg:justify-start justify-center">
                       <span className="font-medium mr-2">•</span>
-                      (현) MPS 연구회 수습강사
+                      (현) MPS 연구회 보조강사
+                    </p>
+                                        <p className="text-gray-700 flex items-center lg:justify-start justify-center">
+                      <span className="font-medium mr-2">•</span>
+                      (현) 터한의원 분당점 부원장
                     </p>
                   </div>
                 </div>
