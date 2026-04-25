@@ -1,4 +1,8 @@
-export default function Page() {
+'use client';
+
+import React from 'react';
+
+const Mps = () => {
   const pages = [
     "/페이지1.png",
     "/페이지2.png",
@@ -17,32 +21,31 @@ export default function Page() {
   ];
 
   return (
-    <main className="w-full flex flex-col items-center bg-white">
-      {pages.map((src, index) => (
-        <section
-          key={index}
-          className="relative w-full max-w-[393px]"
-        >
-          {/* 이미지 */}
-          <img
-            src={src}
-            alt={`page-${index + 1}`}
-            className="w-full h-auto block"
-          />
+    <section className="w-full min-h-screen bg-gradient-to-b from-gray-50 to-white">
+      <div className="w-full flex flex-col items-center">
+        {pages.map((src, index) => (
+          <div key={index} className="relative w-full">
+            <img
+              src={src}
+              alt={`페이지 ${index + 1}`}
+              className="w-full h-auto block"
+            />
 
-          {/* 👉 1페이지에만 버튼 */}
-          {index === 0 && (
-            <a
-              href="https://mpspain.co.kr/mpspain/mpschamp/26"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="absolute bottom-[30px] right-[20px] px-5 py-2 rounded-lg bg-black text-white text-sm font-semibold hover:bg-gray-800 transition"
-            >
-              신청하기
-            </a>
-          )}
-        </section>
-      ))}
-    </main>
+            {index === 0 && (
+              <a
+                href="https://mpspain.co.kr/mpspain/mpschamp/26"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="absolute bottom-[40px] right-[40px] px-6 py-3 rounded-lg bg-black text-white text-base font-semibold hover:bg-gray-800 transition"
+              >
+                신청하기
+              </a>
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
   );
-}
+};
+
+export default Mps;
