@@ -22,13 +22,15 @@ const Mps = () => {
 
   return (
     <section className="w-full min-h-screen bg-gradient-to-b from-gray-50 to-white">
-      <div className="w-full flex flex-col items-center">
+      
+      {/* 핵심: max-width + 가운데 정렬 + 좌우 패딩 */}
+      <div className="max-w-5xl mx-auto px-4 md:px-8">
         {pages.map((src, index) => (
-          <div key={index} className="relative w-full">
+          <div key={index} className="relative w-full mb-6">
             <img
               src={src}
               alt={`페이지 ${index + 1}`}
-              className="w-full h-auto block"
+              className="w-full h-auto block rounded-lg"
             />
 
             {index === 0 && (

@@ -111,7 +111,7 @@ export default function DesktopHeader({ user, handleLogout }: Props) {
 
             {/* MPS 회원 광장 */}
             <li className="relative group whitespace-nowrap">
-              <Link href="/mpspain/mpschamp">MPS 회원 광장</Link>
+              <Link href="/mpspain/mpschamp/campPromotion">MPS 회원 광장</Link>
 
               {champMenu && (
                 <div className="absolute left-1/2 top-full -translate-x-1/2 pt-4">
