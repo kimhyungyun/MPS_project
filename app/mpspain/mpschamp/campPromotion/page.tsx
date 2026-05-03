@@ -34,7 +34,7 @@ const Mps = () => {
 
             {index === 0 && (
               <a
-                href="https://mpspain.co.kr/mpspain/mpschamp/26"
+                href="https://mpspain.co.kr/mpspain/mpschamp/30"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="
