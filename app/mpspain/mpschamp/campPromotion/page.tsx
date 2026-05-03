@@ -49,7 +49,7 @@ const Mps = () => {
                   hover:bg-gray-800 transition
                 "
               >
-                MPS 연구회 캠프 신청 바로가기
+                MPS 연구회 캠프 신청 바로가기 →
               </a>
             )}
           </div>
