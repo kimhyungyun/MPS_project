@@ -49,14 +49,14 @@ const GROUP_META: Record<
   { label: string; subtitle: string; description: string }
 > = {
   A: {
-    label: 'A반',
+    label: '상지반',
     subtitle: 'CLASS GROUP A',
-    description: 'A반 캠프 수강생을 위한 강의 모음입니다.',
+    description: '상지반 캠프 수강생을 위한 강의 모음입니다.',
   },
   B: {
-    label: 'B반',
+    label: '하지반',
     subtitle: 'CLASS GROUP B',
-    description: 'B반 캠프 수강생을 위한 강의 모음입니다.',
+    description: '하지반 캠프 수강생을 위한 강의 모음입니다.',
   },
   C: {
     label: 'C 패키지',

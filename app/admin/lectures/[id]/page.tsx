@@ -241,9 +241,9 @@ export default function EditLecturePage({ params }: PageProps) {
               }
               className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
             >
-              <option value="S">S</option>
-              <option value="A">A</option>
-              <option value="B">B</option>
+              <option value="S">패키지</option>
+              <option value="A">상지반</option>
+              <option value="B">하지반</option>
             </select>
           </div>
 
