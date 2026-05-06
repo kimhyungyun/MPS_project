@@ -1,29 +1,45 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
+
+type ClassGroup = 'A' | 'B' | 'S';
+
+type LectureType =
+  | 'single'
+  | 'packageA'
+  | 'packageB'
+  | 'packageC'
+  | 'packageD'
+  | 'packageE';
 
 interface Lecture {
   id: number;
   title: string;
   description: string;
-  video_url: string;
-  thumbnail_url: string;
   price: number;
-  type: string;
-  categoryId: number;
+  thumbnail_url: string;
+  type: LectureType;
+  classGroup: ClassGroup;
+  categoryId: number | null;
+  instructorId: number | null;
+  video_folder?: string | null;
+  video_name?: string | null;
 }
 
 export default function LectureManagementPage() {
   const router = useRouter();
   const [lectures, setLectures] = useState<Lecture[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     fetchLectures();
   }, []);
+
+  const getAuthHeaders = () => ({
+    Authorization: `Bearer ${localStorage.getItem('token')}`,
+  });
 
   const fetchLectures = async () => {
     try {
@@ -31,114 +47,88 @@ export default function LectureManagementPage() {
       if (!apiUrl) throw new Error('API URL is not defined');
 
       const response = await fetch(`${apiUrl}/api/lectures`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
+        headers: getAuthHeaders(),
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setLectures(data);
+      if (!response.ok) {
+        throw new Error('Failed to fetch lectures');
       }
+
+      const data = await response.json();
+      setLectures(data);
     } catch (error) {
       console.error('Failed to fetch lectures:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setIsUploading(true);
+  const handleDelete = async (id: number) => {
+    if (!window.confirm('정말 삭제하시겠습니까?')) return;
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL;
       if (!apiUrl) throw new Error('API URL is not defined');
 
-      // 1️⃣ VdoCipher 업로드 권한 및 videoId 요청
-      const uploadRes = await fetch(`${apiUrl}/api/vdocipher/upload-url`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
-      const { videoId, uploadLink } = await uploadRes.json();
-
-      // 2️⃣ VdoCipher에 직접 영상 업로드
-      await fetch(uploadLink, {
-        method: 'PUT',
-        body: file,
-        headers: { 'Content-Type': 'application/octet-stream' },
+      await axios.delete(`${apiUrl}/api/lectures/${id}`, {
+        headers: getAuthHeaders(),
       });
 
-      // 3️⃣ 백엔드에 강의 등록 (videoId 전달)
-      const lectureData = {
-        title: file.name.replace(/\.[^/.]+$/, ''),
-        description: 'Uploaded via VdoCipher',
-        video_url: `https://player.vdocipher.com/v2/?video=${videoId}`,
-        thumbnail_url: '/default-thumbnail.jpg',
-        price: 0,
-        type: 'PAID',
-        categoryId: 1,
-      };
-
-      const lectureRes = await axios.post(
-        `${apiUrl}/api/lectures`,
-        lectureData,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        },
-      );
-
-      if (lectureRes.data) await fetchLectures();
+      await fetchLectures();
     } catch (error) {
-      console.error('Upload failed:', error);
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      console.error('Failed to delete lecture:', error);
+      alert('삭제 실패');
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-gray-600">로딩 중...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-6 sm:py-8 mt-24">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 sm:mb-8 gap-3 sm:gap-0">
+        <div className="mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
             강의 관리
           </h1>
-          <div className="flex items-center space-x-3 sm:space-x-4">
-            <label className="bg-blue-600 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-blue-700 transition-colors text-sm">
-              <span>{isUploading ? '업로드 중...' : '강의 업로드'}</span>
-              <input
-                type="file"
-                ref={fileInputRef}
-                className="hidden"
-                accept="video/mp4,video/x-m4v,video/*"
-                onChange={handleFileUpload}
-                disabled={isUploading}
-              />
-            </label>
-          </div>
         </div>
 
         <div className="bg-white shadow overflow-hidden sm:rounded-md">
           <ul className="divide-y divide-gray-200">
             {lectures.map((lecture) => (
               <li key={lecture.id}>
-                <div className="px-3 sm:px-4 py-3 sm:py-4">
+                <div className="px-3 sm:px-4 py-4">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm sm:text-base font-medium text-blue-600 truncate max-w-full">
+                      <p className="text-xs text-gray-400">ID: {lecture.id}</p>
+
+                      <p className="text-sm sm:text-base font-medium text-blue-600 truncate">
                         {lecture.title}
                       </p>
-                      <p className="mt-1 flex items-center text-xs sm:text-sm text-gray-500">
-                        <span className="truncate max-w-full">
-                          {lecture.description}
-                        </span>
+
+                      <p className="mt-1 text-xs sm:text-sm text-gray-500 truncate">
+                        {lecture.description}
                       </p>
+
+                      <div className="mt-2 text-xs text-gray-500 space-y-1">
+                        <p>
+                          categoryId: {lecture.categoryId ?? '-'} / instructorId:{' '}
+                          {lecture.instructorId ?? '-'} / classGroup:{' '}
+                          {lecture.classGroup}
+                        </p>
+                        <p>
+                          video_folder: {lecture.video_folder ?? '-'} /
+                          video_name: {lecture.video_name ?? '-'}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex-shrink-0 flex flex-wrap gap-2 sm:space-x-3">
+
+                    <div className="flex-shrink-0 flex flex-wrap gap-2">
                       <button
                         onClick={() =>
                           router.push(`/admin/lectures/${lecture.id}`)
@@ -147,6 +137,7 @@ export default function LectureManagementPage() {
                       >
                         수정
                       </button>
+
                       <button
                         onClick={() =>
                           router.push(
@@ -157,10 +148,9 @@ export default function LectureManagementPage() {
                       >
                         보기
                       </button>
+
                       <button
-                        onClick={() => {
-                          /* Handle delete */
-                        }}
+                        onClick={() => handleDelete(lecture.id)}
                         className="bg-red-100 text-red-600 hover:text-red-900 px-3 py-1 rounded-md text-xs sm:text-sm font-medium"
                       >
                         삭제
@@ -170,6 +160,12 @@ export default function LectureManagementPage() {
                 </div>
               </li>
             ))}
+
+            {lectures.length === 0 && (
+              <li className="px-4 py-8 text-center text-gray-500 text-sm">
+                등록된 강의가 없습니다.
+              </li>
+            )}
           </ul>
         </div>
       </div>

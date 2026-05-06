@@ -1,18 +1,31 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
+
+type ClassGroup = 'A' | 'B' | 'S';
+
+type LectureType =
+  | 'single'
+  | 'packageA'
+  | 'packageB'
+  | 'packageC'
+  | 'packageD'
+  | 'packageE';
 
 interface Lecture {
   id: number;
   title: string;
   description: string;
-  video_url: string;
-  thumbnail_url: string;
   price: number;
-  type: string;
-  categoryId: number;
+  thumbnail_url: string;
+  type: LectureType;
+  classGroup: ClassGroup;
+  categoryId: number | null;
+  instructorId: number | null;
+  video_folder?: string | null;
+  video_name?: string | null;
 }
 
 interface PageProps {
@@ -23,17 +36,19 @@ interface PageProps {
 
 export default function EditLecturePage({ params }: PageProps) {
   const router = useRouter();
+
+  const [lectureId, setLectureId] = useState('');
   const [lecture, setLecture] = useState<Lecture | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [lectureId, setLectureId] = useState<string>('');
 
   useEffect(() => {
-    const getParams = async () => {
-      const resolvedParams = await params;
-      setLectureId(resolvedParams.id);
+    const resolveParams = async () => {
+      const resolved = await params;
+      setLectureId(resolved.id);
     };
-    getParams();
+
+    resolveParams();
   }, [params]);
 
   useEffect(() => {
@@ -42,22 +57,25 @@ export default function EditLecturePage({ params }: PageProps) {
     }
   }, [lectureId]);
 
+  const getAuthHeaders = () => ({
+    Authorization: `Bearer ${localStorage.getItem('token')}`,
+  });
+
   const fetchLecture = async () => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL; // API URL을 환경변수에서 가져오기
-      if (!apiUrl) {
-        throw new Error("API URL is not defined");
-      }
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      if (!apiUrl) throw new Error('API URL is not defined');
 
       const response = await fetch(`${apiUrl}/api/lectures/${lectureId}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+        headers: getAuthHeaders(),
       });
-      if (response.ok) {
-        const data = await response.json();
-        setLecture(data);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch lecture');
       }
+
+      const data = await response.json();
+      setLecture(data);
     } catch (error) {
       console.error('Failed to fetch lecture:', error);
     } finally {
@@ -65,32 +83,48 @@ export default function EditLecturePage({ params }: PageProps) {
     }
   };
 
+  const handleChange = <K extends keyof Lecture>(
+    key: K,
+    value: Lecture[K],
+  ) => {
+    if (!lecture) return;
+    setLecture({ ...lecture, [key]: value });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!lecture) return;
 
     setIsSaving(true);
-    try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL; // API URL을 환경변수에서 가져오기
-      if (!apiUrl) {
-        throw new Error("API URL is not defined");
-      }
 
-      const response = await axios.patch(
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      if (!apiUrl) throw new Error('API URL is not defined');
+
+      await axios.patch(
         `${apiUrl}/api/lectures/${lectureId}`,
-        lecture,
         {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        }
+          title: lecture.title,
+          description: lecture.description,
+          price: Number(lecture.price),
+          thumbnail_url: lecture.thumbnail_url,
+          type: lecture.type,
+          classGroup: lecture.classGroup,
+          categoryId: lecture.categoryId,
+          instructorId: lecture.instructorId,
+          video_folder: lecture.video_folder,
+          video_name: lecture.video_name,
+        },
+        {
+          headers: getAuthHeaders(),
+        },
       );
 
-      if (response.data) {
-        router.push('/admin/lectures');
-      }
+      alert('저장되었습니다.');
+      router.push('/admin/lectures');
     } catch (error) {
       console.error('Failed to update lecture:', error);
+      alert('저장 실패');
     } finally {
       setIsSaving(false);
     }
@@ -113,52 +147,165 @@ export default function EditLecturePage({ params }: PageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gray-50 py-8 mt-24">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">강의 수정</h1>
+          <p className="mt-2 text-sm text-gray-500">ID: {lecture.id}</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6 bg-white shadow rounded-lg p-6">
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-6 bg-white shadow rounded-lg p-6"
+        >
           <div>
-            <label htmlFor="title" className="block text-sm font-medium text-gray-700">
+            <label className="block text-sm font-medium text-gray-700">
               제목
             </label>
             <input
               type="text"
-              id="title"
               value={lecture.title}
-              onChange={(e) => setLecture({ ...lecture, title: e.target.value })}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              onChange={(e) => handleChange('title', e.target.value)}
+              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
               required
             />
           </div>
 
           <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+            <label className="block text-sm font-medium text-gray-700">
               설명
             </label>
             <textarea
-              id="description"
               value={lecture.description}
-              onChange={(e) => setLecture({ ...lecture, description: e.target.value })}
+              onChange={(e) => handleChange('description', e.target.value)}
               rows={4}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
               required
             />
           </div>
 
           <div>
-            <label htmlFor="price" className="block text-sm font-medium text-gray-700">
+            <label className="block text-sm font-medium text-gray-700">
               가격
             </label>
             <input
               type="number"
-              id="price"
               value={lecture.price}
-              onChange={(e) => setLecture({ ...lecture, price: Number(e.target.value) })}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              onChange={(e) => handleChange('price', Number(e.target.value))}
+              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
               required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              썸네일 URL
+            </label>
+            <input
+              type="text"
+              value={lecture.thumbnail_url}
+              onChange={(e) => handleChange('thumbnail_url', e.target.value)}
+              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              강의 타입
+            </label>
+            <select
+              value={lecture.type}
+              onChange={(e) =>
+                handleChange('type', e.target.value as LectureType)
+              }
+              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
+            >
+              <option value="single">single</option>
+              <option value="packageA">packageA</option>
+              <option value="packageB">packageB</option>
+              <option value="packageC">packageC</option>
+              <option value="packageD">packageD</option>
+              <option value="packageE">packageE</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              classGroup
+            </label>
+            <select
+              value={lecture.classGroup}
+              onChange={(e) =>
+                handleChange('classGroup', e.target.value as ClassGroup)
+              }
+              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
+            >
+              <option value="S">S</option>
+              <option value="A">A</option>
+              <option value="B">B</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              categoryId
+            </label>
+            <input
+              type="number"
+              value={lecture.categoryId ?? ''}
+              onChange={(e) =>
+                handleChange(
+                  'categoryId',
+                  e.target.value === '' ? null : Number(e.target.value),
+                )
+              }
+              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
+              placeholder="예: 1"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              instructorId
+            </label>
+            <input
+              type="number"
+              value={lecture.instructorId ?? ''}
+              onChange={(e) =>
+                handleChange(
+                  'instructorId',
+                  e.target.value === '' ? null : Number(e.target.value),
+                )
+              }
+              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
+              placeholder="예: 1"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              video_folder
+            </label>
+            <input
+              type="text"
+              value={lecture.video_folder ?? ''}
+              onChange={(e) => handleChange('video_folder', e.target.value)}
+              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
+              placeholder="예: sternocleidomastoidfinals"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              video_name
+            </label>
+            <input
+              type="text"
+              value={lecture.video_name ?? ''}
+              onChange={(e) => handleChange('video_name', e.target.value)}
+              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
+              placeholder="예: 2_1sternocleidomastoid_final"
             />
           </div>
 
@@ -170,6 +317,7 @@ export default function EditLecturePage({ params }: PageProps) {
             >
               취소
             </button>
+
             <button
               type="submit"
               disabled={isSaving}

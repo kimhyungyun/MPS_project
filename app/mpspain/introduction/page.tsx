@@ -94,7 +94,11 @@ export default function ProfileIntro() {
                     </p>
                     <p className="text-gray-700 flex items-center lg:justify-start justify-center">
                       <span className="font-medium mr-2">•</span>
-                      (현) 효사랑 가족요양병원 한방과 과장
+                      (전) 효사랑 요양병원 한방과장
+                    </p>
+                    <p className="text-gray-700 flex items-center lg:justify-start justify-center">
+                      <span className="font-medium mr-2">•</span>
+                      (현) 박달나무 한의원 진료과장
                     </p>
                     <p className="text-gray-700 flex items-center lg:justify-start justify-center">
                       <span className="font-medium mr-2">•</span>
