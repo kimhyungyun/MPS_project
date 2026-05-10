@@ -227,6 +227,18 @@ export default function AdminPage() {
                 결제 회원별 현황 관리
               </p>
             </button>
+
+             <button
+              onClick={() => router.push('/admin/authority-members')}
+              className="bg-white p-4 sm:p-6 rounded-lg shadow hover:shadow-md transition-shadow text-left"
+            >
+              <h3 className="text-base sm:text-lg font-medium text-gray-900">
+                권한 리스트
+              </h3>
+              <p className="mt-2 text-xs sm:text-sm text-gray-500">
+                권한별 회원 리스트 관리
+              </p>
+            </button>
           </div>
         </div>
       </div>
