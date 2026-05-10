@@ -3,16 +3,48 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
+type ClassGroup = 'A' | 'B' | 'S';
+
+type LectureType =
+  | 'single'
+  | 'packageA'
+  | 'packageB'
+  | 'packageC'
+  | 'packageD'
+  | 'packageE';
+
+interface VideoAuthority {
+  id: number;
+  userId: number;
+  classGroup: ClassGroup | null;
+  type: LectureType | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
 interface Member {
-  mb_no: number; // 🔹 기기 API에 넘길 PK
+  mb_no: number;
   mb_id: string;
   mb_name: string;
   mb_hp: string;
   mb_school: string;
+  authorities?: VideoAuthority[];
 }
 
 type SortKey = 'name' | 'latest';
 type SortOrder = 'asc' | 'desc';
+
+type AuthorityFilter =
+  | 'all'
+  | 'hasAuthority'
+  | 'none'
+  | 'A'
+  | 'B'
+  | 'packageA'
+  | 'packageB'
+  | 'packageC'
+  | 'packageD'
+  | 'packageE';
 
 type UserDevice = {
   id: number;
@@ -23,6 +55,34 @@ type UserDevice = {
   lastUsedAt: string;
 };
 
+const CLASS_GROUP_LABELS: Record<ClassGroup, string> = {
+  A: '상지반',
+  B: '하지반',
+  S: 'S',
+};
+
+const VIDEO_TYPE_LABELS: Record<LectureType, string> = {
+  single: '권한 없음',
+  packageA: '패키지 A',
+  packageB: '패키지 B',
+  packageC: '패키지 C',
+  packageD: '패키지 D',
+  packageE: '패키지 E',
+};
+
+const AUTHORITY_FILTERS: { value: AuthorityFilter; label: string }[] = [
+  { value: 'all', label: '전체' },
+  { value: 'hasAuthority', label: '권한 있는 사람' },
+  { value: 'none', label: '권한 없는 사람' },
+  { value: 'A', label: '상지반' },
+  { value: 'B', label: '하지반' },
+  { value: 'packageA', label: '패키지 A' },
+  { value: 'packageB', label: '패키지 B' },
+  { value: 'packageC', label: '패키지 C' },
+  { value: 'packageD', label: '패키지 D' },
+  { value: 'packageE', label: '패키지 E' },
+];
+
 export default function MemberDevicePage() {
   const router = useRouter();
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -30,13 +90,19 @@ export default function MemberDevicePage() {
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState('');
+
+  const [searchInput, setSearchInput] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+
   const [currentPage, setCurrentPage] = useState(1);
   const [totalMembers, setTotalMembers] = useState(0);
   const [isSearching, setIsSearching] = useState(false);
 
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+
+  const [authorityFilter, setAuthorityFilter] =
+    useState<AuthorityFilter>('all');
 
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
 
@@ -54,7 +120,11 @@ export default function MemberDevicePage() {
   const startPage = (currentPageGroup - 1) * pageGroupSize + 1;
   const endPage = Math.min(startPage + pageGroupSize - 1, totalPages);
 
-  const sortMembers = (list: Member[], key: SortKey | null, order: SortOrder) => {
+  const sortMembers = (
+    list: Member[],
+    key: SortKey | null,
+    order: SortOrder,
+  ) => {
     if (!key) return list;
 
     const sorted = [...list].sort((a, b) => {
@@ -72,29 +142,84 @@ export default function MemberDevicePage() {
     return sorted;
   };
 
-  // 관리자 권한 체크 + 목록 가져오기
+  const getAuthorityText = (member: Member) => {
+    const authorities = member.authorities ?? [];
+
+    if (authorities.length === 0) {
+      return '권한 없음';
+    }
+
+    const classGroups = authorities
+      .filter((a) => a.classGroup)
+      .map((a) => CLASS_GROUP_LABELS[a.classGroup!]);
+
+    const videoTypes = authorities
+      .filter((a) => a.type)
+      .map((a) => VIDEO_TYPE_LABELS[a.type!]);
+
+    const result = [...classGroups, ...videoTypes].filter(Boolean);
+
+    return result.length > 0 ? result.join(', ') : '권한 없음';
+  };
+
+  const getAuthorityBadgeClass = (member: Member) => {
+    const authorities = member.authorities ?? [];
+
+    if (authorities.length === 0) {
+      return 'bg-gray-100 text-gray-500 border-gray-200';
+    }
+
+    return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+  };
+
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    if (!user || user.mb_level < 8) {
+    const stored = localStorage.getItem('user');
+
+    if (!stored) {
+      router.push('/');
+      return;
+    }
+
+    let user: any;
+
+    try {
+      user = JSON.parse(stored);
+    } catch {
+      router.push('/');
+      return;
+    }
+
+    if (!user?.mb_id || typeof user.mb_level !== 'number' || user.mb_level < 8) {
       router.push('/');
       return;
     }
 
     fetchMembers();
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage, sortKey, sortOrder, search]);
+  }, [currentPage, sortKey, sortOrder, searchQuery, authorityFilter]);
 
   const fetchMembers = async () => {
     try {
       if (!isSearching) {
         setLoading(true);
       }
+
       setError(null);
 
       const params = new URLSearchParams();
+
       params.set('page', String(currentPage));
       params.set('pageSize', String(pageSize));
-      if (search) params.set('search', search);
+
+      if (searchQuery) {
+        params.set('search', searchQuery);
+      }
+
+      if (authorityFilter !== 'all') {
+        params.set('authority', authorityFilter);
+      }
+
       if (sortKey) {
         params.set('sortKey', sortKey);
         params.set('sortOrder', sortOrder);
@@ -114,6 +239,7 @@ export default function MemberDevicePage() {
 
       if (!response.ok) {
         let body: any = null;
+
         try {
           body = await response.json();
         } catch {}
@@ -131,14 +257,25 @@ export default function MemberDevicePage() {
             ? `회원 목록 조회 실패: ${body.message}`
             : '회원 목록을 불러오는데 실패했습니다.',
         );
+
         return;
       }
 
       const data = await response.json();
-      const rawMembers: Member[] = data.data.members;
-      setTotalMembers(data.data.total);
+      const rawMembers: any[] = data.data.members ?? [];
 
-      const processed = sortMembers(rawMembers, sortKey, sortOrder);
+      const normalized: Member[] = rawMembers.map((m, idx) => ({
+        mb_no: m.mb_no ?? m.mbNo ?? m.id ?? idx + 1,
+        mb_id: m.mb_id,
+        mb_name: m.mb_name,
+        mb_hp: m.mb_hp,
+        mb_school: m.mb_school,
+        authorities: m.authorities ?? m.videoAuthorities ?? [],
+      }));
+
+      setTotalMembers(data.data.total ?? 0);
+
+      const processed = sortMembers(normalized, sortKey, sortOrder);
       setMembers(processed);
     } catch (err) {
       console.error('🔥 getMembers() 오류 발생:', err);
@@ -151,8 +288,18 @@ export default function MemberDevicePage() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+
     setIsSearching(true);
     setCurrentPage(1);
+    setSearchQuery(searchInput.trim());
+  };
+
+  const handleAuthorityFilterClick = (value: AuthorityFilter) => {
+    setAuthorityFilter(value);
+    setCurrentPage(1);
+    setSelectedMember(null);
+    setDevices([]);
+    setDeviceMessage(null);
   };
 
   const handleSortClick = (key: SortKey) => {
@@ -160,8 +307,10 @@ export default function MemberDevicePage() {
 
     if (sortKey !== key) {
       const initialOrder: SortOrder = key === 'latest' ? 'desc' : 'asc';
+
       setSortKey(key);
       setSortOrder(initialOrder);
+
       return;
     }
 
@@ -175,20 +324,22 @@ export default function MemberDevicePage() {
 
   const handlePrevGroup = () => {
     if (startPage === 1 || loading) return;
+
     setCurrentPage(Math.max(startPage - pageGroupSize, 1));
   };
 
   const handleNextGroup = () => {
     if (endPage === totalPages || loading) return;
+
     setCurrentPage(Math.min(startPage + pageGroupSize, totalPages));
   };
 
   const renderSortLabel = (label: string, key: SortKey) => {
     if (sortKey !== key) return label;
+
     return `${label} ${sortOrder === 'asc' ? '▲' : '▼'}`;
   };
 
-  // 🔹 특정 회원 선택 + 기기 정보 로딩
   const handleSelectMember = async (member: Member) => {
     setSelectedMember(member);
     setDeviceMessage(null);
@@ -204,18 +355,16 @@ export default function MemberDevicePage() {
     if (!member.mb_no) return;
 
     setDeviceLoading(true);
+
     try {
-      const res = await fetch(
-        `${API_URL}/api/admin/devices/${member.mb_no}`,
-        {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
+      const res = await fetch(`${API_URL}/api/admin/devices/${member.mb_no}`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json',
         },
-      );
+        credentials: 'include',
+      });
 
       if (!res.ok) {
         console.error('기기 조회 실패', res.status);
@@ -224,6 +373,7 @@ export default function MemberDevicePage() {
       }
 
       const data: UserDevice[] = await res.json();
+
       setDevices(data.slice(0, 2));
     } catch (err) {
       console.error('기기 조회 오류:', err);
@@ -235,6 +385,7 @@ export default function MemberDevicePage() {
 
   const handleReleaseDevice = async (deviceId: string) => {
     if (!selectedMember) return;
+
     if (!confirm(`이 기기를 해제할까요? (${deviceId})`)) return;
 
     setDeviceSaving(true);
@@ -242,7 +393,7 @@ export default function MemberDevicePage() {
 
     try {
       const res = await fetch(
-        `${API_URL}/admin/devices/${selectedMember.mb_no}/${deviceId}`,
+        `${API_URL}/api/admin/devices/${selectedMember.mb_no}/${deviceId}`,
         {
           method: 'DELETE',
           headers: {
@@ -271,6 +422,7 @@ export default function MemberDevicePage() {
 
   const handleResetDevices = async () => {
     if (!selectedMember) return;
+
     if (!confirm('이 회원의 모든 기기를 초기화할까요?')) return;
 
     setDeviceSaving(true);
@@ -278,7 +430,7 @@ export default function MemberDevicePage() {
 
     try {
       const res = await fetch(
-        `${API_URL}/admin/devices/${selectedMember.mb_no}`,
+        `${API_URL}/api/admin/devices/${selectedMember.mb_no}`,
         {
           method: 'DELETE',
           headers: {
@@ -318,10 +470,39 @@ export default function MemberDevicePage() {
           </div>
         )}
 
-        {/* 정렬 + 검색 */}
+        <div className="bg-white shadow rounded-lg p-4 mb-4">
+          <div className="mb-3">
+            <h2 className="text-sm sm:text-base font-semibold text-gray-900">
+              권한별 회원 보기
+            </h2>
+            <p className="mt-1 text-xs sm:text-sm text-gray-500">
+              선택한 권한을 가진 회원만 조회합니다.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {AUTHORITY_FILTERS.map((item) => (
+              <button
+                key={item.value}
+                type="button"
+                onClick={() => handleAuthorityFilterClick(item.value)}
+                disabled={loading}
+                className={`px-3 py-1.5 rounded-md text-xs sm:text-sm border transition-colors ${
+                  authorityFilter === item.value
+                    ? 'bg-indigo-600 text-white border-indigo-600'
+                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                } ${loading ? 'opacity-60 cursor-not-allowed' : ''}`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3 sm:gap-4">
           <div className="flex items-center gap-2">
             <span className="text-xs sm:text-sm text-gray-600">정렬:</span>
+
             <button
               type="button"
               onClick={() => handleSortClick('name')}
@@ -333,6 +514,7 @@ export default function MemberDevicePage() {
             >
               {renderSortLabel('이름순', 'name')}
             </button>
+
             <button
               type="button"
               onClick={() => handleSortClick('latest')}
@@ -346,18 +528,16 @@ export default function MemberDevicePage() {
             </button>
           </div>
 
-          <form
-            onSubmit={handleSearch}
-            className="w-full sm:w-[360px]"
-          >
+          <form onSubmit={handleSearch} className="w-full sm:w-[420px]">
             <div className="flex gap-2">
               <input
                 type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="아이디, 이름 검색"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="아이디, 이름, 휴대폰, 학교 검색"
                 className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 px-3 py-2 text-xs sm:text-sm"
               />
+
               <button
                 type="submit"
                 disabled={isSearching}
@@ -371,27 +551,29 @@ export default function MemberDevicePage() {
           </form>
         </div>
 
-        {/* 회원 리스트 테이블 */}
         <div className="bg-white shadow rounded-lg overflow-hidden mb-6">
           <div className="overflow-x-auto w-full">
             <table className="min-w-full divide-y divide-gray-200 text-xs sm:text-sm">
               <thead className="bg-gray-50">
                 <tr>
-                  {['번호', '아이디', '이름', '기기'].map((head) => (
-                    <th
-                      key={head}
-                      className="px-3 sm:px-6 py-2 sm:py-3 text-center text-[11px] sm:text-xs font-semibold text-gray-600 tracking-wider whitespace-nowrap"
-                    >
-                      {head}
-                    </th>
-                  ))}
+                  {['번호', '아이디', '이름', '보유 권한', '기기'].map(
+                    (head) => (
+                      <th
+                        key={head}
+                        className="px-3 sm:px-6 py-2 sm:py-3 text-center text-[11px] sm:text-xs font-semibold text-gray-600 tracking-wider whitespace-nowrap"
+                      >
+                        {head}
+                      </th>
+                    ),
+                  )}
                 </tr>
               </thead>
+
               <tbody className="bg-white divide-y divide-gray-200">
                 {loading ? (
                   <tr>
                     <td
-                      colSpan={4}
+                      colSpan={5}
                       className="px-3 sm:px-6 py-4 text-center text-xs sm:text-sm text-gray-500"
                     >
                       로딩 중...
@@ -400,10 +582,12 @@ export default function MemberDevicePage() {
                 ) : members.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={4}
+                      colSpan={5}
                       className="px-3 sm:px-6 py-4 text-center text-xs sm:text-sm text-gray-500"
                     >
-                      {search ? '검색 결과가 없습니다.' : '회원이 없습니다.'}
+                      {searchQuery || authorityFilter !== 'all'
+                        ? '조회 결과가 없습니다.'
+                        : '회원이 없습니다.'}
                     </td>
                   </tr>
                 ) : (
@@ -420,12 +604,26 @@ export default function MemberDevicePage() {
                         <td className="px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm text-center text-gray-700 whitespace-nowrap">
                           {index}
                         </td>
+
                         <td className="px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm whitespace-nowrap text-center max-w-[120px] sm:max-w-[160px] truncate">
                           {member.mb_id}
                         </td>
+
                         <td className="px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm whitespace-nowrap text-center max-w-[90px] sm:max-w-[120px] truncate">
                           {member.mb_name}
                         </td>
+
+                        <td className="px-3 sm:px-6 py-2 sm:py-3 text-center">
+                          <span
+                            className={`inline-flex max-w-[220px] truncate items-center justify-center rounded-full border px-2.5 py-1 text-[11px] sm:text-xs font-medium ${getAuthorityBadgeClass(
+                              member,
+                            )}`}
+                            title={getAuthorityText(member)}
+                          >
+                            {getAuthorityText(member)}
+                          </span>
+                        </td>
+
                         <td className="px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm whitespace-nowrap text-center">
                           <button
                             type="button"
@@ -448,7 +646,6 @@ export default function MemberDevicePage() {
           </div>
         </div>
 
-        {/* 페이지네이션 */}
         {totalPages > 1 && (
           <div className="mt-4 flex justify-center mb-8">
             <nav className="flex items-center gap-1.5 sm:gap-2">
@@ -459,6 +656,7 @@ export default function MemberDevicePage() {
               >
                 &lt;
               </button>
+
               {Array.from(
                 { length: endPage - startPage + 1 },
                 (_, i) => startPage + i,
@@ -476,6 +674,7 @@ export default function MemberDevicePage() {
                   {page}
                 </button>
               ))}
+
               <button
                 onClick={handleNextGroup}
                 disabled={endPage === totalPages || loading}
@@ -487,7 +686,6 @@ export default function MemberDevicePage() {
           </div>
         )}
 
-        {/* 선택한 회원 기기 관리 패널 */}
         <div
           ref={devicePanelRef}
           className="bg-white shadow rounded-lg p-4 sm:p-6"
@@ -500,6 +698,16 @@ export default function MemberDevicePage() {
 
           {selectedMember && (
             <>
+              <div className="mb-4">
+                <span
+                  className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] sm:text-xs font-medium ${getAuthorityBadgeClass(
+                    selectedMember,
+                  )}`}
+                >
+                  보유 권한: {getAuthorityText(selectedMember)}
+                </span>
+              </div>
+
               {deviceMessage && (
                 <div className="mb-3 text-xs sm:text-sm text-indigo-700 bg-indigo-50 px-3 py-2 rounded">
                   {deviceMessage}
@@ -520,6 +728,7 @@ export default function MemberDevicePage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {[0, 1].map((idx) => {
                         const device = devices[idx];
+
                         return (
                           <div
                             key={idx}
@@ -529,15 +738,37 @@ export default function MemberDevicePage() {
                               <h4 className="text-xs sm:text-sm font-semibold text-gray-800 mb-2">
                                 기기 {idx + 1}
                               </h4>
+
                               {device ? (
                                 <div className="space-y-1 text-xs sm:text-sm text-gray-700">
                                   <p>
                                     <span className="font-medium">이름:</span>{' '}
                                     {device.deviceName || '-'}
                                   </p>
+
                                   <p className="break-all">
                                     <span className="font-medium">ID:</span>{' '}
                                     {device.deviceId}
+                                  </p>
+
+                                  <p>
+                                    <span className="font-medium">등록:</span>{' '}
+                                    {device.createdAt
+                                      ? new Date(
+                                          device.createdAt,
+                                        ).toLocaleString()
+                                      : '-'}
+                                  </p>
+
+                                  <p>
+                                    <span className="font-medium">
+                                      최근 사용:
+                                    </span>{' '}
+                                    {device.lastUsedAt
+                                      ? new Date(
+                                          device.lastUsedAt,
+                                        ).toLocaleString()
+                                      : '-'}
                                   </p>
                                 </div>
                               ) : (
@@ -551,7 +782,9 @@ export default function MemberDevicePage() {
                               {device && (
                                 <button
                                   type="button"
-                                  onClick={() => handleReleaseDevice(device.deviceId)}
+                                  onClick={() =>
+                                    handleReleaseDevice(device.deviceId)
+                                  }
                                   disabled={deviceSaving}
                                   className={`w-full px-3 py-2 rounded-md text-xs sm:text-sm font-medium text-white bg-rose-600 hover:bg-rose-700 ${
                                     deviceSaving
