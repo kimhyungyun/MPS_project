@@ -22,6 +22,8 @@ interface Lecture {
   thumbnail_url: string;
   type: LectureType;
   classGroup: ClassGroup;
+  day: number | null;
+  sortOrder: number;
   categoryId: number | null;
   instructorId: number | null;
   video_folder?: string | null;
@@ -55,6 +57,7 @@ export default function EditLecturePage({ params }: PageProps) {
     if (lectureId) {
       fetchLecture();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lectureId]);
 
   const getAuthHeaders = () => ({
@@ -75,7 +78,12 @@ export default function EditLecturePage({ params }: PageProps) {
       }
 
       const data = await response.json();
-      setLecture(data);
+
+      setLecture({
+        ...data,
+        day: data.day ?? null,
+        sortOrder: data.sortOrder ?? 0,
+      });
     } catch (error) {
       console.error('Failed to fetch lecture:', error);
     } finally {
@@ -110,6 +118,8 @@ export default function EditLecturePage({ params }: PageProps) {
           thumbnail_url: lecture.thumbnail_url,
           type: lecture.type,
           classGroup: lecture.classGroup,
+          day: lecture.day === null ? null : Number(lecture.day),
+          sortOrder: Number(lecture.sortOrder ?? 0),
           categoryId: lecture.categoryId,
           instructorId: lecture.instructorId,
           video_folder: lecture.video_folder,
@@ -145,6 +155,8 @@ export default function EditLecturePage({ params }: PageProps) {
       </div>
     );
   }
+
+  const isClassLecture = lecture.classGroup === 'A' || lecture.classGroup === 'B';
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 mt-24">
@@ -236,9 +248,22 @@ export default function EditLecturePage({ params }: PageProps) {
             </label>
             <select
               value={lecture.classGroup}
-              onChange={(e) =>
-                handleChange('classGroup', e.target.value as ClassGroup)
-              }
+              onChange={(e) => {
+                const nextClassGroup = e.target.value as ClassGroup;
+
+                setLecture({
+                  ...lecture,
+                  classGroup: nextClassGroup,
+                  day:
+                    nextClassGroup === 'A' || nextClassGroup === 'B'
+                      ? lecture.day
+                      : null,
+                  sortOrder:
+                    nextClassGroup === 'A' || nextClassGroup === 'B'
+                      ? lecture.sortOrder ?? 0
+                      : 0,
+                });
+              }}
               className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
             >
               <option value="S">패키지</option>
@@ -246,6 +271,47 @@ export default function EditLecturePage({ params }: PageProps) {
               <option value="B">하지반</option>
             </select>
           </div>
+
+          {isClassLecture && (
+            <div className="grid grid-cols-1 gap-6 rounded-md border border-blue-100 bg-blue-50 p-4 md:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  일차
+                </label>
+                <select
+                  value={lecture.day ?? ''}
+                  onChange={(e) =>
+                    handleChange(
+                      'day',
+                      e.target.value === '' ? null : Number(e.target.value),
+                    )
+                  }
+                  className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2"
+                >
+                  <option value="">일차 없음</option>
+                  <option value={1}>1일차</option>
+                  <option value={2}>2일차</option>
+                  <option value={3}>3일차</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  일차 내 정렬 순서
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  value={lecture.sortOrder ?? 0}
+                  onChange={(e) =>
+                    handleChange('sortOrder', Number(e.target.value))
+                  }
+                  className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2"
+                  placeholder="예: 1"
+                />
+              </div>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700">

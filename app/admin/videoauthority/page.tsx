@@ -39,8 +39,8 @@ interface UserDevice {
 }
 
 const CLASS_GROUP_LABELS: Record<ClassGroup, string> = {
-  A: 'A반',
-  B: 'B반',
+  A: '상지반',
+  B: '하지반',
   S: 'S',
 };
 

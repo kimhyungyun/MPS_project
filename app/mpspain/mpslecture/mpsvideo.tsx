@@ -5,7 +5,6 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import HlsPlayer from './hlsplayer';
 
-
 type LectureType =
   | 'single'
   | 'packageA'
@@ -15,6 +14,8 @@ type LectureType =
   | 'packageE';
 
 type ClassGroup = 'A' | 'B' | 'S';
+type GroupKey = 'A' | 'B' | 'C' | 'D' | 'E';
+type DayKey = 1 | 2 | 3;
 
 interface Course {
   id: number;
@@ -26,10 +27,12 @@ interface Course {
   video_name?: string;
   type: LectureType;
   classGroup: ClassGroup;
+  day?: number | null;
+  sortOrder?: number | null;
 }
 
 interface User {
-  mb_no: number; // PK
+  mb_no: number;
   mb_id: string;
   mb_name: string;
   mb_nick: string;
@@ -37,12 +40,6 @@ interface User {
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
-
-// ------------------------------------------------------------
-// 탭 메타
-// ------------------------------------------------------------
-
-type GroupKey = 'A' | 'B' | 'C' | 'D' | 'E';
 
 const GROUP_META: Record<
   GroupKey,
@@ -75,9 +72,6 @@ const GROUP_META: Record<
   },
 };
 
-// ------------------------------------------------------------
-// 디바이스 ID 헬퍼
-// ------------------------------------------------------------
 function getDeviceId() {
   if (typeof window === 'undefined') return 'unknown-device';
 
@@ -104,26 +98,21 @@ export default function Mpsvideo() {
   const [streamUrl, setStreamUrl] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [selectedGroup, setSelectedGroup] = useState<GroupKey>('A');
+  const [selectedDay, setSelectedDay] = useState<DayKey>(1);
 
   const listRef = useRef<HTMLDivElement | null>(null);
-
-  // ------------------------------------------------------------
-  // 로그인 + 프로필 + 강의 목록
-  // ------------------------------------------------------------
 
   useEffect(() => {
     const init = async () => {
       try {
-        const token = typeof window !== 'undefined'
-          ? localStorage.getItem('token')
-          : null;
+        const token =
+          typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
         if (!token) {
           router.push('/form/login');
           return;
         }
 
-        // 1) 프로필 조회해서 mb_no 확보
         const profileRes = await fetch(`${API_BASE_URL}/api/auth/profile`, {
           method: 'GET',
           headers: { Authorization: `Bearer ${token}` },
@@ -136,18 +125,15 @@ export default function Mpsvideo() {
         }
 
         if (!profileRes.ok) {
-          console.error('profile error:', profileRes.status);
           throw new Error('프로필 조회 실패');
         }
 
         const profileJson: { success: boolean; data: any } =
           await profileRes.json();
-        console.log('🔥 profile json:', profileJson);
 
         const profile = profileJson.data;
 
         if (!profile || typeof profile.mb_no !== 'number') {
-          console.error('프로필에 mb_no 정보가 없습니다.');
           throw new Error('프로필에 mb_no 정보가 없습니다.');
         }
 
@@ -161,7 +147,6 @@ export default function Mpsvideo() {
 
         setUser(normalizedUser);
 
-        // 2) 강의 목록
         const lecturesRes = await fetch(`${API_BASE_URL}/api/lectures`, {
           credentials: 'include',
         });
@@ -181,12 +166,9 @@ export default function Mpsvideo() {
     init();
   }, [router]);
 
-  // ------------------------------------------------------------
-  // 탭 선택
-  // ------------------------------------------------------------
-
   const handleSelectGroup = (key: GroupKey) => {
     setSelectedGroup(key);
+    setSelectedDay(1);
     setSelected(null);
     setStreamUrl('');
     setErrorMsg('');
@@ -199,9 +181,12 @@ export default function Mpsvideo() {
     }, 0);
   };
 
-  // ------------------------------------------------------------
-  // 재생 준비 (기기 체크 + Signed URL)
-  // ------------------------------------------------------------
+  const handleSelectDay = (day: DayKey) => {
+    setSelectedDay(day);
+    setSelected(null);
+    setStreamUrl('');
+    setErrorMsg('');
+  };
 
   const preparePlay = async (course: Course) => {
     setSelected(null);
@@ -211,9 +196,7 @@ export default function Mpsvideo() {
 
     try {
       const token =
-        typeof window !== 'undefined'
-          ? localStorage.getItem('token')
-          : null;
+        typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
       if (!token) {
         router.push('/form/login');
@@ -221,7 +204,6 @@ export default function Mpsvideo() {
       }
 
       if (!user || !user.mb_no) {
-        console.error('user.mb_no가 없습니다. 기기 체크 불가');
         throw new Error('유저 정보가 올바르지 않습니다. (mb_no 없음)');
       }
 
@@ -232,7 +214,6 @@ export default function Mpsvideo() {
           ? navigator.userAgent
           : 'Unknown Device';
 
-      // 1) 기기 체크
       const deviceCheckRes = await fetch(
         `${API_BASE_URL}/api/video-authorities/devices/check`,
         {
@@ -251,7 +232,6 @@ export default function Mpsvideo() {
       );
 
       if (!deviceCheckRes.ok) {
-        console.error('device check failed', deviceCheckRes.status);
         throw new Error('기기 인증에 실패했습니다.');
       }
 
@@ -261,8 +241,6 @@ export default function Mpsvideo() {
         devices?: any[];
       } = await deviceCheckRes.json();
 
-      console.log('🔥 device check result:', deviceResult);
-
       if (!deviceResult.allowed) {
         const msg =
           deviceResult.reason === 'DEVICE_LIMIT_EXCEEDED'
@@ -270,14 +248,11 @@ export default function Mpsvideo() {
             : '이 기기에서는 영상을 재생할 수 없습니다.';
 
         setErrorMsg(msg);
-        if (typeof window !== 'undefined') {
-          alert(msg);
-        }
+        alert(msg);
         setLoadingPlay(false);
         return;
       }
 
-      // 2) Signed URL 요청
       const playAuth = await fetch(
         `${API_BASE_URL}/api/signed-urls/lecture/${course.id}`,
         {
@@ -289,9 +264,7 @@ export default function Mpsvideo() {
 
       if (playAuth.status === 403) {
         setLoadingPlay(false);
-        if (typeof window !== 'undefined') {
-          alert('이 강의를 시청할 권한이 없습니다.');
-        }
+        alert('이 강의를 시청할 권한이 없습니다.');
         return;
       }
 
@@ -300,7 +273,6 @@ export default function Mpsvideo() {
       }
 
       const data: { ok?: boolean; streamUrl: string } = await playAuth.json();
-      console.log('🎯 signed streamUrl:', data.streamUrl);
 
       setSelected(course);
       setStreamUrl(data.streamUrl);
@@ -312,11 +284,9 @@ export default function Mpsvideo() {
     }
   };
 
-  // ------------------------------------------------------------
-  // 강의 필터링 (UI용)
-  // ------------------------------------------------------------
+  const isDayGroup = selectedGroup === 'A' || selectedGroup === 'B';
 
-  const filteredCourses = courses.filter((c) => {
+  const baseCourses = courses.filter((c) => {
     if (selectedGroup === 'A') return c.classGroup === 'A';
     if (selectedGroup === 'B') return c.classGroup === 'B';
     if (selectedGroup === 'C') return c.type === 'packageC';
@@ -325,26 +295,45 @@ export default function Mpsvideo() {
     return false;
   });
 
-  // 로그인 안 됐고, 목록 로딩도 끝났으면 아무것도 렌더 안 함
+  const filteredCourses = baseCourses
+    .filter((c) => {
+      if (!isDayGroup) return true;
+      return Number(c.day) === selectedDay;
+    })
+    .sort((a, b) => {
+      const aSort = a.sortOrder ?? 0;
+      const bSort = b.sortOrder ?? 0;
+
+      if (aSort !== bSort) return aSort - bSort;
+      return a.id - b.id;
+    });
+
+  const dayCounts: Record<DayKey, number> = {
+    1: baseCourses.filter((c) => Number(c.day) === 1).length,
+    2: baseCourses.filter((c) => Number(c.day) === 2).length,
+    3: baseCourses.filter((c) => Number(c.day) === 3).length,
+  };
+
   if (!user && !loadingList) return null;
 
-    const watermarkText = user ? `${user.mb_id} (${user.mb_name})` : 'unknown-user';
+  const watermarkText = user
+    ? `${user.mb_id} (${user.mb_name})`
+    : 'unknown-user';
 
   return (
     <main className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-5xl mt-40 px-4 py-10 lg:py-12">
-        {/* 상단 에러 */}
         {errorMsg && !selected && (
           <div className="mb-4 rounded-md bg-red-50 px-4 py-3 text-sm text-red-700">
             {errorMsg}
           </div>
         )}
 
-        {/* 탭 */}
         <section className="mb-6 flex flex-wrap items-center justify-center gap-3">
           {(Object.keys(GROUP_META) as GroupKey[]).map((key) => {
             const meta = GROUP_META[key];
             const active = selectedGroup === key;
+
             return (
               <button
                 key={key}
@@ -362,17 +351,47 @@ export default function Mpsvideo() {
           })}
         </section>
 
-        {/* 강의 목록 */}
+        {isDayGroup && (
+          <section className="mb-6 flex justify-center">
+            <div className="flex w-full max-w-md rounded-full border border-slate-200 bg-white p-1 shadow-sm">
+              {([1, 2, 3] as DayKey[]).map((day) => {
+                const active = selectedDay === day;
+
+                return (
+                  <button
+                    key={day}
+                    type="button"
+                    onClick={() => handleSelectDay(day)}
+                    className={`flex-1 rounded-full px-4 py-2 text-sm font-medium transition ${
+                      active
+                        ? 'bg-slate-900 text-white shadow'
+                        : 'text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    {day}일차
+                    <span
+                      className={`ml-1 text-xs ${
+                        active ? 'text-slate-200' : 'text-slate-400'
+                      }`}
+                    >
+                      ({dayCounts[day]})
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
         <section ref={listRef}>
           <div className="mb-3 flex items-baseline justify-between">
             <h3 className="text-base font-semibold text-slate-900">
-              {GROUP_META[selectedGroup].label} 강의 목록
+              {GROUP_META[selectedGroup].label}
+              {isDayGroup && ` ${selectedDay}일차`} 강의 목록
             </h3>
+
             <p className="text-xs text-slate-500">
-              총{' '}
-              <span className="font-semibold">
-                {filteredCourses.length}
-              </span>{' '}
+              총 <span className="font-semibold">{filteredCourses.length}</span>{' '}
               개 강의
             </p>
           </div>
@@ -401,12 +420,14 @@ export default function Mpsvideo() {
                     </th>
                   </tr>
                 </thead>
+
                 <tbody className="divide-y divide-slate-100">
                   {filteredCourses.map((c, idx) => (
                     <tr key={c.id} className="hover:bg-slate-50/80">
                       <td className="px-4 py-2.5 text-center text-xs text-slate-600">
                         {idx + 1}
                       </td>
+
                       <td className="px-4 py-2.5 text-sm text-slate-800">
                         {c.title}
                         {c.description && (
@@ -415,6 +436,7 @@ export default function Mpsvideo() {
                           </span>
                         )}
                       </td>
+
                       <td className="px-4 py-2.5 text-center">
                         <button
                           type="button"
@@ -432,7 +454,6 @@ export default function Mpsvideo() {
           )}
         </section>
 
-        {/* 영상 모달 */}
         {selected && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4">
             <div className="relative w-full max-w-4xl rounded-2xl bg-white p-5 shadow-xl">
@@ -467,9 +488,7 @@ export default function Mpsvideo() {
                     />
                   ) : (
                     <div className="flex h-full items-center justify-center text-sm text-slate-200">
-                      {errorMsg
-                        ? '재생할 수 없습니다.'
-                        : '스트림 URL 준비중...'}
+                      {errorMsg ? '재생할 수 없습니다.' : '스트림 URL 준비중...'}
                     </div>
                   )}
                 </div>
@@ -487,9 +506,7 @@ export default function Mpsvideo() {
                 </p>
               )}
 
-              <p className="text-sm text-slate-700">
-                {selected.description}
-              </p>
+              <p className="text-sm text-slate-700">{selected.description}</p>
             </div>
           </div>
         )}
