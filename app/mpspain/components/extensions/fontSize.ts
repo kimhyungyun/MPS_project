@@ -1,4 +1,5 @@
 // app/mpspain/mpschamp/create/extensions/fontSize.ts
+
 import { Extension } from '@tiptap/core';
 
 declare module '@tiptap/core' {
@@ -13,24 +14,32 @@ declare module '@tiptap/core' {
 const FontSize = Extension.create({
   name: 'fontSize',
 
+  addOptions() {
+    return {
+      types: ['textStyle'],
+    };
+  },
+
   addGlobalAttributes() {
     return [
       {
-        types: ['textStyle'],
+        types: this.options.types,
+
         attributes: {
           fontSize: {
             default: null,
-            renderHTML: attributes => {
+
+            parseHTML: (element) => {
+              return element.style.fontSize || null;
+            },
+
+            renderHTML: (attributes) => {
               if (!attributes.fontSize) {
                 return {};
               }
+
               return {
                 style: `font-size: ${attributes.fontSize}`,
-              };
-            },
-            parseHTML: element => {
-              return {
-                fontSize: element.style.fontSize || null,
               };
             },
           },
@@ -42,10 +51,13 @@ const FontSize = Extension.create({
   addCommands() {
     return {
       setFontSize:
-        size =>
+        (size: string) =>
         ({ chain }) => {
-          return chain().setMark('textStyle', { fontSize: size }).run();
+          return chain()
+            .setMark('textStyle', { fontSize: size })
+            .run();
         },
+
       unsetFontSize:
         () =>
         ({ chain }) => {

@@ -56,7 +56,6 @@ const fontSizes = [
   { label: '52pt', value: '52px' },
 ];
 
-// 🔥 공지 이미지용 기본 도메인 / 버킷 설정
 const S3_BUCKET = process.env.NEXT_PUBLIC_S3_BUCKET_NAME || 'mpsnotices';
 const S3_REGION = process.env.NEXT_PUBLIC_S3_REGION || 'ap-northeast-2';
 
@@ -86,7 +85,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
         autolink: true,
         linkOnPaste: true,
       }),
-      // ✅ 이미지 크기 보존용 커스텀 이미지
       CustomImage.configure({
         inline: false,
         allowBase64: true,
@@ -115,10 +113,34 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
     immediatelyRender: false,
   });
 
+  const applyFontFamily = (value: string) => {
+    if (!editor) return;
+
+    if (!value) {
+      editor.chain().focus().unsetFontFamily().run();
+      return;
+    }
+
+    editor.chain().focus().setFontFamily(value).run();
+  };
+
+  const applyFontSize = (value: string) => {
+    if (!editor) return;
+
+    if (!value) {
+      editor.chain().focus().unsetFontSize().run();
+      return;
+    }
+
+    editor.chain().focus().setFontSize(value).run();
+  };
+
   const setLinkHandler = () => {
     if (!editor) return;
+
     const previousUrl = editor.getAttributes('link').href;
     const url = window.prompt('링크 URL을 입력하세요', previousUrl || 'https://');
+
     if (url === null) return;
 
     if (url === '') {
@@ -136,10 +158,12 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
 
   const insertYouTubeHandler = () => {
     if (!editor) return;
+
     const url = window.prompt(
       'YouTube URL을 입력하세요',
       'https://www.youtube.com/watch?v=',
     );
+
     if (!url) return;
 
     editor.commands.setYoutubeVideo({
@@ -149,7 +173,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
     });
   };
 
-  // 🔥 공지사항 에디터 이미지 업로드 + 삽입
   const insertEditorImage = async (file: File) => {
     if (!editor) return;
 
@@ -163,15 +186,13 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
         return;
       }
 
-        const baseUrl = `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com`;
-        const imageUrl = `${baseUrl}/${key}`;
+      const baseUrl = `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com`;
+      const imageUrl = `${baseUrl}/${key}`;
 
-
-      // ✅ 항상 문서 끝에 새 이미지 노드 추가 (기존 이미지 덮어쓰기 방지)
       editor
         .chain()
         .focus()
-        .setTextSelection(editor.state.doc.content.size) // 커서를 문서 끝으로
+        .setTextSelection(editor.state.doc.content.size)
         .insertContent({
           type: 'image',
           attrs: {
@@ -188,6 +209,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
 
   const insertTable = (rows: number, cols: number) => {
     if (!editor) return;
+
     editor
       .chain()
       .focus()
@@ -197,6 +219,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
 
   const deleteTableHandler = () => {
     if (!editor) return;
+
     editor.chain().focus().deleteTable().run();
   };
 
@@ -214,21 +237,12 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
         본문
       </label>
 
-      {/* 툴바 */}
       <div className="mb-2 rounded-t-xl border border-b-0 border-gray-200 bg-gray-50 px-2 sm:px-3 py-2 flex flex-wrap items-center gap-2 sm:gap-3 text-xs sm:text-sm relative">
-        {/* 글꼴 / 크기 */}
         <div className="flex items-center gap-2">
           <select
             className="border border-gray-200 rounded px-2 py-1 bg-white text-xs sm:text-sm"
             value={editor.getAttributes('textStyle').fontFamily || ''}
-            onChange={(e) => {
-              const value = e.target.value;
-              if (!value) {
-                editor.chain().focus().unsetMark('textStyle').run();
-              } else {
-                editor.chain().focus().setFontFamily(value).run();
-              }
-            }}
+            onChange={(e) => applyFontFamily(e.target.value)}
           >
             {fontFamilies.map((f) => (
               <option key={f.label} value={f.value}>
@@ -240,14 +254,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
           <select
             className="border border-gray-200 rounded px-2 py-1 bg-white text-xs sm:text-sm"
             value={editor.getAttributes('textStyle').fontSize || ''}
-            onChange={(e) => {
-              const value = e.target.value;
-              if (!value) {
-                editor.chain().focus().unsetFontSize().run();
-              } else {
-                editor.chain().focus().setFontSize(value).run();
-              }
-            }}
+            onChange={(e) => applyFontSize(e.target.value)}
           >
             <option value="">크기</option>
             {fontSizes.map((s) => (
@@ -260,7 +267,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
 
         <span className="hidden sm:inline h-5 border-l border-gray-200" />
 
-        {/* 굵기/기울임/밑줄/취소선/하이라이트 */}
         <div className="flex items-center gap-1">
           <button
             type="button"
@@ -273,6 +279,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
           >
             B
           </button>
+
           <button
             type="button"
             onClick={() => editor.chain().focus().toggleItalic().run()}
@@ -284,6 +291,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
           >
             I
           </button>
+
           <button
             type="button"
             onClick={() => editor.chain().focus().toggleUnderline().run()}
@@ -295,6 +303,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
           >
             U
           </button>
+
           <button
             type="button"
             onClick={() => editor.chain().focus().toggleStrike().run()}
@@ -306,6 +315,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
           >
             S
           </button>
+
           <button
             type="button"
             onClick={() => editor.chain().focus().toggleHighlight().run()}
@@ -321,7 +331,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
 
         <span className="hidden sm:inline h-5 border-l border-gray-200" />
 
-        {/* Heading */}
         <div className="flex items-center gap-1">
           {headingLevels.map((level) => (
             <button
@@ -343,7 +352,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
 
         <span className="hidden sm:inline h-5 border-l border-gray-200" />
 
-        {/* 정렬 */}
         <div className="flex items-center gap-1">
           <button
             type="button"
@@ -356,6 +364,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
           >
             좌
           </button>
+
           <button
             type="button"
             onClick={() =>
@@ -369,6 +378,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
           >
             중
           </button>
+
           <button
             type="button"
             onClick={() => editor.chain().focus().setTextAlign('right').run()}
@@ -384,7 +394,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
 
         <span className="hidden sm:inline h-5 border-l border-gray-200" />
 
-        {/* 리스트 / 블록 */}
         <div className="flex items-center gap-1">
           <button
             type="button"
@@ -397,6 +406,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
           >
             •
           </button>
+
           <button
             type="button"
             onClick={() => editor.chain().focus().toggleOrderedList().run()}
@@ -408,6 +418,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
           >
             1.
           </button>
+
           <button
             type="button"
             onClick={() => editor.chain().focus().toggleBlockquote().run()}
@@ -419,6 +430,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
           >
             ❝
           </button>
+
           <button
             type="button"
             onClick={() => editor.chain().focus().toggleCode().run()}
@@ -430,6 +442,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
           >
             {'</>'}
           </button>
+
           <button
             type="button"
             onClick={() => editor.chain().focus().toggleCodeBlock().run()}
@@ -445,7 +458,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
 
         <span className="hidden sm:inline h-5 border-l border-gray-200" />
 
-        {/* 링크 / 미디어 / 표 */}
         <div className="flex items-center gap-1 relative">
           <button
             type="button"
@@ -467,7 +479,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
             YT
           </button>
 
-          {/* Img 버튼 → 파일 선택 → S3 업로드 → 에디터 삽입 */}
           <button
             type="button"
             onClick={() => imageInputRef.current?.click()}
@@ -476,7 +487,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
             Img
           </button>
 
-          {/* 여러 이미지 업로드 + 본문에 여러 개 삽입 */}
           <input
             ref={imageInputRef}
             type="file"
@@ -485,7 +495,9 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
             className="hidden"
             onChange={async (e) => {
               const files = Array.from(e.target.files ?? []);
+
               if (!files.length) return;
+
               try {
                 for (const file of files) {
                   await insertEditorImage(file);
@@ -496,7 +508,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
             }}
           />
 
-          {/* 표 + 그리드 픽커 */}
           <div className="relative">
             <button
               type="button"
@@ -513,6 +524,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
                     ? `${tableHoverSize.rows} × ${tableHoverSize.cols}`
                     : '표 크기 선택'}
                 </div>
+
                 <div className="grid grid-cols-[repeat(18,1fr)] gap-0.5 w-[260px] sm:w-[360px] max-w-[80vw]">
                   {Array.from({ length: 18 * 18 }).map((_, index) => {
                     const row = Math.floor(index / 18) + 1;
@@ -547,7 +559,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
 
         <span className="hidden sm:inline h-5 border-l border-gray-200" />
 
-        {/* Undo / Redo */}
         <div className="flex items-center gap-1">
           <button
             type="button"
@@ -556,6 +567,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
           >
             ⟲
           </button>
+
           <button
             type="button"
             onClick={() => editor.chain().focus().redo().run()}
@@ -565,7 +577,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
           </button>
         </div>
 
-        {/* 표 삭제 버튼 */}
         {editor.isActive('table') && (
           <button
             type="button"
@@ -577,12 +588,10 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
         )}
       </div>
 
-      {/* 실제 에디터 영역 */}
       <div className="bg-white rounded-b-xl border border-gray-200 p-2 sm:p-3">
         <EditorContent editor={editor} className={styles.tiptap} />
       </div>
 
-      {/* 글자 수 */}
       <div className="mt-1 text-right text-[11px] sm:text-xs text-gray-500">
         글자 수: {editor.storage.characterCount.characters()}
       </div>
