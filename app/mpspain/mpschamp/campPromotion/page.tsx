@@ -28,7 +28,7 @@ const Mps = () => {
     try {
       const raw = localStorage.getItem('user');
 
-      // 로그인 안됨
+      // 로그인 안 된 경우
       if (!raw) {
         alert('로그인이 필요합니다.');
         router.push('/form/login');
@@ -64,7 +64,7 @@ const Mps = () => {
               className="w-full h-auto block rounded-lg"
             />
 
-            {/* 첫 번째 페이지 버튼 */}
+            {/* 첫 번째 페이지에만 버튼 표시 */}
             {index === 0 && (
               <button
                 type="button"
@@ -74,7 +74,8 @@ const Mps = () => {
                   bottom-[40px]
                   left-1/2
                   -translate-x-1/2
-                  px-6 py-3
+                  px-6
+                  py-3
                   rounded-2xl
                   bg-black
                   text-white
@@ -84,6 +85,7 @@ const Mps = () => {
                   transition
                   shadow-lg
                   whitespace-nowrap
+                  cursor-pointer
                 "
               >
                 MPS 연구회 캠프 신청 바로가기 →
