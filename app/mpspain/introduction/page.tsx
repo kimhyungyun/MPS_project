@@ -102,7 +102,7 @@ export default function ProfileIntro() {
                     </p>
                     <p className="text-gray-700 flex items-center lg:justify-start justify-center">
                       <span className="font-medium mr-2">•</span>
-                      (현) MPS연구회 회장
+                      (현) MPS 연구회 전문강사
                     </p>
                   </div>
                 </div>
