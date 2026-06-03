@@ -31,9 +31,7 @@ interface Lecture {
 }
 
 interface PageProps {
-  params: Promise<{
-    id: string;
-  }>;
+  params: Promise<{ id: string }>;
 }
 
 export default function EditLecturePage({ params }: PageProps) {
@@ -99,9 +97,18 @@ export default function EditLecturePage({ params }: PageProps) {
     setLecture({ ...lecture, [key]: value });
   };
 
+  const isSortableClassLecture = (targetLecture: Lecture) => {
+    return (
+      targetLecture.type === 'single' &&
+      (targetLecture.classGroup === 'A' || targetLecture.classGroup === 'B')
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!lecture) return;
+
+    const shouldUseSortOrder = isSortableClassLecture(lecture);
 
     setIsSaving(true);
 
@@ -118,8 +125,15 @@ export default function EditLecturePage({ params }: PageProps) {
           thumbnail_url: lecture.thumbnail_url,
           type: lecture.type,
           classGroup: lecture.classGroup,
-          day: lecture.day === null ? null : Number(lecture.day),
-          sortOrder: Number(lecture.sortOrder ?? 0),
+
+          day: shouldUseSortOrder
+            ? lecture.day === null
+              ? null
+              : Number(lecture.day)
+            : null,
+
+          sortOrder: shouldUseSortOrder ? Number(lecture.sortOrder ?? 0) : 0,
+
           categoryId: lecture.categoryId,
           instructorId: lecture.instructorId,
           video_folder: lecture.video_folder,
@@ -156,7 +170,7 @@ export default function EditLecturePage({ params }: PageProps) {
     );
   }
 
-  const isClassLecture = lecture.classGroup === 'A' || lecture.classGroup === 'B';
+  const shouldShowSortFields = isSortableClassLecture(lecture);
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 mt-24">
@@ -228,9 +242,24 @@ export default function EditLecturePage({ params }: PageProps) {
             </label>
             <select
               value={lecture.type}
-              onChange={(e) =>
-                handleChange('type', e.target.value as LectureType)
-              }
+              onChange={(e) => {
+                const nextType = e.target.value as LectureType;
+
+                setLecture({
+                  ...lecture,
+                  type: nextType,
+                  day:
+                    nextType === 'single' &&
+                    (lecture.classGroup === 'A' || lecture.classGroup === 'B')
+                      ? lecture.day
+                      : null,
+                  sortOrder:
+                    nextType === 'single' &&
+                    (lecture.classGroup === 'A' || lecture.classGroup === 'B')
+                      ? lecture.sortOrder ?? 0
+                      : 0,
+                });
+              }}
               className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
             >
               <option value="single">single</option>
@@ -255,11 +284,13 @@ export default function EditLecturePage({ params }: PageProps) {
                   ...lecture,
                   classGroup: nextClassGroup,
                   day:
-                    nextClassGroup === 'A' || nextClassGroup === 'B'
+                    lecture.type === 'single' &&
+                    (nextClassGroup === 'A' || nextClassGroup === 'B')
                       ? lecture.day
                       : null,
                   sortOrder:
-                    nextClassGroup === 'A' || nextClassGroup === 'B'
+                    lecture.type === 'single' &&
+                    (nextClassGroup === 'A' || nextClassGroup === 'B')
                       ? lecture.sortOrder ?? 0
                       : 0,
                 });
@@ -272,7 +303,7 @@ export default function EditLecturePage({ params }: PageProps) {
             </select>
           </div>
 
-          {isClassLecture && (
+          {shouldShowSortFields && (
             <div className="grid grid-cols-1 gap-6 rounded-md border border-blue-100 bg-blue-50 p-4 md:grid-cols-2">
               <div>
                 <label className="block text-sm font-medium text-gray-700">
