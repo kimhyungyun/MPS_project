@@ -31,7 +31,9 @@ interface Lecture {
 }
 
 interface PageProps {
-  params: Promise<{ id: string }>;
+  params: Promise<{
+    id: string;
+  }>;
 }
 
 export default function EditLecturePage({ params }: PageProps) {
@@ -97,18 +99,15 @@ export default function EditLecturePage({ params }: PageProps) {
     setLecture({ ...lecture, [key]: value });
   };
 
-  const isSortableClassLecture = (targetLecture: Lecture) => {
-    return (
-      targetLecture.type === 'single' &&
-      (targetLecture.classGroup === 'A' || targetLecture.classGroup === 'B')
-    );
+  const isClassGroupLecture = (targetLecture: Lecture) => {
+    return targetLecture.classGroup === 'A' || targetLecture.classGroup === 'B';
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!lecture) return;
 
-    const shouldUseSortOrder = isSortableClassLecture(lecture);
+    const shouldUseClassSort = isClassGroupLecture(lecture);
 
     setIsSaving(true);
 
@@ -126,13 +125,13 @@ export default function EditLecturePage({ params }: PageProps) {
           type: lecture.type,
           classGroup: lecture.classGroup,
 
-          day: shouldUseSortOrder
+          day: shouldUseClassSort
             ? lecture.day === null
               ? null
               : Number(lecture.day)
             : null,
 
-          sortOrder: shouldUseSortOrder ? Number(lecture.sortOrder ?? 0) : 0,
+          sortOrder: shouldUseClassSort ? Number(lecture.sortOrder ?? 0) : 0,
 
           categoryId: lecture.categoryId,
           instructorId: lecture.instructorId,
@@ -170,7 +169,7 @@ export default function EditLecturePage({ params }: PageProps) {
     );
   }
 
-  const shouldShowSortFields = isSortableClassLecture(lecture);
+  const shouldShowClassSortFields = isClassGroupLecture(lecture);
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 mt-24">
@@ -242,24 +241,9 @@ export default function EditLecturePage({ params }: PageProps) {
             </label>
             <select
               value={lecture.type}
-              onChange={(e) => {
-                const nextType = e.target.value as LectureType;
-
-                setLecture({
-                  ...lecture,
-                  type: nextType,
-                  day:
-                    nextType === 'single' &&
-                    (lecture.classGroup === 'A' || lecture.classGroup === 'B')
-                      ? lecture.day
-                      : null,
-                  sortOrder:
-                    nextType === 'single' &&
-                    (lecture.classGroup === 'A' || lecture.classGroup === 'B')
-                      ? lecture.sortOrder ?? 0
-                      : 0,
-                });
-              }}
+              onChange={(e) =>
+                handleChange('type', e.target.value as LectureType)
+              }
               className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
             >
               <option value="single">single</option>
@@ -284,26 +268,24 @@ export default function EditLecturePage({ params }: PageProps) {
                   ...lecture,
                   classGroup: nextClassGroup,
                   day:
-                    lecture.type === 'single' &&
-                    (nextClassGroup === 'A' || nextClassGroup === 'B')
+                    nextClassGroup === 'A' || nextClassGroup === 'B'
                       ? lecture.day
                       : null,
                   sortOrder:
-                    lecture.type === 'single' &&
-                    (nextClassGroup === 'A' || nextClassGroup === 'B')
+                    nextClassGroup === 'A' || nextClassGroup === 'B'
                       ? lecture.sortOrder ?? 0
                       : 0,
                 });
               }}
               className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
             >
-              <option value="S">패키지</option>
+              <option value="S">싱글</option>
               <option value="A">상지반</option>
               <option value="B">하지반</option>
             </select>
           </div>
 
-          {shouldShowSortFields && (
+          {shouldShowClassSortFields && (
             <div className="grid grid-cols-1 gap-6 rounded-md border border-blue-100 bg-blue-50 p-4 md:grid-cols-2">
               <div>
                 <label className="block text-sm font-medium text-gray-700">
