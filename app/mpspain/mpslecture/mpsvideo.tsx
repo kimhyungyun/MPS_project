@@ -76,15 +76,36 @@ function getDeviceId() {
   if (typeof window === 'undefined') return 'unknown-device';
 
   let id = localStorage.getItem('device_id');
+
   if (!id) {
     if ('crypto' in window && 'randomUUID' in crypto) {
       id = crypto.randomUUID();
     } else {
       id = `dev-${Math.random().toString(36).slice(2)}-${Date.now()}`;
     }
+
     localStorage.setItem('device_id', id);
   }
+
   return id;
+}
+
+// video_name 정렬값 추출
+// 예:
+// 22_test -> [22, 0]
+// 28_1_test -> [28, 1]
+// 30_1_test -> [30, 1]
+function getVideoNameSortValue(videoName?: string | null): [number, number] {
+  if (!videoName) return [999999, 999999];
+
+  const match = videoName.match(/^(\d+)(?:_(\d+))?/);
+
+  if (!match) return [999999, 999999];
+
+  const mainNumber = Number(match[1]);
+  const subNumber = match[2] ? Number(match[2]) : 0;
+
+  return [mainNumber, subNumber];
 }
 
 export default function Mpsvideo() {
@@ -151,7 +172,9 @@ export default function Mpsvideo() {
           credentials: 'include',
         });
 
-        if (!lecturesRes.ok) throw new Error('강의 목록 API 실패');
+        if (!lecturesRes.ok) {
+          throw new Error('강의 목록 API 실패');
+        }
 
         const data: Course[] = await lecturesRes.json();
         setCourses(data);
@@ -301,10 +324,32 @@ export default function Mpsvideo() {
       return Number(c.day) === selectedDay;
     })
     .sort((a, b) => {
+      // C / D / E 패키지 정렬
+      // video_name 앞 숫자 기준
+      if (!isDayGroup) {
+        const [mainA, subA] = getVideoNameSortValue(a.video_name);
+        const [mainB, subB] = getVideoNameSortValue(b.video_name);
+
+        if (mainA !== mainB) {
+          return mainA - mainB;
+        }
+
+        if (subA !== subB) {
+          return subA - subB;
+        }
+
+        return a.id - b.id;
+      }
+
+      // A / B 반 정렬
+      // day 필터 후 sortOrder 기준
       const aSort = a.sortOrder ?? 0;
       const bSort = b.sortOrder ?? 0;
 
-      if (aSort !== bSort) return aSort - bSort;
+      if (aSort !== bSort) {
+        return aSort - bSort;
+      }
+
       return a.id - b.id;
     });
 
