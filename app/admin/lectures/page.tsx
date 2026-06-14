@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 
@@ -40,6 +40,46 @@ export default function LectureManagementPage() {
   const getAuthHeaders = () => ({
     Authorization: `Bearer ${localStorage.getItem('token')}`,
   });
+
+  const getVideoNameNumber = (videoName?: string | null) => {
+    if (!videoName) return 999999;
+
+    const match = videoName.match(/^(\d+)/);
+    return match ? Number(match[1]) : 999999;
+  };
+
+  const isPackageCDE = (type: LectureType) => {
+    return type === 'packageC' || type === 'packageD' || type === 'packageE';
+  };
+
+  const sortedLectures = useMemo(() => {
+    return [...lectures].sort((a, b) => {
+      const aIsPackage = isPackageCDE(a.type);
+      const bIsPackage = isPackageCDE(b.type);
+
+      if (aIsPackage && bIsPackage) {
+        const typeCompare = a.type.localeCompare(b.type);
+
+        if (typeCompare !== 0) {
+          return typeCompare;
+        }
+
+        const numA = getVideoNameNumber(a.video_name);
+        const numB = getVideoNameNumber(b.video_name);
+
+        if (numA !== numB) {
+          return numA - numB;
+        }
+
+        return a.id - b.id;
+      }
+
+      if (aIsPackage && !bIsPackage) return 1;
+      if (!aIsPackage && bIsPackage) return -1;
+
+      return a.id - b.id;
+    });
+  }, [lectures]);
 
   const fetchLectures = async () => {
     try {
@@ -100,7 +140,7 @@ export default function LectureManagementPage() {
 
         <div className="bg-white shadow overflow-hidden sm:rounded-md">
           <ul className="divide-y divide-gray-200">
-            {lectures.map((lecture) => (
+            {sortedLectures.map((lecture) => (
               <li key={lecture.id}>
                 <div className="px-3 sm:px-4 py-4">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -117,10 +157,12 @@ export default function LectureManagementPage() {
 
                       <div className="mt-2 text-xs text-gray-500 space-y-1">
                         <p>
-                          categoryId: {lecture.categoryId ?? '-'} / instructorId:{' '}
+                          type: {lecture.type} / categoryId:{' '}
+                          {lecture.categoryId ?? '-'} / instructorId:{' '}
                           {lecture.instructorId ?? '-'} / classGroup:{' '}
                           {lecture.classGroup}
                         </p>
+
                         <p>
                           video_folder: {lecture.video_folder ?? '-'} /
                           video_name: {lecture.video_name ?? '-'}
@@ -161,7 +203,7 @@ export default function LectureManagementPage() {
               </li>
             ))}
 
-            {lectures.length === 0 && (
+            {sortedLectures.length === 0 && (
               <li className="px-4 py-8 text-center text-gray-500 text-sm">
                 등록된 강의가 없습니다.
               </li>
