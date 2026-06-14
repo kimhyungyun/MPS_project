@@ -23,6 +23,7 @@ interface FileItem {
   size: string;
   upload_date: string;
   s3_key: string;
+  roomGroup?: 'A' | 'B';
   user?: {
     mb_nick: string;
   };
@@ -35,8 +36,9 @@ interface User {
   mb_level: number;
 }
 
-const ROOM = 'data1'; // 🔥 이 페이지는 DATA1 자료실
-// DATA2 페이지 만들 땐 'data2' 로 바꾸면 됨
+type CampGroup = 'A' | 'B';
+
+const ROOM = 'data1';
 
 const UploadButton = ({
   onUpload,
@@ -60,15 +62,16 @@ const isAdmin = (user: User | null): user is User => {
 };
 
 const Dataroom1Page = () => {
+  const [selectedGroup, setSelectedGroup] = useState<CampGroup>('A');
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [user, setUser] = useState<User | null>(null);
   const [files, setFiles] = useState<FileItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+
   const router = useRouter();
 
-  // 로그인 안 돼 있으면 접근 불가
   useEffect(() => {
     const userData = localStorage.getItem('user');
     const token = localStorage.getItem('token');
@@ -92,10 +95,11 @@ const Dataroom1Page = () => {
       fetchFiles();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, currentPage, searchTerm]);
+  }, [user, currentPage, searchTerm, selectedGroup]);
 
   const fetchFiles = async () => {
     const token = localStorage.getItem('token');
+
     if (!token) {
       alert('로그인이 필요합니다.');
       router.push('/form/login');
@@ -103,6 +107,7 @@ const Dataroom1Page = () => {
     }
 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
     if (!apiUrl) {
       console.error('API URL is not defined');
       return;
@@ -110,11 +115,13 @@ const Dataroom1Page = () => {
 
     try {
       setIsLoading(true);
+
       const response = await axios.get(`${apiUrl}/api/dataroom`, {
         params: {
           page: currentPage,
           search: searchTerm || undefined,
-          room: ROOM, // 🔥 DATA1 / DATA2 구분
+          room: ROOM,
+          group: selectedGroup,
         },
         headers: {
           Authorization: `Bearer ${token}`,
@@ -130,16 +137,23 @@ const Dataroom1Page = () => {
       }
     } catch (error) {
       console.error('Failed to fetch files:', error);
+
       if (axios.isAxiosError(error)) {
         if (error.response?.status === 401) {
           alert('인증이 만료되었습니다. 다시 로그인해주세요.');
           router.push('/form/login');
-        } else {
-          alert('파일 목록을 불러오는데 실패했습니다.');
+          return;
         }
-      } else {
-        alert('파일 목록을 불러오는데 실패했습니다.');
+
+        if (error.response?.status === 403) {
+          alert('해당 자료실 접근 권한이 없습니다.');
+          setFiles([]);
+          setTotalPages(1);
+          return;
+        }
       }
+
+      alert('파일 목록을 불러오는데 실패했습니다.');
     } finally {
       setIsLoading(false);
     }
@@ -152,6 +166,7 @@ const Dataroom1Page = () => {
     }
 
     const token = localStorage.getItem('token');
+
     if (!token) {
       alert('로그인이 필요합니다.');
       router.push('/form/login');
@@ -166,6 +181,7 @@ const Dataroom1Page = () => {
     formData.append('file', file, encodedFileName);
 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
     if (!apiUrl) {
       console.error('API URL is not defined');
       return;
@@ -173,11 +189,15 @@ const Dataroom1Page = () => {
 
     try {
       setIsLoading(true);
+
       const response = await axios.post(
         `${apiUrl}/api/dataroom/upload`,
         formData,
         {
-          params: { room: ROOM }, // 🔥 DATA1 / DATA2 구분
+          params: {
+            room: ROOM,
+            group: selectedGroup,
+          },
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'multipart/form-data',
@@ -193,19 +213,18 @@ const Dataroom1Page = () => {
       }
     } catch (error) {
       console.error('Failed to upload file:', error);
+
       if (axios.isAxiosError(error) && error.response?.status === 401) {
         alert('인증이 만료되었습니다. 다시 로그인해주세요.');
         router.push('/form/login');
-      } else if (
-        axios.isAxiosError(error) &&
-        error.response?.data?.message
-      ) {
+      } else if (axios.isAxiosError(error) && error.response?.data?.message) {
         alert(error.response.data.message);
       } else {
         alert('파일 업로드에 실패했습니다.');
       }
     } finally {
       setIsLoading(false);
+      event.target.value = '';
     }
   };
 
@@ -226,6 +245,7 @@ const Dataroom1Page = () => {
     if (!confirm('정말로 이 파일을 삭제하시겠습니까?')) return;
 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
     if (!apiUrl) {
       console.error('API URL is not defined');
       return;
@@ -233,6 +253,7 @@ const Dataroom1Page = () => {
 
     try {
       setIsLoading(true);
+
       const response = await axios.delete(`${apiUrl}/api/dataroom/${fileId}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -265,7 +286,9 @@ const Dataroom1Page = () => {
 
     try {
       const res = await axios.get(`${apiUrl}/api/dataroom/presigned`, {
-        params: { key: file.s3_key },
+        params: {
+          key: file.s3_key,
+        },
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -275,12 +298,19 @@ const Dataroom1Page = () => {
       window.location.href = url;
     } catch (error) {
       console.error('Failed to get presigned url:', error);
+
+      if (axios.isAxiosError(error) && error.response?.status === 403) {
+        alert('다운로드 권한이 없습니다.');
+        return;
+      }
+
       alert('파일 다운로드에 실패했습니다.');
     }
   };
 
   const getFileIcon = (fileType: string) => {
     const type = fileType.toLowerCase();
+
     if (type.includes('pdf')) return <FaFilePdf className="text-red-500" />;
 
     if (
@@ -291,15 +321,17 @@ const Dataroom1Page = () => {
       return <FaFilePowerpoint className="text-orange-500" />;
     }
 
-    if (type.includes('word') || type.includes('doc'))
+    if (type.includes('word') || type.includes('doc')) {
       return <FaFileWord className="text-blue-500" />;
+    }
 
     if (
       type.includes('excel') ||
       type.includes('sheet') ||
       type.includes('xls')
-    )
+    ) {
       return <FaFileExcel className="text-green-500" />;
+    }
 
     if (
       type.includes('image') ||
@@ -307,11 +339,13 @@ const Dataroom1Page = () => {
       type.includes('jpeg') ||
       type.includes('png') ||
       type.includes('gif')
-    )
+    ) {
       return <FaFileImage className="text-purple-500" />;
+    }
 
-    if (type.includes('text') || type.includes('txt'))
+    if (type.includes('text') || type.includes('txt')) {
       return <FaFileAlt className="text-gray-500" />;
+    }
 
     return <FaFile className="text-gray-500" />;
   };
@@ -320,29 +354,39 @@ const Dataroom1Page = () => {
     const lower = type.toLowerCase();
 
     if (lower.includes('pdf')) return 'PDF 문서';
+
     if (
       lower.includes('presentation') ||
       lower.includes('powerpoint') ||
       lower.includes('ppt')
-    )
+    ) {
       return 'PPT 문서';
+    }
+
     if (lower.includes('word') || lower.includes('doc')) return '워드 문서';
+
     if (
       lower.includes('excel') ||
       lower.includes('sheet') ||
       lower.includes('xls')
-    )
+    ) {
       return '엑셀 문서';
+    }
+
     if (lower.includes('hwp')) return '한글 문서';
+
     if (
       lower.includes('image') ||
       lower.includes('jpg') ||
       lower.includes('jpeg') ||
       lower.includes('png') ||
       lower.includes('gif')
-    )
+    ) {
       return '이미지 파일';
+    }
+
     if (lower.includes('text') || lower.includes('txt')) return '텍스트 파일';
+
     return '기타 파일';
   };
 
@@ -370,9 +414,14 @@ const Dataroom1Page = () => {
     const pages = [];
     const maxVisiblePages = 10;
 
-    let startPage =
-      Math.max(1, Math.floor((currentPage - 1) / maxVisiblePages) * maxVisiblePages + 1);
-    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+    const startPage = Math.max(
+      1,
+      Math.floor((currentPage - 1) / maxVisiblePages) *
+        maxVisiblePages +
+        1,
+    );
+
+    const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
 
     if (startPage > 1) {
       pages.push(
@@ -392,7 +441,9 @@ const Dataroom1Page = () => {
           key={i}
           onClick={() => handlePageChange(i)}
           className={`px-3 py-1 rounded ${
-            currentPage === i ? 'bg-emerald-600 text-white' : 'hover:bg-slate-100'
+            currentPage === i
+              ? 'bg-emerald-600 text-white'
+              : 'hover:bg-slate-100'
           }`}
         >
           {i}
@@ -418,11 +469,30 @@ const Dataroom1Page = () => {
   return (
     <section className="w-full min-h-screen bg-slate-50 p-8 mt-8 mb-20">
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold text-slate-800 mb-8">
+        <h1 className="text-3xl font-bold text-slate-800 mb-6">
           캠프 자료실
         </h1>
 
-        {/* 검색 + 업로드 */}
+        <div className="flex gap-2 mb-6">
+          {(['A', 'B'] as const).map((group) => (
+            <button
+              key={group}
+              type="button"
+              onClick={() => {
+                setSelectedGroup(group);
+                setCurrentPage(1);
+              }}
+              className={`px-4 py-2 rounded-lg border text-sm font-medium ${
+                selectedGroup === group
+                  ? 'bg-emerald-600 text-white border-emerald-600'
+                  : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+              }`}
+            >
+              {group === 'A' ? 'A 캠프자료실' : 'B 캠프자료실'}
+            </button>
+          ))}
+        </div>
+
         <div className="flex justify-between items-center mb-6">
           <div className="relative flex-1 max-w-md">
             <input
@@ -447,7 +517,6 @@ const Dataroom1Page = () => {
           </div>
         )}
 
-        {/* 목록 */}
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
           <div className="grid grid-cols-12 gap-4 p-4 bg-slate-100 text-sm font-medium text-slate-600">
             <div className="col-span-5">파일명</div>
@@ -476,15 +545,19 @@ const Dataroom1Page = () => {
                       {decodeFileName(file.name)}
                     </span>
                   </div>
+
                   <div className="col-span-2 text-slate-600">
                     {getFileTypeLabel(file.type)}
                   </div>
+
                   <div className="col-span-2 text-slate-600">
                     {formatFileSize(file.size)}
                   </div>
+
                   <div className="col-span-2 text-slate-600">
                     {new Date(file.upload_date).toLocaleDateString()}
                   </div>
+
                   <div className="col-span-1 flex items-center gap-2">
                     <button
                       onClick={() => handleDownload(file)}
@@ -492,6 +565,7 @@ const Dataroom1Page = () => {
                     >
                       다운로드
                     </button>
+
                     {isAdmin(user) && (
                       <button
                         onClick={() => handleDeleteFile(file.id)}

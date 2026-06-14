@@ -4,7 +4,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface Member {
-  mb_no: number; // 권한 API에 넘길 PK (userId 로 사용)
+  mb_no: number;
   mb_id: string;
   mb_name: string;
   mb_hp: string;
@@ -23,11 +23,21 @@ type LectureType =
   | 'packageD'
   | 'packageE';
 
+type DataroomGroup = 'A' | 'B' | 'C' | 'D' | 'E';
+
 interface VideoAuthority {
   id: number;
   userId: number;
   classGroup: ClassGroup | null;
   type: LectureType | null;
+}
+
+interface DataroomAuthority {
+  id: number;
+  userId: number;
+  roomGroup: DataroomGroup;
+  canRead: boolean;
+  canDownload: boolean;
 }
 
 interface UserDevice {
@@ -53,6 +63,14 @@ const VIDEO_TYPE_LABELS: Record<LectureType, string> = {
   packageE: '패키지 E',
 };
 
+const DATAROOM_LABELS: Record<DataroomGroup, string> = {
+  A: 'A 캠프자료실',
+  B: 'B 캠프자료실',
+  C: 'C 강의자료실',
+  D: 'D 강의자료실',
+  E: 'E 강의자료실',
+};
+
 const PACKAGE_TYPES: LectureType[] = [
   'packageA',
   'packageB',
@@ -60,6 +78,8 @@ const PACKAGE_TYPES: LectureType[] = [
   'packageD',
   'packageE',
 ];
+
+const DATAROOM_GROUPS: DataroomGroup[] = ['A', 'B', 'C', 'D', 'E'];
 
 export default function VideoAuthorityPage() {
   const router = useRouter();
@@ -69,7 +89,6 @@ export default function VideoAuthorityPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // ✅ 입력값 / 실제 검색어 분리 (Submit 시에만 searchQuery가 바뀜)
   const [searchInput, setSearchInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -87,6 +106,7 @@ export default function VideoAuthorityPage() {
   const [authoritySaving, setAuthoritySaving] = useState(false);
   const [selectedClassGroups, setSelectedClassGroups] = useState<ClassGroup[]>([]);
   const [selectedVideoTypes, setSelectedVideoTypes] = useState<LectureType[]>([]);
+  const [selectedDataroomGroups, setSelectedDataroomGroups] = useState<DataroomGroup[]>([]);
   const [authorityMessage, setAuthorityMessage] = useState<string | null>(null);
 
   const [devices, setDevices] = useState<UserDevice[]>([]);
@@ -103,9 +123,6 @@ export default function VideoAuthorityPage() {
   const startPage = (currentPageGroup - 1) * pageGroupSize + 1;
   const endPage = Math.min(startPage + pageGroupSize - 1, totalPages);
 
-  // -----------------------------
-  // 로그인 / 권한 체크 + 목록 가져오기
-  // -----------------------------
   useEffect(() => {
     const stored = localStorage.getItem('user');
     if (!stored) {
@@ -128,11 +145,8 @@ export default function VideoAuthorityPage() {
 
     fetchMembers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage, sortKey, sortOrder, searchQuery]); // ✅ searchInput 제거, searchQuery만
+  }, [currentPage, sortKey, sortOrder, searchQuery]);
 
-  // -----------------------------
-  // 회원 목록 가져오기
-  // -----------------------------
   const sortMembers = (list: Member[], key: SortKey | null, order: SortOrder) => {
     if (!key) return list;
 
@@ -156,7 +170,7 @@ export default function VideoAuthorityPage() {
       const params = new URLSearchParams();
       params.set('page', String(currentPage));
       params.set('pageSize', String(pageSize));
-      if (searchQuery) params.set('search', searchQuery); // ✅ searchQuery 사용
+      if (searchQuery) params.set('search', searchQuery);
       if (sortKey) {
         params.set('sortKey', sortKey);
         params.set('sortOrder', sortOrder);
@@ -202,9 +216,6 @@ export default function VideoAuthorityPage() {
     }
   };
 
-  // -----------------------------
-  // 회원 선택 + 권한 + 기기 불러오기
-  // -----------------------------
   const handleSelectMember = async (member: Member) => {
     setSelectedMember(member);
     setSelectedMemberId(member.mb_no ?? null);
@@ -212,6 +223,7 @@ export default function VideoAuthorityPage() {
     setAuthorityMessage(null);
     setSelectedClassGroups([]);
     setSelectedVideoTypes([]);
+    setSelectedDataroomGroups([]);
     setDeviceMessage(null);
     setDevices([]);
 
@@ -229,7 +241,6 @@ export default function VideoAuthorityPage() {
 
     const userId = member.mb_no;
 
-    // ------- 권한 조회 -------
     setAuthorityLoading(true);
     try {
       const res = await fetch(`${API_URL}/api/video-authorities?userId=${userId}`, {
@@ -250,12 +261,36 @@ export default function VideoAuthorityPage() {
           setSelectedClassGroups([]);
           setSelectedVideoTypes([]);
         } else {
-          const cg = data.filter((a) => a.classGroup).map((a) => a.classGroup!) as ClassGroup[];
-          const vt = data.filter((a) => a.type).map((a) => a.type!) as LectureType[];
+          const cg = data
+            .filter((a) => a.classGroup)
+            .map((a) => a.classGroup!) as ClassGroup[];
+
+          const vt = data
+            .filter((a) => a.type)
+            .map((a) => a.type!) as LectureType[];
 
           setSelectedClassGroups(cg);
           setSelectedVideoTypes(vt);
         }
+      }
+
+      const dataroomRes = await fetch(
+        `${API_URL}/api/dataroom-authorities?userId=${userId}`,
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+        },
+      );
+
+      if (dataroomRes.ok) {
+        const data: DataroomAuthority[] = await dataroomRes.json();
+        setSelectedDataroomGroups(data.map((item) => item.roomGroup));
+      } else {
+        setSelectedDataroomGroups([]);
       }
     } catch (err) {
       console.error(err);
@@ -264,7 +299,6 @@ export default function VideoAuthorityPage() {
       setAuthorityLoading(false);
     }
 
-    // ------- 기기 목록 조회 -------
     setDeviceLoading(true);
     try {
       const res = await fetch(
@@ -300,9 +334,6 @@ export default function VideoAuthorityPage() {
     }
   };
 
-  // -----------------------------
-  // 체크 박스 토글
-  // -----------------------------
   const toggleClassGroup = (cg: ClassGroup) => {
     setSelectedClassGroups((prev) =>
       prev.includes(cg) ? prev.filter((v) => v !== cg) : [...prev, cg],
@@ -319,9 +350,14 @@ export default function VideoAuthorityPage() {
     });
   };
 
-  // -----------------------------
-  // 권한 저장
-  // -----------------------------
+  const toggleDataroomGroup = (group: DataroomGroup) => {
+    setSelectedDataroomGroups((prev) =>
+      prev.includes(group)
+        ? prev.filter((v) => v !== group)
+        : [...prev, group],
+    );
+  };
+
   const handleSaveAuthority = async () => {
     if (!selectedMember) {
       setAuthorityMessage('회원이 선택되지 않았습니다.');
@@ -355,11 +391,29 @@ export default function VideoAuthorityPage() {
       });
 
       if (!res.ok) {
-        setAuthorityMessage('권한 저장에 실패했습니다.');
+        setAuthorityMessage('동영상 권한 저장에 실패했습니다.');
         return;
       }
 
-      setAuthorityMessage('권한이 성공적으로 저장되었습니다.');
+      const dataroomRes = await fetch(`${API_URL}/api/dataroom-authorities`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          userId,
+          groups: selectedDataroomGroups,
+        }),
+      });
+
+      if (!dataroomRes.ok) {
+        setAuthorityMessage('동영상 권한은 저장됐지만 자료실 권한 저장에 실패했습니다.');
+        return;
+      }
+
+      setAuthorityMessage('동영상 권한과 자료실 권한이 성공적으로 저장되었습니다.');
     } catch (err) {
       console.error(err);
       setAuthorityMessage('권한 저장 중 오류가 발생했습니다.');
@@ -368,11 +422,9 @@ export default function VideoAuthorityPage() {
     }
   };
 
-  // -----------------------------
-  // 기기 전체 초기화
-  // -----------------------------
   const handleResetDevices = async () => {
     if (!selectedMember) return;
+
     const userId = selectedMember.mb_no;
     if (userId == null) return;
 
@@ -407,14 +459,11 @@ export default function VideoAuthorityPage() {
     }
   };
 
-  // -----------------------------
-  // 검색/페이지 이동
-  // -----------------------------
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setIsSearching(true);
     setCurrentPage(1);
-    setSearchQuery(searchInput.trim()); // ✅ Submit 시에만 실제 검색어 확정
+    setSearchQuery(searchInput.trim());
   };
 
   const handlePrevGroup = () => {
@@ -427,18 +476,13 @@ export default function VideoAuthorityPage() {
     setCurrentPage(Math.min(startPage + pageGroupSize, totalPages));
   };
 
-  // -----------------------------
-  // UI
-  // -----------------------------
   return (
     <div className="min-h-screen bg-gray-50 py-6 sm:py-8 mt-20 sm:mt-24">
-      {/* ✅ sticky 하단 검색바가 내용 가리는 거 방지 */}
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pb-28">
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6 sm:mb-8">
           동영상 권한 및 기기 관리
         </h1>
 
-        {/* 회원 목록 박스 */}
         <div className="bg-white shadow rounded-lg overflow-hidden mb-6">
           <div className="overflow-x-auto w-full">
             {loading ? (
@@ -453,14 +497,16 @@ export default function VideoAuthorityPage() {
               <table className="min-w-full divide-y divide-gray-200 text-xs sm:text-sm">
                 <thead className="bg-gray-50">
                   <tr>
-                    {['번호', '아이디', '이름', '휴대폰', '학교', '권한'].map((head) => (
-                      <th
-                        key={head}
-                        className="px-3 sm:px-6 py-2 sm:py-3 text-center text-[11px] sm:text-xs font-semibold text-gray-600 tracking-wider whitespace-nowrap"
-                      >
-                        {head}
-                      </th>
-                    ))}
+                    {['번호', '아이디', '이름', '휴대폰', '학교', '권한'].map(
+                      (head) => (
+                        <th
+                          key={head}
+                          className="px-3 sm:px-6 py-2 sm:py-3 text-center text-[11px] sm:text-xs font-semibold text-gray-600 tracking-wider whitespace-nowrap"
+                        >
+                          {head}
+                        </th>
+                      ),
+                    )}
                   </tr>
                 </thead>
 
@@ -511,7 +557,6 @@ export default function VideoAuthorityPage() {
           </div>
         </div>
 
-        {/* 페이지네이션 */}
         {totalPages > 1 && (
           <div className="mt-4 mb-8 flex justify-center">
             <nav className="flex items-center gap-1.5 sm:gap-2">
@@ -522,22 +567,25 @@ export default function VideoAuthorityPage() {
               >
                 &lt;
               </button>
-              {Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i).map(
-                (page) => (
-                  <button
-                    key={page}
-                    onClick={() => setCurrentPage(page)}
-                    disabled={loading}
-                    className={`w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-md text-xs sm:text-sm font-medium transition-colors ${
-                      currentPage === page
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
-                    } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    {page}
-                  </button>
-                ),
-              )}
+
+              {Array.from(
+                { length: endPage - startPage + 1 },
+                (_, i) => startPage + i,
+              ).map((page) => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  disabled={loading}
+                  className={`w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-md text-xs sm:text-sm font-medium transition-colors ${
+                    currentPage === page
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+                  } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  {page}
+                </button>
+              ))}
+
               <button
                 onClick={handleNextGroup}
                 disabled={endPage === totalPages || loading}
@@ -549,7 +597,6 @@ export default function VideoAuthorityPage() {
           </div>
         )}
 
-        {/* 동영상 권한 + 기기 박스 */}
         <div ref={authorityPanelRef} className="bg-white shadow rounded-lg p-4 sm:p-6">
           <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">
             {selectedMember
@@ -572,20 +619,27 @@ export default function VideoAuthorityPage() {
               )}
 
               {authorityLoading ? (
-                <p className="text-xs sm:text-sm text-gray-500">권한 정보를 불러오는 중...</p>
+                <p className="text-xs sm:text-sm text-gray-500">
+                  권한 정보를 불러오는 중...
+                </p>
               ) : (
                 <div className="space-y-5 sm:space-y-6">
                   <div>
                     <h3 className="text-xs sm:text-sm font-medium text-gray-800 mb-2">
                       캠프강의 권한
                     </h3>
+
                     <div className="flex flex-wrap gap-3">
                       {(['A', 'B'] as ClassGroup[]).map((cg) => (
-                        <label key={cg} className="inline-flex items-center gap-2 text-xs sm:text-sm">
+                        <label
+                          key={cg}
+                          className="inline-flex items-center gap-2 text-xs sm:text-sm"
+                        >
                           <input
                             type="checkbox"
                             checked={selectedClassGroups.includes(cg)}
                             onChange={() => toggleClassGroup(cg)}
+                            disabled={authoritySaving}
                             className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                           />
                           <span>{CLASS_GROUP_LABELS[cg]}</span>
@@ -605,6 +659,7 @@ export default function VideoAuthorityPage() {
                           type="checkbox"
                           checked={selectedVideoTypes.includes('single')}
                           onChange={() => toggleVideoType('single')}
+                          disabled={authoritySaving}
                           className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                         />
                         <span>{VIDEO_TYPE_LABELS.single}</span>
@@ -613,14 +668,42 @@ export default function VideoAuthorityPage() {
 
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                       {PACKAGE_TYPES.map((vt) => (
-                        <label key={vt} className="inline-flex items-center gap-2 text-xs sm:text-sm">
+                        <label
+                          key={vt}
+                          className="inline-flex items-center gap-2 text-xs sm:text-sm"
+                        >
                           <input
                             type="checkbox"
                             checked={selectedVideoTypes.includes(vt)}
                             onChange={() => toggleVideoType(vt)}
+                            disabled={authoritySaving}
                             className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                           />
                           <span>{VIDEO_TYPE_LABELS[vt]}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="mt-6 border-t pt-4">
+                    <h3 className="text-xs sm:text-sm font-medium text-gray-800 mb-2">
+                      자료실 권한
+                    </h3>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {DATAROOM_GROUPS.map((group) => (
+                        <label
+                          key={group}
+                          className="inline-flex items-center gap-2 text-xs sm:text-sm"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedDataroomGroups.includes(group)}
+                            onChange={() => toggleDataroomGroup(group)}
+                            disabled={authoritySaving}
+                            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                          />
+                          <span>{DATAROOM_LABELS[group]}</span>
                         </label>
                       ))}
                     </div>
@@ -639,14 +722,15 @@ export default function VideoAuthorityPage() {
                     </button>
                   </div>
 
-                  {/* 기기 관리 섹션 */}
                   <div className="mt-6 border-t pt-4">
                     <h3 className="text-xs sm:text-sm font-medium text-gray-800 mb-2">
                       등록된 재생 기기 (최대 2대)
                     </h3>
 
                     {deviceLoading ? (
-                      <p className="text-xs sm:text-sm text-gray-500">기기 정보를 불러오는 중...</p>
+                      <p className="text-xs sm:text-sm text-gray-500">
+                        기기 정보를 불러오는 중...
+                      </p>
                     ) : devices.length === 0 ? (
                       <p className="text-xs sm:text-sm text-gray-500">
                         등록된 기기가 없습니다. (유저가 처음 재생하는 2개의 기기로 자동 등록됩니다.)
@@ -660,15 +744,18 @@ export default function VideoAuthorityPage() {
                           >
                             <div className="flex-1">
                               <div className="font-medium">
-                                {index + 1}번 기기{d.deviceName ? ` - ${d.deviceName}` : ''}
+                                {index + 1}번 기기
+                                {d.deviceName ? ` - ${d.deviceName}` : ''}
                               </div>
                               <div className="text-[11px] sm:text-xs text-gray-600 break-all">
                                 ID: {d.deviceId}
                               </div>
                               <div className="text-[11px] sm:text-xs text-gray-500 mt-1">
-                                등록: {d.createdAt && new Date(d.createdAt).toLocaleString()}
+                                등록:{' '}
+                                {d.createdAt && new Date(d.createdAt).toLocaleString()}
                                 {' / '}
-                                최근 사용: {d.lastUsedAt && new Date(d.lastUsedAt).toLocaleString()}
+                                최근 사용:{' '}
+                                {d.lastUsedAt && new Date(d.lastUsedAt).toLocaleString()}
                               </div>
                             </div>
                           </div>
@@ -696,7 +783,6 @@ export default function VideoAuthorityPage() {
         </div>
       </div>
 
-      {/* ✅ 검색창: 화면 하단에 고정 (테이블 높이 바뀌어도 안 흔들림) */}
       <div className="sticky bottom-0 z-20 bg-gray-50 border-t border-gray-200">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-center">
