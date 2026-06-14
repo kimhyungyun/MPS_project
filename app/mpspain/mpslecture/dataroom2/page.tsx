@@ -469,7 +469,7 @@ const Dataroom2Page = () => {
   return (
     <section className="w-full min-h-screen bg-slate-50 p-8 mt-8 mb-20">
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold text-slate-800 mb-6">
+        <h1 className="text-3xl font-bold text-slate-800 mb-6 mt-10">
           강의 자료실
         </h1>
 
